@@ -1,0 +1,23 @@
+.thankYouContainer {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.title {
+  font-size: 2rem;
+  color: var(--color-neon-secondary);
+  text-shadow: var(--shadow-neon-secondary);
+}
+
+.message {
+  font-size: 1.2rem;
+  color: var(--color-text-primary);
+  margin-top: 1rem;
+}
+
+.nextStep {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  margin-top: 1.5rem;
+  font-style: italic;
+}

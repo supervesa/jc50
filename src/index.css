@@ -1,0 +1,478 @@
+/* jc-neon.css
+   Neon Gatsby v2: Tron & Technoir style system
+   Käyttötarkoitukset: layout, typografia, UI-komponentit, lomakkeet, kortit, modalit, nav, footer
+*/
+
+/* -------------------------
+   DESIGN VARIABLES (THEME)
+   ------------------------- */
+:root{
+  /* Core */
+  --bg-deep: #0b0b10;            /* tausta */
+  --bg-mid:  #121218;            /* kortti tausta */
+  --cream:   #F7F5E6;            /* leipäteksti */
+  --muted:   #888888;            /* toissijainen teksti */
+
+  /* Neon core */
+  --magenta: #FF00E5;
+  --turquoise:#00E7FF;
+  --amethyst:#9932CC;
+  --lime:    #ADFF2F;
+  --sun:     #FFA500;
+  --plasma-gold: #D4AF37;
+  --laser-white: #EAFBFF;
+
+  /* Layout sizing */
+  --max-width:1200px;
+  --container-pad: clamp(1rem, 3vw, 4rem);
+
+  /* Elevation */
+  --glass-blur: 8px;
+  --card-radius: 14px;
+
+  /* Motion */
+  --fast: 120ms;
+  --mid: 240ms;
+  --slow: 420ms;
+}
+
+/* Accessibility / reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root { --fast:0ms; --mid:0ms; --slow:0ms; }
+  * { animation-duration: 0ms !important; transition-duration: 0ms !important; }
+}
+
+/* -------------------------
+   GLOBAL / BASE
+   ------------------------- */
+*{box-sizing:border-box}
+html,body{height:100%; margin:0; background: radial-gradient(1200px 360px at 10% 20%, rgba(0,230,255,0.02), transparent), linear-gradient(180deg,var(--bg-deep),#07070a); color:var(--cream); font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+a{color:inherit; text-decoration:none}
+
+/* Thin ambient grain to give filmic/noisy look */
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:2000;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23g)" opacity="0.02" fill="black"/></svg>');
+  opacity:0.6;
+}
+
+/* -------------------------
+   LAYOUT / CONTAINERS
+   ------------------------- */
+.jc-wrapper{
+  max-width:var(--max-width);
+  margin:0 auto;
+  padding: var(--container-pad);
+  position:relative;
+  z-index:10;
+}
+
+/* Full-bleed hero container */
+.jc-hero{
+  min-height: 70vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:2rem;
+  position:relative;
+  overflow:visible;
+}
+
+/* Grid helper */
+.jc-grid{ display:grid; grid-template-columns: repeat(12, 1fr); gap:1.25rem; }
+.jc-col-6{ grid-column: span 6; }
+.jc-col-4{ grid-column: span 4; }
+.jc-col-12{ grid-column: span 12; }
+
+/* -------------------------
+   BACKGROUND / GLASS / LAYERS
+   ------------------------- */
+/* WebGL canvas sits under everything */
+#jc-gl{
+  position:fixed; inset:0; width:100%; height:100%; z-index:0; display:block;
+  background: transparent;
+}
+
+/* Subtle city silhouettes & haze */
+.jc-haze{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:
+    radial-gradient(800px 200px at 20% 20%, rgba(255,0,230,0.02), transparent 8%),
+    radial-gradient(900px 240px at 85% 80%, rgba(0,231,255,0.02), transparent 9%);
+  mix-blend-mode:screen;
+  filter: blur(6px) contrast(1.05);
+}
+
+/* Frosted glass card (primary UI surface) */
+.jc-card{
+  position:relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.1);
+  border-radius: var(--card-radius);
+  padding: clamp(1rem,2.5vw,2.6rem);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.03);
+  z-index:5;
+  transform: translateZ(0);
+  transition: transform var(--mid) ease, backdrop-filter var(--mid);
+}
+
+/* Metal stroke around cards (SVG overlay recommended) */
+.jc-metalStroke {
+  position:absolute; inset:0; pointer-events:none; z-index:6;
+}
+
+/* Card hover micro-motion */
+.jc-card:hover{
+  transform: translateY(-6px);
+  backdrop-filter: blur(calc(var(--glass-blur) + 4px)) saturate(1.15);
+}
+
+/* -------------------------
+   TYPOGRAPHY
+   ------------------------- */
+/* Decorative headline (H1/H2) */
+h1.jc-h1, h2.jc-h2{
+  font-family: "Cinzel", serif; text-transform:uppercase; letter-spacing:0.12em;
+  margin:0 0 0.6rem 0;
+  line-height:1;
+  color:var(--cream);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* H1 special */
+h1.jc-h1{
+  font-size:clamp(2.4rem, 6vw, 5rem);
+  text-shadow:
+    0 0 18px rgba(255,0,229,0.08),
+    0 0 36px rgba(0,231,255,0.04);
+  /* optional neon outline with CSS mask if needed */
+}
+
+/* H2 */
+h2.jc-h2{ font-size:clamp(1.2rem, 2.6vw, 2.4rem); color:var(--plasma-gold); }
+
+/* Lead & body */
+p.lead{ color: rgba(247,245,230,0.95); font-size:1.05rem; line-height:1.8; margin:0 0 1rem;}
+p{ color: rgba(247,245,230,0.85); margin:0 0 1rem; line-height:1.7; font-size:0.98rem; }
+
+/* Small / muted */
+.small { font-size:0.9rem; color:var(--muted); }
+
+/* Emphasis neon span helper */
+.neon{
+  color:var(--laser-white);
+  background: linear-gradient(90deg,var(--magenta),var(--turquoise));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow: 0 0 8px rgba(255,0,229,0.12);
+}
+
+/* -------------------------
+   BUTTONS & CTA
+   ------------------------- */
+.jc-cta{
+  display:inline-block;
+  padding:0.75rem 1.2rem;
+  border-radius:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  cursor:pointer;
+  border:2px solid transparent;
+  transition: all var(--fast) ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+}
+
+/* Primary neon CTA */
+.jc-cta.primary{
+  background: linear-gradient(90deg, var(--magenta), var(--turquoise));
+  color:var(--bg-deep);
+  box-shadow: 0 12px 40px rgba(255,0,229,0.12), 0 6px 18px rgba(0,231,255,0.06);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.jc-cta.primary:hover{
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(255,0,229,0.18);
+}
+
+/* Ghost / outline CTA */
+.jc-cta.ghost{
+  background:transparent;
+  color:var(--cream);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 20px rgba(0,231,255,0.03) inset;
+}
+.jc-cta.ghost:hover{
+  background: linear-gradient(90deg, rgba(255,0,229,0.06), rgba(0,231,255,0.04));
+  transform: translateY(-2px);
+}
+
+/* -------------------------
+   ICONS & BADGES
+   ------------------------- */
+.jc-badge{
+  display:inline-flex; align-items:center; gap:0.4rem;
+  padding:0.25rem 0.5rem; border-radius:999px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+  border:1px solid rgba(255,255,255,0.03);
+  color:var(--cream); font-weight:600; font-size:0.85rem;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.45);
+}
+
+/* -------------------------
+   FORMS (jc-form)
+   Usage: <form class="jc-form"> ... </form>
+   ------------------------- */
+.jc-form{ display:block; gap:0.8rem; width:100%; max-width:720px; }
+
+/* Input base */
+.jc-form .jc-field{
+  display:flex; flex-direction:column; gap:0.45rem; margin-bottom:0.9rem;
+}
+.jc-form label{ font-size:0.85rem; color:var(--muted); display:inline-block; margin-bottom:0.25rem; }
+.jc-form input[type="text"],
+.jc-form input[type="email"],
+.jc-form input[type="password"],
+.jc-form textarea,
+.jc-form select{
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+  color:var(--cream);
+  border: 1px solid rgba(255,255,255,0.04);
+  padding:0.85rem 1rem;
+  border-radius:10px;
+  outline:none;
+  transition: box-shadow var(--fast), transform var(--fast);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  font-size:0.98rem;
+}
+
+/* Focus glow */
+.jc-form input:focus, .jc-form textarea:focus, .jc-form select:focus{
+  box-shadow: 0 6px 30px rgba(0,231,255,0.06), 0 0 18px rgba(255,0,229,0.06);
+  border-color: rgba(0,231,255,0.18);
+  transform: translateY(-1px);
+}
+
+/* Placeholder color */
+.jc-form ::placeholder { color: rgba(255,255,255,0.25); }
+
+/* Textarea */
+.jc-form textarea{ min-height:120px; resize:vertical; }
+
+/* Toggle (switch) */
+.jc-toggle{
+  display:inline-flex; align-items:center; gap:0.6rem; cursor:pointer;
+}
+.jc-toggle .track{
+  width:44px; height:24px; border-radius:999px; background:rgba(255,255,255,0.04); position:relative;
+  transition: background var(--fast);
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.5);
+}
+.jc-toggle .knob{
+  width:18px; height:18px; border-radius:50%; background:var(--bg-deep); position:absolute; left:3px; top:3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  transition: left var(--fast), box-shadow var(--fast), transform var(--fast);
+}
+.jc-toggle.on .track{ background: linear-gradient(90deg,var(--magenta),var(--turquoise)); }
+.jc-toggle.on .knob{ left:calc(100% - 21px); box-shadow: 0 8px 30px rgba(0,231,255,0.12); transform:scale(0.98); }
+
+/* Checkbox / radio with neon effect */
+.jc-check, .jc-radio{
+  display:inline-flex; align-items:center; gap:0.6rem; cursor:pointer;
+}
+.jc-check input[type="checkbox"], .jc-radio input[type="radio"]{ display:none; }
+.jc-check .box{
+  width:18px; height:18px; border-radius:4px; border:1px solid rgba(255,255,255,0.06);
+  background:transparent; position:relative; transition: all var(--fast);
+}
+.jc-check input:checked + .box{
+  background: linear-gradient(90deg,var(--magenta),var(--turquoise));
+  box-shadow: 0 6px 18px rgba(255,0,229,0.12);
+  border-color: rgba(255,255,255,0.06);
+}
+
+/* Select with fake arrow */
+.jc-form select{ appearance:none; background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.2) 50%), linear-gradient(135deg, rgba(255,255,255,0.2) 50%, transparent 50%); background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 13px) calc(1em + 2px); background-size: 6px 6px, 6px 6px; background-repeat:no-repeat; padding-right:2.6rem; }
+
+/* -------------------------
+   FORMS: validation / messages
+   ------------------------- */
+.jc-help{ font-size:0.85rem; color:var(--muted); margin-top:0.25rem; }
+.jc-error{ color:#ff6b6b; font-weight:600; font-size:0.92rem; }
+
+/* -------------------------
+   LOGO & EMBLEM
+   ------------------------- */
+/* Use SVG for best results. This is a small helper if embedding inline SVG */
+.jc-logo{
+  display:inline-block; width:160px; height:auto;
+  filter: drop-shadow(0 10px 30px rgba(0,0,0,0.6));
+}
+
+/* -------------------------
+   CARD VARIANTS: small, medium, glass-panel
+   ------------------------- */
+.jc-card.small{ padding:1rem; border-radius:10px; }
+.jc-card.medium{ padding:1.6rem; border-radius:12px; }
+.jc-card.panel{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+/* -------------------------
+   FOOTER / NAV
+   ------------------------- */
+.jc-footer{ padding:2rem 0; border-top:1px solid rgba(255,255,255,0.03); color:var(--muted); }
+
+/* -------------------------
+   UTILITIES
+   ------------------------- */
+.flex{ display:flex; align-items:center; gap:1rem; }
+.center{display:flex; justify-content:center; align-items:center}
+.mt-2{margin-top:2rem}
+.mb-2{margin-bottom:2rem}
+
+/* -------------------------
+   RESPONSIVE
+   ------------------------- */
+@media (max-width:900px){
+  .jc-grid{ grid-template-columns: repeat(6, 1fr); }
+  .jc-col-6{ grid-column: span 6; }
+  h1.jc-h1{ font-size: clamp(1.6rem, 7vw, 2.6rem); }
+  .jc-wrapper{ padding: clamp(0.8rem, 5vw, 1.6rem); }
+  :root{ --glass-blur: 6px; }
+}
+
+/* Small mobile */
+@media (max-width:480px){
+  .jc-grid{ grid-template-columns: repeat(4, 1fr); }
+  .jc-form { max-width:100%; }
+  :root{ --glass-blur: 4px; --container-pad: 1rem; }
+}
+
+/* -------------------------
+   HERO & SPLASH-SÄÄNNÖT
+   ------------------------- */
+
+/* Muokkaa olemassa olevaa .jc-hero -sääntöä: */
+.jc-hero {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  position: relative;
+  /* Muutettu 'visible' -> 'hidden' estämään vierityspalkit splash-tilassa */
+  overflow: hidden; 
+  
+  /* TÄRKEIN LISÄYS:
+    Määritellään siirtymä (transition) korkeudelle.
+    Tämä animoi muutoksen 100vh -> 70vh sulavasti.
+    cubic-bezier tekee siitä tyylikkään "kiihdytyksen".
+  */
+  transition: min-height 1.2s cubic-bezier(0.86, 0, 0.07, 1);
+}
+
+/* UUSI SÄÄNTÖ:
+  Tämä on päällä, kun 'isSplash' -tila on 'true'.
+*/
+.jc-hero.splash-mode {
+  /* Ylikirjoitetaan 70vh -> 100vh */
+  min-height: 100vh;
+  height: 100vh;
+}
+
+/* VAPAAEHTOINEN LISÄYS:
+  Häivytetään tekstit sisään dramaattisesti 
+  vain splash-tilassa.
+*/
+.jc-hero.splash-mode > div { /* Kohdistuu siihen z-index: 10 -diviin */
+  animation: fadeIn 1.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------
+   SPLASH-TEKSTIEN ANIMAATIOT
+   ------------------------- */
+
+/* 1. UUDET Animaatiot */
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes starDustOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.3); /* Zoomaa ulos hajotessaan */
+    filter: blur(4px);   /* "Hajonta" */
+  }
+}
+
+/* 2. UUDET Luokat splash-teksteille */
+.splash-text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.splash-line {
+  /* Käytetään oletuksena h2-tyyliä (kulta) */
+  font-family: "Cinzel", serif;
+  font-size: clamp(1.2rem, 2.6vw, 2.4rem);
+  color: var(--plasma-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0.2rem 0;
+  line-height: 1.2;
+  
+  /* Animaatioasetukset */
+  opacity: 0; /* Oletuksena piilossa */
+  
+  /* Käytetään kahta animaatiota: zoomIn ja starDustOut */
+  animation-name: zoomIn, starDustOut;
+  animation-duration: 0.7s, 1.2s; /* sisääntulo (0.7s), ulosmeno (1.2s) */
+  animation-timing-function: ease-out, ease-in;
+  animation-fill-mode: forwards; /* Pysyy viimeisessä tilassa (piilossa) */
+}
+
+/* Viimeinen rivi saa isomman, jc-h1-tyylin */
+.splash-line.large {
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  color: var(--cream);
+  text-shadow: 0 0 18px rgba(255,0,229,0.08), 0 0 36px rgba(0,231,255,0.04);
+  margin-top: 1rem;
+}
+
+
+/* 3. LISÄYS: Normaalin sisällön sisääntuloanimaatio */
+/* Tämä tekee siirtymästä splash -> normaali sulavan */
+.hero-content-container {
+  /* Käytetään olemassa olevaa fadeIn-animaatiota, 
+     jonka määrittelimme aiemmin */
+  animation: fadeIn 1s ease-out;
+}
+
+/* Muistutuksena, fadeIn-animaation pitäisi olla jo olemassa:
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+*/

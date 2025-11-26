@@ -1,0 +1,26 @@
+.registrationSection {
+  background-color: #1a1a1a;
+  border: 1px solid var(--color-accent-gold);
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.registrationSection h2 {
+  font-size: 2rem;
+  color: var(--color-neon-primary);
+}
+
+.registrationSection p {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  max-width: 500px;
+  margin: 0 auto 2rem auto;
+}
+
+.formPlaceholder {
+  background-color: #111;
+  padding: 3rem;
+  border-radius: 4px;
+  border: 1px dashed var(--color-text-secondary);
+}

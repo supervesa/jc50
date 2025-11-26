@@ -1,0 +1,22 @@
+.card {
+  background-color: #1a1a1a;
+  border: 1px solid var(--color-accent-gold);
+  padding: 1.5rem;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  color: var(--color-neon-secondary);
+  text-shadow: var(--shadow-neon-secondary);
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+.cardContent {
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  line-height: 1.7;
+}

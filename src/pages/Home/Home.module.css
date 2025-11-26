@@ -1,0 +1,35 @@
+.homeContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.heroSection {
+  text-align: center;
+  padding: 4rem 1rem;
+  border: 2px solid var(--color-accent-gold);
+  background-color: #1a1a1a; /* Hieman vaaleampi kuin tausta */
+  border-radius: 8px;
+  margin-bottom: 3rem;
+}
+
+.heroSection h2 {
+  font-family: var(--font-body);
+  font-size: 1.5rem;
+  color: var(--color-neon-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+  text-shadow: var(--shadow-neon-secondary);
+  margin: 0;
+}
+
+.heroSection h1 {
+  font-size: 3rem;
+  margin: 0.5rem 0;
+}
+
+.heroSection p {
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
+  margin: 0;
+}
