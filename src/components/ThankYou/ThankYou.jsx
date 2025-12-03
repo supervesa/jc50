@@ -12,8 +12,7 @@ function ThankYou() {
         Kiitos ilmoittautumisesta. Olet virallisesti listalla.
       </p>
       <p>
-        Pidä silmällä sähköpostiasi. Saat pian salaisen viestin, joka sisältää
-        hahmosi ja taustatarinasi iltaa varten...
+        Pidä sähköpostiasi silmällä. Saat vielä tärkeää lisätietoa ennen juhlia — muista tarkistaa myös roskaposti varmuuden vuoksi.
       </p>
     </div>
   );
