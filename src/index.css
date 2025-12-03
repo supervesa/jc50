@@ -773,3 +773,68 @@ p {
   border-left: none;
   border-top: none;
 }
+
+/* -------------------------
+   ADMIN DASHBOARD STYLES
+   ------------------------- */
+
+/* Filtterinapit */
+.jc-filter-btn, .jc-view-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--muted);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.jc-filter-btn:hover, .jc-view-btn:hover {
+  border-color: var(--turquoise);
+  color: #fff;
+}
+
+.jc-filter-btn.active, .jc-view-btn.active {
+  background: rgba(0, 231, 255, 0.15);
+  border-color: var(--turquoise);
+  color: var(--turquoise);
+  box-shadow: 0 0 10px rgba(0, 231, 255, 0.1);
+}
+
+/* Taulukko (List View) */
+.jc-table-container {
+  overflow-x: auto; /* Scrollaus mobiilissa */
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.jc-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.jc-table th {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.jc-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.jc-table tr:last-child td {
+  border-bottom: none;
+}
+
+.jc-table tr:hover {
+  background: rgba(255, 255, 255, 0.03); /* Hover efekti riville */
+}

@@ -16,6 +16,8 @@ function App() {
           <Route path="/relaatiopuu" element={<RelationshipMap />} />
           <Route path="/lataa-kuva" element={<UploadPhoto />} />
           <Route path="/salaisuus" element={<SecretPage />} />
+          {/* Muuta path haluamaksesi, esim "/hallinta" tai "/admin" */}
+  <Route path="/salaisuus" element={<SecretPage />} />
         </Routes>
       </main>
       <Footer />
