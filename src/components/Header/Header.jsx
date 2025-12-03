@@ -19,19 +19,20 @@ function Header() {
         style={{ justifyContent: 'space-between' }}
       >
         
-        {/* 4. Poistetaan turhat luokat logosta */}
+        {/* 4. Poistetaan turhat luokat logosta
         <h1>
           <Link to="/">
-            JC - Jukka Club
+            JC50
           </Link>
-        </h1>
+        </h1> */}
         
-        {/* 5. Käytetään .flex-luokkaa navigaatiolinkkien asetteluun */}
+        {/* 5. Käytetään .flex-luokkaa navigaatiolinkkien asetteluun
         <nav className="flex">
           <Link to="/">Koti</Link>
           <Link to="/relaatiopuu">Relaatiopuu</Link>
           <Link to="/salaisuus">Salainen</Link>
-        </nav>
+        </nav> */}
+
       </div>
     </header>
   );

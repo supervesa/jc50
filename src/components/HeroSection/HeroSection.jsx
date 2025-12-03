@@ -1,103 +1,113 @@
 import React, { useRef, useEffect, useState } from 'react';
 
-// Nämä ovat uudet animoitavat tekstit
 const splashLines = [
-  "Jälleen kerran..",
+  "On tullut aika...",
   "pimeän ja kylmän keskellä..",
-  "puolivuosisadan juhlat",
-  "JC50 - Jukka Club"
+  "juhlia puolivuosisadan kunniaksi",
+  "J:Club 50", // Tämä on indeksi 3 (Large)
+  "Hold on to your hat, nu kör vi!" // Tämä on indeksi 4
 ];
 
-// Lasketaan animaation kesto CSS-asetusten perusteella
-// (Rivien määrä - 1) * porrastus + viimeisen rivin kesto
-// (4 - 1) * 1.5s + (0.7s + 1.2s) + 0.5s puskuri = 4.5s + 1.9s + 0.5s = 6.9s
-const SPLASH_TOTAL_DURATION = 6900; // 6.9 sekuntia millisekunteina
+// LASKUKAAVA:
+// (Viimeinen indeksi 4 * tahti 2.2s) + luku-aika 1.5s + puskuri 1s
+// 8.8s + 1.5s + 1s = n. 11.5s
+const SPLASH_TOTAL_DURATION = 11500; 
 
 function HeroSection() {
   const canvasRef = useRef(null);
   const [isSplash, setIsSplash] = useState(false);
 
-// --- SPLASH-LOGIIKKA (PAKOTETTU PÄÄLLE KEHITYSTÄ VARTEN) ---
+  // --- SPLASH-LOGIIKKA (KEHITYSTILA: AINA PÄÄLLÄ) ---
   useEffect(() => {
-    
-    // 1. POISTA TAI KOMMENTOI NÄMÄ RIVIT VÄLIAIKAISESTI:
-    // const hasVisited = sessionStorage.getItem('hasVisited');
-    // if (!hasVisited) {
-    //   sessionStorage.setItem('hasVisited', 'true');
-    // }
-
-    // 2. Aseta splash-tila päälle JOKA Kerta
     setIsSplash(true); 
     
-    // 3. Aseta ajastin, joka poistaa sen animaation jälkeen
     const timer = setTimeout(() => {
       setIsSplash(false);
-    }, SPLASH_TOTAL_DURATION); // 6.9 sekuntia
+    }, SPLASH_TOTAL_DURATION);
 
     return () => clearTimeout(timer); 
+  }, []); 
 
-    // 4. POISTA TAI KOMMENTOI MYÖS TÄMÄ LOPETUS-AALTOSULJE:
-    // } 
-    
-  }, []); // Tyhjä taulukko [] on tärkeä
-
-  // --- CANVAS-ANIMAATIO (Pysyy samana) ---
+  // --- CANVAS-ANIMAATIO: RAFFI DIGI-ROMU ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return; 
-    
     const ctx = canvas.getContext('2d');
     let frameId; 
 
-    if (canvas.parentElement) {
-      canvas.width = canvas.parentElement.offsetWidth;
-      canvas.height = canvas.parentElement.offsetHeight;
-    } else {
-      canvas.width = window.innerWidth;
-      canvas.height = 300; 
-    }
+    const handleResize = () => {
+      if (canvas.parentElement) {
+        canvas.width = canvas.parentElement.offsetWidth;
+        canvas.height = canvas.parentElement.offsetHeight;
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
 
     let particles = [];
-    const particleCount = 70;
-    const particleColor = 'rgba(0, 231, 255, 0.6)';
+    const particleCount = 120; // Hieman vähemmän, mutta isompia
 
     for (let i = 0; i < particleCount; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3, 
-        vy: (Math.random() - 0.5) * 0.3, 
-        radius: Math.random() * 1.5,
+        // Paljon kovempi vauhti sivulle (viima)
+        vx: Math.random() * 4 + 2, 
+        // Kovempi putoamisvauhti
+        vy: Math.random() * 3 + 3,   
+        // Koko vaihtelee enemmän (pienestä pölystä isoihin siruihin)
+        size: Math.random() * 5 + 1, 
+        // Pyöriminen (rotaatio)
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 0.2,
+        color: `rgba(${200 + Math.random()*55}, ${230 + Math.random()*25}, 255, ${Math.random() * 0.5 + 0.2})`
       });
     }
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = particleColor;
+      
       particles.forEach(p => {
         p.x += p.vx;
         p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
+        p.rotation += p.rotationSpeed;
+
+        // Respawn
+        if (p.y > canvas.height || p.x > canvas.width) {
+            p.y = -20; 
+            p.x = Math.random() * (canvas.width + 200) - 200; 
+            p.vx = Math.random() * 4 + 2;
+            p.vy = Math.random() * 3 + 3;
+        }
+
+        // PIIRRETÄÄN NELIÖITÄ JA SUORAKULMIOITA (RAFFIMPI)
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.fillStyle = p.color;
+        
+        // Piirretään suorakulmio (x, y, width, height)
+        // Osa on neliöitä, osa "tikkuja"
+        const width = p.size;
+        const height = p.size * (Math.random() > 0.5 ? 1 : 3); // 50% mahis olla pitkä siru
+        
+        ctx.fillRect(-width / 2, -height / 2, width, height);
+        ctx.restore();
       });
+      
       frameId = requestAnimationFrame(animate);
     }
     animate(); 
-    return () => cancelAnimationFrame(frameId);
-  }, []); 
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
-  // --- RENDERÖINTI (PÄIVITETTY EHDOHIN) ---
   const heroClasses = `jc-hero ${isSplash ? 'splash-mode' : ''}`;
 
   return (
     <header className={heroClasses}>
-      
-      {/* Canvas on aina taustalla */}
       <canvas 
         ref={canvasRef} 
         style={{ 
@@ -107,21 +117,18 @@ function HeroSection() {
         }} 
       />
       
-      {/* TÄMÄ ON PÄÄMUUTOS:
-        Näytetään joko splash-tekstit TAI normaali sisältö
-      */}
       {isSplash ? (
-        // --- NÄYTETÄÄN KUN isSplash = TRUE ---
-        <div className="splash-text-container" style={{ position: 'relative', zIndex: 10 }}>
+        // SPLASH-TEKSTIT
+        <div className="splash-text-container" style={{ position: 'relative', zIndex: 10, width: '100%' }}>
           {splashLines.map((line, index) => (
             <h1 
               key={index} 
+              // Jos haluat "JC50" isoksi, pidä index === 3.
+              // Jos haluat viimeisen lauseen isoksi, muuta index === 4.
               className={`splash-line ${index === 3 ? 'large' : ''}`} 
               style={{
-                // Porrastetaan animaatiot 1.5s välein
-                // Sisääntulo alkaa (indeksi * 1.5s)
-                // Ulosmeno alkaa (indeksi * 1.5s) + 0.7s (sisääntulon kesto)
-                animationDelay: `calc(${index} * 1.5s), calc(${index} * 1.5s + 0.7s)`
+                // Nopeutin tahtia hieman (2.5s -> 2.2s), jotta jaksaa odottaa loppuun
+                animationDelay: `calc(${index} * 2.2s), calc(${index} * 2.2s + 1.5s)`
               }}
             >
               {line}
@@ -129,10 +136,10 @@ function HeroSection() {
           ))}
         </div>
       ) : (
-        // --- NÄYTETÄÄN KUN isSplash = FALSE ---
+        // NORMAALI OTSIKKO
         <div className="hero-content-container" style={{ position: 'relative', zIndex: 10 }}> 
           <h2 className="jc-h2">Tervetuloa</h2>
-          <h1 className="jc-h1">JC - Jukka Clubiin</h1>
+          <h1 className="jc-h1">J:Club 50 <br />It's crazy <br />it's party </h1>
           <p className="lead">Eksklusiivinen ilta Jukan 50-vuotisen matkan kunniaksi.</p>
         </div>
       )}

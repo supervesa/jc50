@@ -79,10 +79,30 @@ function RegistrationForm({ onSuccess }) {
         />
       </div>
 
-      {/* Puoliso-valinta (Rakenne muuttuu tyylien takia) */}
-      {/* 4. Tämä on tärkeä muutos .jc-check -tyyliä varten */}
-      <div className="jc-field">
-        <label htmlFor="bringsSpouse" className="jc-check">
+   {/* --- TYYLIKÄS JA HILLITTY AVEC-VALINTA --- */}
+      <div 
+        className="jc-field" 
+        style={{ 
+          marginTop: '1.5rem',
+          marginBottom: '1rem',
+          // Poistetaan laatikkomaisuus, annetaan vain tilaa
+          padding: '0.5rem 0'
+        }}
+      >
+        <label 
+          htmlFor="bringsSpouse" 
+          className="jc-check"
+          style={{ 
+            fontSize: '1rem', 
+            fontWeight: '500',
+            // Väri on himmeä jos ei valittu, ja kirkas turkoosi jos valittu
+            color: bringsSpouse ? 'var(--turquoise)' : 'rgba(255, 255, 255, 0.7)',
+            transition: 'color 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer'
+          }}
+        >
           <input
             type="checkbox"
             id="bringsSpouse"
@@ -90,16 +110,26 @@ function RegistrationForm({ onSuccess }) {
             checked={bringsSpouse}
             onChange={(e) => setBringsSpouse(e.target.checked)}
           />
-          {/* Tämä span luo kustomoidun valintaruudun */}
-          <span className="box"></span>
-          Saavun puolison kanssa
+          
+          {/* Valintaruutu: pidetään se tyylikkäänä */}
+          <span className="box" style={{ 
+            marginRight: '12px',
+            // Jos valittu, laatikko hohtaa
+            boxShadow: bringsSpouse ? '0 0 10px var(--turquoise)' : 'none',
+            borderColor: bringsSpouse ? 'var(--turquoise)' : 'rgba(255,255,255,0.3)'
+          }}></span>
+          
+          Ilmoitan itseni lisäksi toisen henkilön
         </label>
       </div>
 
       {/* Ehdollisesti näytettävä puolison nimi */}
+      {/* Tämä tulee nätisti esiin animaatiolla */}
       {bringsSpouse && (
-        <div className="jc-field">
-          <label htmlFor="spouse_name">Puolison nimi</label>
+        <div className="jc-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+          <label htmlFor="spouse_name" style={{ color: 'var(--turquoise)', fontSize: '0.9rem' }}>
+            Hänen nimensä
+          </label>
           <input
             type="text"
             id="spouse_name"
@@ -107,6 +137,9 @@ function RegistrationForm({ onSuccess }) {
             value={formData.spouse_name}
             onChange={handleChange}
             required
+            placeholder="Etunimi Sukunimi"
+            // Reuna on turkoosi korostaakseen yhteyttä yllä olevaan valintaan
+            style={{ borderColor: 'var(--turquoise)' }}
           />
         </div>
       )}
