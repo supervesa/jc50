@@ -5,6 +5,7 @@ import Home from './pages/Home/Home.jsx';
 import RelationshipMap from './pages/RelationshipMap/RelationshipMap.jsx';
 import UploadPhoto from './pages/UploadPhoto/UploadPhoto.jsx';
 import SecretPage from './pages/SecretPage/SecretPage.jsx';
+import TicketPage from './pages/TicketPage/TicketPage.jsx'; // Muista import!
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/salaisuus" element={<SecretPage />} />
           {/* Muuta path haluamaksesi, esim "/hallinta" tai "/admin" */}
   <Route path="/salaisuus" element={<SecretPage />} />
+  <Route path="/lippu/:id" element={<TicketPage />} />
         </Routes>
       </main>
       <Footer />

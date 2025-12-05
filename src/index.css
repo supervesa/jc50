@@ -838,3 +838,100 @@ p {
 .jc-table tr:hover {
   background: rgba(255, 255, 255, 0.03); /* Hover efekti riville */
 }
+
+/* -------------------------
+   NEON SELECT (DROPDOWN)
+   ------------------------- */
+
+.jc-select {
+  appearance: none; /* Poistaa selaimen vakio-ulkoasun */
+  -webkit-appearance: none;
+  
+  width: 100%;
+  padding: 0.6rem 1rem;
+  padding-right: 2.5rem; /* Tilaa nuolelle */
+  
+  font-family: "Outfit", sans-serif;
+  font-size: 0.95rem;
+  color: var(--cream);
+  
+  /* Lasimainen / Tech tausta */
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(0, 231, 255, 0.3); /* Himmeä turkoosi reuna */
+  border-radius: 6px;
+  
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Kustomoitu nuoli (SVG data-urina) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300E7FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem;
+}
+
+/* Hover-tila */
+.jc-select:hover {
+  border-color: var(--turquoise);
+  box-shadow: 0 0 10px rgba(0, 231, 255, 0.15);
+}
+
+/* Focus-tila (kun valikko on auki) */
+.jc-select:focus {
+  outline: none;
+  border-color: var(--magenta);
+  box-shadow: 0 0 15px rgba(255, 0, 229, 0.25);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FF00E5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Valikon sisällä olevat optiot (Selaimet rajoittavat näiden tyylittelyä, mutta tumma tausta toimii) */
+.jc-select option {
+  background-color: #0b0b10; /* --bg-deep */
+  color: #fff;
+  padding: 10px;
+}
+
+/* -------------------------
+   NEON SLIDER (FIXED)
+   ------------------------- */
+.jc-zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8); /* Hieman tummempi tausta */
+  padding: 10px 15px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  
+  /* TÄRKEÄT KORJAUKSET: */
+  z-index: 999; /* Varmasti kaiken päällä */
+  transform: translateZ(0); /* Pakottaa omalle piirtotasolle */
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.jc-slider {
+  -webkit-appearance: none;
+  width: 120px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer; /* Varmistetaan kursori */
+}
+
+/* Nupin tyylit (pysyvät samoina, mutta varmista että ne ovat tallella) */
+.jc-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--turquoise);
+  box-shadow: 0 0 10px var(--turquoise);
+  cursor: pointer;
+  margin-top: -6px;
+}
