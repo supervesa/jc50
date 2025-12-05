@@ -6,7 +6,7 @@ import RelationshipMap from './pages/RelationshipMap/RelationshipMap.jsx';
 import UploadPhoto from './pages/UploadPhoto/UploadPhoto.jsx';
 import SecretPage from './pages/SecretPage/SecretPage.jsx';
 import TicketPage from './pages/TicketPage/TicketPage.jsx'; // Muista import!
-
+import LiveWall from './pages/LiveWall/LiveWall.jsx';
 function App() {
   return (
     <div className="App">
@@ -20,6 +20,8 @@ function App() {
           {/* Muuta path haluamaksesi, esim "/hallinta" tai "/admin" */}
   <Route path="/salaisuus" element={<SecretPage />} />
   <Route path="/lippu/:id" element={<TicketPage />} />
+  {/* UUSI REITTI */}
+          <Route path="/live" element={<LiveWall />} />
         </Routes>
       </main>
       <Footer />

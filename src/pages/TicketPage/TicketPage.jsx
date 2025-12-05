@@ -262,7 +262,10 @@ function TicketPage() {
                     <div style={{ 
                       width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', 
                       border: '3px solid #fff', boxShadow: '0 0 15px rgba(255,255,255,0.3)', margin: '0 auto',
-                      backgroundImage: `url(${char.avatar_url || 'https://via.placeholder.com/150?text=?'})`,
+                    // Jos avatar_url puuttuu, käytetään värillistä diviä tai luotettavaa placeholderia
+                      backgroundImage: char.avatar_url 
+                        ? `url(${char.avatar_url})` 
+                        : 'linear-gradient(135deg, #333, #666)', // Tyylikäs harmaa liuku oletuksena
                       backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#333'
                     }}></div>
                     
