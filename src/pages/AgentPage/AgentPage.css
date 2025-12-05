@@ -1,0 +1,148 @@
+/* src/pages/AgentPage/AgentPage.css */
+
+/* Päivitetään container käyttämään flexiä */
+.ap-container {
+  height: 100vh; /* Koko ruutu */
+  background-color: #050505;
+  color: #eee;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1000;
+  overflow: hidden; /* Estä tuplaskrollaus */
+}
+
+.ap-header {
+  flex-shrink: 0; /* Header ei kutistu */
+  display: flex;
+  align-items: center;
+  background: #111;
+  padding: 10px;
+  border-bottom: 2px solid #333;
+}
+
+.ap-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin-right: 10px; border: 1px solid #555; }
+.ap-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ap-initial { width: 100%; height: 100%; background: #222; color: #00ff41; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+.ap-info .ap-label { font-size: 8px; color: #00ff41; letter-spacing: 1px; }
+.ap-name { margin: 0; font-size: 14px; text-transform: uppercase; }
+
+/* --- CHAT STREAM --- */
+.ap-chat-stream {
+  flex-grow: 1; /* Vie kaiken vapaan tilan */
+  overflow-y: auto; /* Skrollattava */
+  padding: 15px;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 80px; /* Tilaa inputille */
+}
+
+.ap-chat-intro {
+  text-align: center;
+  color: #444;
+  font-size: 0.8rem;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 10px;
+}
+
+.chat-row {
+  display: flex;
+  width: 100%;
+}
+
+.row-me { justify-content: flex-end; }
+.row-other { justify-content: flex-start; }
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 10px;
+  border-radius: 8px;
+  position: relative;
+  font-size: 0.95rem;
+  word-wrap: break-word;
+}
+
+.row-me .chat-bubble {
+  background: #0f2b15;
+  border: 1px solid #00ff41;
+  color: #fff;
+  border-bottom-right-radius: 0;
+}
+
+.row-other .chat-bubble {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #ddd;
+  border-bottom-left-radius: 0;
+}
+
+.chat-sender {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  color: #666;
+}
+.row-me .chat-sender { text-align: right; color: #00ff41; }
+.row-other .chat-sender { text-align: left; color: #aaa; }
+
+/* --- INPUT AREA (Fixed bottom) --- */
+.ap-input-area {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #111;
+  padding: 10px;
+  border-top: 1px solid #333;
+}
+
+.ap-form {
+  display: flex;
+  gap: 10px;
+}
+
+.ap-chat-input {
+  flex-grow: 1;
+  background: #000;
+  border: 1px solid #555;
+  color: white;
+  padding: 12px;
+  border-radius: 20px;
+  font-size: 1rem;
+  outline: none;
+}
+.ap-chat-input:focus { border-color: #00ff41; }
+
+.ap-send-btn {
+  background: #00ff41;
+  color: black;
+  border: none;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- POLL SECTION --- */
+/* Pidä aiemmat poll-tyylit, mutta varmista että ne eivät ole kiinteitä */
+.ap-poll-section {
+  background: #2a0505;
+  border-bottom: 2px solid red;
+  padding: 15px;
+  flex-shrink: 0; /* Ei kutistu */
+}
+.ap-poll-badge { background: red; color: black; padding: 2px 5px; font-size: 10px; display: inline-block; font-weight: bold; }
+.ap-poll-question { margin: 5px 0 10px 0; font-size: 1.1rem; }
+.ap-poll-options { display: flex; flex-direction: column; gap: 5px; }
+.ap-poll-btn { background: transparent; border: 1px solid red; color: white; padding: 10px; text-transform: uppercase; }
+.ap-voted-msg { color: #00ff41; border: 1px solid #00ff41; padding: 10px; text-align: center; }

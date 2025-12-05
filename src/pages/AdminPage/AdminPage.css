@@ -1,0 +1,248 @@
+/* src/pages/AdminPage/AdminPage.css */
+
+.admin-container {
+  background-color: #111;
+  color: #eee;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: sans-serif;
+  padding-bottom: 100px;
+  box-sizing: border-box;
+  
+  /* Varmistetaan että näkyy kaleidoskoopin päällä */
+  position: relative;
+  z-index: 2000;
+}
+
+h1 {
+  color: #fff;
+  text-align: center;
+  margin-bottom: 30px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 20px;
+}
+
+h2 {
+  color: #888;
+  font-size: 1rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid #444;
+  padding-bottom: 5px;
+  margin-bottom: 15px;
+}
+
+/* --- LOMAKKEET --- */
+.admin-panel {
+  background: #222;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 40px;
+  border: 1px solid #444;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block; /* Tämä pakottaa labelin omalle rivilleen */
+  margin-bottom: 5px;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.input-field {
+  width: 100%; /* Pakottaa kentän täyteen leveyteen */
+  padding: 12px;
+  background: #000;
+  border: 1px solid #555;
+  color: white;
+  font-size: 1rem;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.btn-create {
+  width: 100%;
+  padding: 15px;
+  background: #007bff;
+  color: white;
+  border: none;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+/* --- TULOSPALKIT --- */
+.admin-results {
+  margin-top: 10px;
+  background: #000;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+.admin-result-row {
+  margin-bottom: 12px;
+}
+
+.result-label {
+  display: flex;
+  justify-content: space-between; /* Nimet vasemmalle, luvut oikealle */
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 4px;
+}
+
+.leader-text {
+  color: #00ff41;
+  font-weight: bold;
+}
+
+.result-count {
+  font-family: monospace;
+  color: #fff;
+}
+
+.result-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.result-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.poll-total {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #555;
+  margin-top: 5px;
+}
+
+/* --- LIVE SECTION (PUNAINEN PULSSI) --- */
+.live-section {
+  margin-bottom: 40px;
+  animation: pulseBorder 2s infinite;
+}
+
+.active-card-large {
+  background: #112211;
+  border: 2px solid #00ff41;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.live-title {
+  color: red;
+  text-shadow: 0 0 10px red;
+}
+
+.poll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.poll-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.btn-stop-large {
+  padding: 10px 20px;
+  background: #ffc107;
+  color: black;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* --- HISTORIA LISTA --- */
+.history-card {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.history-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #ddd;
+}
+
+.btn-start-small {
+  padding: 8px 15px;
+  background: #28a745;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* --- PANIC BUTTON --- */
+.panic-section {
+  margin-top: 50px;
+}
+.btn-panic {
+  width: 100%;
+  padding: 20px;
+  background: #dc3545;
+  color: white;
+  border: 2px solid red;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+@keyframes pulseBorder {
+  0% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.3); }
+  100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); }
+}
+
+/* Lisää CSS:ään */
+
+.history-actions {
+  display: flex;
+  gap: 10px; /* Väliä PLAY ja DELETE nappien väliin */
+}
+
+.btn-delete-small {
+  padding: 8px 12px;
+  background: #333; /* Tumma tausta oletuksena */
+  color: #ff4444; /* Punainen roskis-ikoni */
+  border: 1px solid #ff4444;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-delete-small:hover {
+  background: #ff4444;
+  color: white;
+}

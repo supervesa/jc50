@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabaseClient';
 import ElectricWave from './ElectricWave';
 import PhotoCard from './PhotoCard';
 import Kaleidoscope from '../../components/WebGLBackground/Kaleidoscope';
+import ChatOverlay from './ChatOverlay';
+import PollTakeover from './PollTakeover';
 import './LiveWall.css';
 
 function LiveWall() {
@@ -183,7 +185,9 @@ function LiveWall() {
 
       {/* 2. SÄHKÖKÄYRÄ */}
       <ElectricWave />
-
+{/* UUSI CHAT TÄHÄN */}
+      <ChatOverlay />
+      <PollTakeover />
       {/* 3. LOGO */}
       <div className="jc-live-logo">
         <h1>JC 50</h1>

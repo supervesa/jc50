@@ -1,0 +1,106 @@
+/* Koko ruudun peittävä overlay */
+.jc-poll-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9); /* Melkein peittävä musta */
+  z-index: 10000; /* Kaiken päälle */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  animation: fadeInGlitch 0.3s ease-out;
+  backdrop-filter: blur(10px);
+}
+
+@keyframes fadeInGlitch {
+  0% { opacity: 0; transform: scale(1.1); filter: hue-rotate(90deg); }
+  50% { opacity: 1; transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Kysymyslaatikko */
+.jc-poll-container {
+  width: 80%;
+  max-width: 900px;
+  background: #000;
+  border: 4px solid red;
+  box-shadow: 0 0 50px red;
+  padding: 40px;
+  text-align: center;
+  position: relative;
+}
+
+.jc-poll-question {
+  font-size: 3rem;
+  color: red;
+  text-transform: uppercase;
+  margin-bottom: 40px;
+  text-shadow: 0 0 10px red;
+  font-family: 'Impact', sans-serif; /* Tai joku paksu fontti */
+  letter-spacing: 2px;
+}
+
+/* Varoitusnauha ylhäällä ja alhaalla */
+.jc-poll-alert-stripe {
+  position: absolute;
+  top: 50px;
+  width: 100%;
+  background: red;
+  color: black;
+  font-weight: bold;
+  font-size: 1.5rem;
+  padding: 10px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  gap: 50px;
+  transform: rotate(-2deg) scale(1.1);
+  box-shadow: 0 0 20px red;
+}
+
+/* Palkit */
+.jc-poll-row {
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+.jc-poll-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.jc-opt-name { color: white; }
+.jc-opt-count { color: var(--neon-blue); }
+
+.jc-poll-bar-bg {
+  width: 100%;
+  height: 30px;
+  background: #222;
+  border: 1px solid #555;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.jc-poll-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, darkred, red, orange);
+  box-shadow: 0 0 15px red;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.jc-poll-instructions {
+  margin-top: 40px;
+  font-size: 1.2rem;
+  color: #fff;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
