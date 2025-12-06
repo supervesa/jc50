@@ -122,33 +122,108 @@
   overflow-y: auto;
   padding: 15px;
   background: #0a0a0a;
+  /* Lisätty: väli elementtien välille */
+  display: flex;
+  flex-direction: column;
+  gap: 20px; 
 }
-.mission-intro { text-align: center; color: #666; font-size: 0.8rem; margin-bottom: 20px; font-style: italic; }
+
+/* Päivitetty intro näyttämään viivalta tekstin takana */
+.mission-intro { 
+  text-align: center; 
+  color: #666; 
+  font-size: 0.8rem; 
+  margin: 10px 0; 
+  font-style: italic; 
+  border-bottom: 1px solid #333; 
+  line-height: 0.1em;
+}
+/* Lisätty: peittää viivan tekstin kohdalta */
+.mission-intro p { 
+  background: #0a0a0a; 
+  padding: 0 10px; 
+  display: inline-block;
+}
 
 .mission-card {
   background: #151515;
   border: 1px solid #333;
   border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
+  /* Muutettu: enemmän tilaa ylhäällä badgen takia */
+  padding: 25px 15px 15px 15px; 
   position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 .mission-card.done { border-color: #004d00; opacity: 0.6; }
 
+/* UUSI: Wanted-badge vasempaan yläkulmaan */
+.mission-badge {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  background-color: #333;
+  color: #ccc;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  border: 1px solid #555;
+}
+
 .mission-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-.mission-title { font-weight: bold; color: #fff; font-size: 1rem; }
-.mission-xp { background: #222; color: #ffd700; padding: 2px 6px; font-size: 0.8rem; border-radius: 4px; font-weight: bold; }
+.mission-title { font-weight: bold; color: #fff; font-size: 1rem; line-height: 1.2; margin-right: 10px; }
+
+/* Muokattu: XP kultaiseksi */
+.mission-xp { 
+  background: #1a1a1a; 
+  color: #ffd700; 
+  padding: 2px 6px; 
+  font-size: 0.8rem; 
+  border-radius: 4px; 
+  font-weight: bold; 
+  border: 1px solid #ffd700;
+  white-space: nowrap;
+}
 
 .mission-action { margin-top: 10px; }
-.mission-desc { font-size: 0.8rem; color: #aaa; margin-bottom: 5px; }
-.code-input-row { display: flex; gap: 10px; }
-.code-input-row input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 10px; text-align: center; letter-spacing: 3px; font-size: 1.1rem; border-radius: 4px; }
-.code-input-row button { background: #333; color: #fff; border: 1px solid #555; padding: 0 15px; border-radius: 4px; font-weight: bold; }
+.mission-desc { font-size: 0.9rem; color: #aaa; margin-bottom: 15px; }
+
+/* UUSI: Korostusväri tekstin sekaan */
+.tag-highlight { color: #ffd700; font-weight: bold; text-transform: uppercase; }
+
+.code-input-row { display: flex; gap: 10px; width: 100%; }
+
+.code-input-row input { 
+  flex: 1; 
+  /* TÄRKEÄ: Estää inputtia venymästä ulos ruudusta mobiilissa */
+  min-width: 0; 
+  background: #000; 
+  border: 1px solid #444; 
+  color: #fff; 
+  padding: 12px; 
+  text-align: center; 
+  letter-spacing: 3px; 
+  font-size: 1rem; 
+  border-radius: 4px; 
+}
+
+.code-input-row button { 
+  /* TÄRKEÄ: Estää nappia kutistumasta */
+  flex-shrink: 0;
+  background: #333; 
+  color: #fff; 
+  border: 1px solid #555; 
+  padding: 0 15px; 
+  border-radius: 4px; 
+  font-weight: bold; 
+  text-transform: uppercase;
+}
 
 .mission-done-badge { color: #00ff41; font-weight: bold; text-align: center; padding: 10px; border: 1px dashed #004d00; background: rgba(0,77,0,0.1); }
 .no-missions { text-align: center; color: #444; margin-top: 30px; }
 
-/* --- POLL SECTION --- */
+/* --- POLL SECTION (Ei muutoksia) --- */
 .ap-poll-section { flex-shrink: 0; background: #2a0505; border-bottom: 2px solid red; padding: 10px 15px; }
 .ap-poll-badge { background: red; color: black; padding: 2px 6px; font-size: 10px; font-weight: bold; display: inline-block; margin-bottom: 5px; }
 .ap-poll-question { margin: 0 0 10px 0; font-size: 1.1rem; }
