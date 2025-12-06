@@ -246,3 +246,83 @@ h2 {
   background: #ff4444;
   color: white;
 }
+
+/* Lisää nämä olemassa olevan CSS:n perään tai päivitä vastaavat kohdat */
+
+/* --- TABS --- */
+.admin-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+}
+
+.admin-tabs button {
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+  flex: 1;
+}
+
+.admin-tabs button.active {
+  background: #00ff41;
+  color: #000;
+  border-color: #00ff41;
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+}
+
+/* --- FLASH BUTTONS --- */
+.flash-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.btn-flash {
+  padding: 30px 10px;
+  font-size: 1.1rem;
+  border: 2px solid #fff;
+  color: #fff;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.btn-flash.mob { border-color: #ff00ff; color: #ff00ff; grid-column: span 2; }
+.btn-flash.race { border-color: yellow; color: yellow; }
+.btn-flash.photo { border-color: cyan; color: cyan; }
+
+.btn-flash:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+
+/* --- ACTIVE FLASH CARD --- */
+.flash-active-card {
+  background: #2a0000;
+  border: 3px solid red;
+  padding: 20px;
+  text-align: center;
+  animation: pulse 1s infinite;
+}
+
+.flash-stats {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 20px 0;
+  color: #fff;
+}
+
+.blink { animation: blinker 1s linear infinite; color: red; }
+@keyframes blinker { 50% { opacity: 0; } }
+
+/* --- MISSION LIST --- */
+.mission-row {
+  display: flex;
+  justify-content: space-between;
+  background: #111;
+  padding: 10px;
+  margin-bottom: 5px;
+  border: 1px solid #333;
+  align-items: center;
+}
+
+.small-text { color: #666; font-size: 0.8rem; margin-top: -15px; margin-bottom: 15px; }

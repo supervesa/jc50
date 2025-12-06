@@ -1,68 +1,77 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import './AgentPage.css';
+
+// Komponentit
+import AgentHeader from './AgentHeader';
+import AgentChat from './AgentChat';
+import AgentMissions from './AgentMissions';
+import RewardOverlay from './RewardOverlay'; // <--- UUSI
 
 const AgentPage = () => {
   const [searchParams] = useSearchParams();
   const guestId = searchParams.get('id');
 
-  const [identity, setIdentity] = useState(null);
+  // UI STATE
+  const [activeTab, setActiveTab] = useState('CHAT'); 
   const [loading, setLoading] = useState(true);
   
-  const [message, setMessage] = useState('');
+  // REWARD STATE (UUSI)
+  const [rewardData, setRewardData] = useState(null); // { xp: 500, reason: 'Hyvä tanssi' }
+
+  // DATA STATE
+  const [identity, setIdentity] = useState(null);
+  const [myScore, setMyScore] = useState(0);
+  const [myRank, setMyRank] = useState('Harjoittelija');
+  const [characterMap, setCharacterMap] = useState({});
   const [chatHistory, setChatHistory] = useState([]); 
-  const [status, setStatus] = useState('idle');
-  const chatEndRef = useRef(null);
-  
+
+  // GAME STATE
   const [activePoll, setActivePoll] = useState(null);
   const [hasVoted, setHasVoted] = useState(false);
+  const [missions, setMissions] = useState([]);
+  const [completedMissionIds, setCompletedMissionIds] = useState([]); 
+  const [activeFlash, setActiveFlash] = useState(null);
+  const [flashResponseSent, setFlashResponseSent] = useState(false);
 
-  // MUUTOS: Sanakirja tallentaa nyt objektin { name, avatar }
-  const [characterMap, setCharacterMap] = useState({});
-
-  // ... (formatTime funktio pysyy samana) ...
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    const now = new Date();
-    const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    const timeStr = date.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
-    return isToday ? timeStr : `${date.toLocaleDateString('fi-FI', { weekday: 'short' })} ${timeStr}`; 
+  // --- APU: RANK ---
+  const calculateRank = (points) => {
+    if (points >= 2000) return '00-AGENTTI';
+    if (points >= 1000) return 'MESTARIVAKOOJA';
+    if (points >= 500) return 'KENTTÄAGENTTI';
+    if (points >= 100) return 'TIEDUSTELIJA';
+    return 'HARJOITTELIJA';
   };
 
+  // --- 1. DATAHAKU JA REALTIME ---
   useEffect(() => {
     if (!guestId) { setLoading(false); return; }
 
     const init = async () => {
-      // 1. HAE KAIKKI HAHMOT + AVATARIT
+      // (Sama alustuskoodi kuin aiemmin, ei muutoksia tässä lohkossa...)
+      // ...
       const { data: allChars } = await supabase.from('characters').select('assigned_guest_id, name, avatar_url');
-      
       const charMap = {};
-      if (allChars) {
-        allChars.forEach(c => {
-          if (c.assigned_guest_id) {
-            // Jos ID löytyy jo, lisätään nimi perään, mutta pidetään eka avatar (yksinkertaisuuden vuoksi)
-            if (charMap[c.assigned_guest_id]) {
-              charMap[c.assigned_guest_id].name += ` & ${c.name}`;
-              // Jos aiemmalla ei ollut avataria mutta tällä on, päivitetään se
-              if (!charMap[c.assigned_guest_id].avatar && c.avatar_url) {
-                charMap[c.assigned_guest_id].avatar = c.avatar_url;
-              }
-            } else {
-              charMap[c.assigned_guest_id] = {
-                name: c.name,
-                avatar: c.avatar_url
-              };
-            }
-          }
-        });
-      }
+      if (allChars) allChars.forEach(c => {
+        if (c.assigned_guest_id) {
+           if(charMap[c.assigned_guest_id]) {
+             charMap[c.assigned_guest_id].name += ` & ${c.name}`;
+             if(!charMap[c.assigned_guest_id].avatar) charMap[c.assigned_guest_id].avatar = c.avatar_url;
+           } else {
+             charMap[c.assigned_guest_id] = { name: c.name, avatar: c.avatar_url };
+           }
+        }
+      });
       setCharacterMap(charMap);
 
-      // ... (Identiteetin haku pysyy samana) ...
-      const { data: myChars } = await supabase.from('characters').select('*').eq('assigned_guest_id', guestId);
       const { data: myGuest } = await supabase.from('guests').select('name').eq('id', guestId).single();
+      const { data: myChars } = await supabase.from('characters').select('*').eq('assigned_guest_id', guestId);
+      const { data: scoreData } = await supabase.from('leaderboard').select('total_score').eq('guest_id', guestId).single();
+      
+      const score = scoreData?.total_score || 0;
+      setMyScore(score);
+      setMyRank(calculateRank(score));
 
       if (myChars && myChars.length > 0) {
         setIdentity({
@@ -70,129 +79,168 @@ const AgentPage = () => {
           realName: myGuest?.name,
           role: myChars[0].role,
           avatar: myChars[0].avatar_url,
-          isCharacter: true
+          isCharacter: true,
+          agentCode: myChars[0].agent_code 
         });
       } else {
-        setIdentity({ charName: null, realName: myGuest?.name || 'Tuntematon', role: 'Vieras', avatar: null, isCharacter: false });
+        setIdentity({ charName: null, realName: myGuest?.name || 'Tuntematon', role: 'Vieras', avatar: null, isCharacter: false, agentCode: 'N/A' });
       }
 
-      // ... (Historia ja Poll pysyy samana) ...
       const { data: history } = await supabase.from('chat_messages').select('*, guests(name)').order('created_at', { ascending: true });
       if (history) setChatHistory(history);
 
       const { data: poll } = await supabase.from('polls').select('*').eq('status', 'active').maybeSingle();
       if (poll) { setActivePoll(poll); checkIfVoted(poll.id); }
 
+      const { data: missionData } = await supabase.from('missions').select('*').eq('is_active', true);
+      if (missionData) setMissions(missionData);
+
+      const { data: myLogs } = await supabase.from('mission_log').select('mission_id').eq('guest_id', guestId);
+      if (myLogs) setCompletedMissionIds(myLogs.map(l => l.mission_id));
+
+      const { data: flash } = await supabase.from('flash_missions').select('*').eq('status', 'active').maybeSingle();
+      if (flash) { setActiveFlash(flash); checkFlashResponse(flash.id); }
+
       setLoading(false);
     };
 
     init();
 
-    // ... (Realtime subscriptionit pysyvät samoina) ...
-    const chatSub = supabase.channel('agent_chat_v3').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, 
-      async (payload) => {
+    // --- REALTIME SUBSCRIPTIONS ---
+    const chatSub = supabase
+      .channel('ag_chat')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
         const { data: sender } = await supabase.from('guests').select('name').eq('id', payload.new.guest_id).single();
-        const newMsg = { ...payload.new, guests: { name: sender?.name || 'Unknown' } };
-        setChatHistory(prev => [...prev, newMsg]);
-      }
-    ).subscribe();
+        setChatHistory(prev => [...prev, { ...payload.new, guests: { name: sender?.name || 'Unknown' } }]);
+      })
+      .subscribe();
+      
+    const pollSub = supabase
+      .channel('ag_poll')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'polls' }, (payload) => {
+        if (payload.new.status === 'active') { setActivePoll(payload.new); setHasVoted(false); } else { setActivePoll(null); }
+      })
+      .subscribe();
 
-    const pollSub = supabase.channel('agent_polls_v3').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'polls' }, 
-      (payload) => {
-        if (payload.new.status === 'active') { setActivePoll(payload.new); setHasVoted(false); } 
-        else { setActivePoll(null); }
-      }
-    ).subscribe();
+    const flashSub = supabase
+      .channel('ag_flash')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flash_missions' }, (payload) => {
+        if (payload.new.status === 'active') { setActiveFlash(payload.new); setFlashResponseSent(false); } 
+        else { setActiveFlash(null); }
+      })
+      .subscribe();
 
-    return () => { supabase.removeChannel(chatSub); supabase.removeChannel(pollSub); };
+    // --- TÄSSÄ OLI ONGELMA: PISTEIDEN KUUNTELU ---
+    const scoreSub = supabase
+      .channel('ag_score')
+      .on(
+        'postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'mission_log' }, 
+        (payload) => {
+          console.log("Uusi logi-merkintä saapui:", payload.new);
+
+          // TARKISTUS: Kuuluuko tämä piste minulle?
+          if (payload.new.guest_id === guestId) {
+            
+            // 1. Päivitä pisteet (Optimistinen päivitys)
+            setMyScore(prev => {
+              const newScore = prev + payload.new.xp_earned;
+              setMyRank(calculateRank(newScore));
+              return newScore;
+            });
+            
+            // 2. Päivitä tehtävälista suoritetuksi
+            if (payload.new.mission_id) {
+              setCompletedMissionIds(prev => [...prev, payload.new.mission_id]);
+            }
+
+            // 3. NÄYTÄ PALKINTORUUTU!
+            setRewardData({
+              xp: payload.new.xp_earned,
+              // Jos on custom_reason (Admin bonus), käytä sitä. Muuten geneerinen.
+              reason: payload.new.custom_reason || 'Tehtävä suoritettu'
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { 
+      supabase.removeChannel(chatSub); 
+      supabase.removeChannel(pollSub);
+      supabase.removeChannel(flashSub);
+      supabase.removeChannel(scoreSub);
+    };
+
+    return () => subs.forEach(s => supabase.removeChannel(s));
   }, [guestId]);
 
-  useEffect(() => { setTimeout(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100); }, [chatHistory, activePoll]);
-
-  // ... (handlerit pysyvät samoina) ...
-  const checkIfVoted = async (pollId) => { const { data } = await supabase.from('poll_votes').select('id').eq('poll_id', pollId).eq('guest_id', guestId).maybeSingle(); if (data) setHasVoted(true); };
+  // --- HANDLERS ---
+  const checkIfVoted = async (pollId) => { 
+    const { data } = await supabase.from('poll_votes').select('id').eq('poll_id', pollId).eq('guest_id', guestId).maybeSingle(); 
+    if (data) setHasVoted(true); 
+  };
   const handleVote = async (index) => { if (!activePoll || hasVoted) return; setHasVoted(true); await supabase.from('poll_votes').insert({ poll_id: activePoll.id, guest_id: guestId, option_index: index }); };
-  const handleSend = async (e) => { e.preventDefault(); if (!message.trim()) return; setStatus('sending'); const { error } = await supabase.from('chat_messages').insert({ guest_id: guestId, message: message.trim() }); if (!error) { setMessage(''); setStatus('sent'); setTimeout(() => setStatus('idle'), 1000); } else setStatus('error'); };
+  const handleSend = async (msg) => { const { error } = await supabase.from('chat_messages').insert({ guest_id: guestId, message: msg.trim() }); return !error; };
+
+  const checkFlashResponse = async (flashId) => { const { data } = await supabase.from('flash_responses').select('id').eq('flash_id', flashId).eq('guest_id', guestId).maybeSingle(); if (data) setFlashResponseSent(true); };
+  
+  const handleFlashAction = async () => {
+    if (!activeFlash || flashResponseSent) return;
+    setFlashResponseSent(true);
+    await supabase.from('flash_responses').insert({ flash_id: activeFlash.id, guest_id: guestId });
+    // Flashin pisteet tulevat Realtime-kanavan kautta takaisin ja laukaisevat RewardOverlayn
+    await supabase.from('mission_log').insert({ guest_id: guestId, xp_earned: activeFlash.xp_reward, custom_reason: `Flash: ${activeFlash.title}` });
+  };
+
 
   if (loading) return <div className="ap-loading">LADATAAN...</div>;
   if (!guestId || !identity) return <div className="ap-error">VIRHEELLINEN ID</div>;
 
   return (
     <div className="ap-container">
-      {/* HEADER */}
-      <div className="ap-header">
-        <div className="ap-avatar">
-          {identity.avatar ? <img src={identity.avatar} alt="" /> : <div className="ap-initial">{identity.realName.charAt(0)}</div>}
-        </div>
-        <div className="ap-info">
-          <div className="ap-label">AGENTTI: {identity.realName.toUpperCase()}</div>
-          <h1 className="ap-name">{identity.charName || identity.realName}</h1>
-        </div>
+      <AgentHeader identity={identity} myScore={myScore} myRank={myRank} />
+
+      <div className="ap-tabs">
+        <button className={activeTab === 'CHAT' ? 'active' : ''} onClick={() => setActiveTab('CHAT')}>💬 CHAT</button>
+        <button className={activeTab === 'MISSIONS' ? 'active' : ''} onClick={() => setActiveTab('MISSIONS')}>🕵️ TEHTÄVÄT</button>
       </div>
 
-      {activePoll && (
-        <div className="ap-poll-section">
-          <div className="ap-poll-badge">⚠ TEHTÄVÄ</div>
-          <h2 className="ap-poll-question">{activePoll.question}</h2>
-          {hasVoted ? <div className="ap-voted-msg">VASTAUS TALLENNETTU</div> : 
-            <div className="ap-poll-options">{activePoll.options.map((opt, i) => <button key={i} className="ap-poll-btn" onClick={() => handleVote(i)}>{opt}</button>)}</div>
-          }
+      {/* FLASH OVERLAY */}
+      {activeFlash && !flashResponseSent && (
+        <div className="ap-flash-overlay">
+          <div className="flash-content">
+            <h2 className="blink">⚠️ HÄLYTYS ⚠️</h2>
+            <h3>{activeFlash.title}</h3>
+            <p>Palkkio: {activeFlash.xp_reward} XP</p>
+            {activeFlash.type === 'mob' && <button className="flash-btn-action" onClick={handleFlashAction}>✋ OLEN PAIKALLA!</button>}
+            {activeFlash.type === 'race' && <div className="flash-instruct">JUOKSE DJ:N LUOKSE!</div>}
+            {activeFlash.type === 'photo' && <div className="flash-instruct">OTA KUVA (Vaihda välilehteä)!</div>}
+          </div>
         </div>
       )}
 
-      {/* CHAT STREAM */}
-      <div className="ap-chat-stream">
-        <div className="ap-chat-intro">-- SALATTU YHTEYS --</div>
-        
-        {chatHistory.map((msg) => {
-          const isMe = msg.guest_id === guestId;
-          
-          // Haetaan tiedot sanakirjasta
-          const charData = characterMap[msg.guest_id] || {};
-          const charName = charData.name;
-          const avatarUrl = charData.avatar;
-          
-          const realName = msg.guests?.name || 'Tuntematon';
-          
-          let displayName = realName;
-          if (charName) displayName = `${charName} (${realName})`;
+      {/* --- UUSI: REWARD OVERLAY --- */}
+      {rewardData && (
+        <RewardOverlay 
+          data={rewardData} 
+          onClose={() => setRewardData(null)} 
+        />
+      )}
 
-          // Hahmon alkukirjain fallbackiksi
-          const initial = displayName.charAt(0).toUpperCase();
+      {/* TAB CONTENT */}
+      <div className="ap-content">
+        {activeTab === 'CHAT' && (
+          <AgentChat 
+            guestId={guestId} chatHistory={chatHistory} characterMap={characterMap} activePoll={activePoll} hasVoted={hasVoted} onVote={handleVote} onSend={handleSend}
+          />
+        )}
 
-          return (
-            <div key={msg.id} className={`chat-row ${isMe ? 'row-me' : 'row-other'}`}>
-              
-              {/* --- MUUTOS: AVATAR VAIN MUILLE (Vasemmalle) --- */}
-              {!isMe && (
-                <div className="chat-avatar-thumb">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="" />
-                  ) : (
-                    <div className="chat-avatar-initial">{initial}</div>
-                  )}
-                </div>
-              )}
-
-              <div className="chat-bubble">
-                <div className="chat-header-row">
-                   <span className="chat-sender">{isMe ? 'MINÄ' : displayName}</span>
-                   <span className="chat-time">{formatTime(msg.created_at)}</span>
-                </div>
-                <div className="chat-text">{msg.message}</div>
-              </div>
-
-            </div>
-          );
-        })}
-        <div ref={chatEndRef} />
-      </div>
-
-      <div className="ap-input-area">
-        <form className="ap-form" onSubmit={handleSend}>
-          <input className="ap-chat-input" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Viestisi..." />
-          <button type="submit" className={`ap-send-btn ${status}`}>{status === 'idle' ? '➤' : '...'}</button>
-        </form>
+        {activeTab === 'MISSIONS' && (
+          <AgentMissions 
+            missions={missions} completedIds={completedMissionIds} guestId={guestId} onMissionComplete={(id) => setCompletedMissionIds(prev => [...prev, id])}
+          />
+        )}
       </div>
     </div>
   );

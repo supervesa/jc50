@@ -1,40 +1,46 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import './PollTakeover.css';
 
 const PollTakeover = () => {
   const [activePoll, setActivePoll] = useState(null);
-  const [votes, setVotes] = useState({}); // { 0: 15, 1: 8, 2: 4 }
+  const [votes, setVotes] = useState({}); 
   const [totalVotes, setTotalVotes] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
 
-  // Ääniefekti (jos haluat käyttää)
-  // const alarmAudio = useRef(new Audio('/sounds/alarm.mp3'));
-
-// 1. KUUNNELLAAN ONKO ÄÄNESTYS KÄYNNISSÄ
+  // 1. KÄYNNISTYS JA KUUNTELU
   useEffect(() => {
-    // Tarkistetaan alussa
-    const checkActive = async () => {
+    
+    // A. Hae nykyinen tilanne heti alussa
+    const fetchInitialState = async () => {
       const { data } = await supabase
         .from('polls')
         .select('*')
         .eq('status', 'active')
-        .maybeSingle(); // <--- MUUTOS: single() -> maybeSingle()
-      
-      if (data) activatePoll(data);
-    };
-    checkActive();
+        .maybeSingle(); // Käytä maybeSingle, jotta ei tule 406-virhettä jos tyhjä
 
-    // Kuunnellaan muutoksia
+      // Asetetaan vain jos löytyy aktiivinen. Jos ei löydy, pidetään null.
+      if (data) {
+        initPoll(data);
+      }
+    };
+
+    fetchInitialState();
+
+    // B. Kuuntele muutoksia (TÄMÄ ON PÄÄPOMO)
     const pollSub = supabase
       .channel('public:polls_takeover')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'polls' }, 
         (payload) => {
+          console.log("POLL UPDATE:", payload.new); // Debuggaus
+
           if (payload.new.status === 'active') {
-            activatePoll(payload.new);
+            // Jos status muuttuu aktiiviseksi, näytä heti!
+            initPoll(payload.new);
           } else {
-            setIsVisible(false); // Piilota jos suljetaan
-            setTimeout(() => setActivePoll(null), 1000); // Odota animaatio
+            // Jos status on jotain muuta (closed/archive), piilota.
+            setActivePoll(null);
+            setVotes({});
+            setTotalVotes(0);
           }
         }
       )
@@ -43,32 +49,29 @@ const PollTakeover = () => {
     return () => supabase.removeChannel(pollSub);
   }, []);
 
-  // 2. KUN ÄÄNESTYS ALKAA
-  const activatePoll = async (pollData) => {
+  // 2. KUN POLL AKTIVOITUU, HAE SEN ÄÄNET
+  const initPoll = async (pollData) => {
     setActivePoll(pollData);
-    setIsVisible(true);
-    
-    // Hae nykyiset äänet
+
+    // Haetaan heti olemassa olevat äänet tälle kyselylle
     const { data: voteData } = await supabase
       .from('poll_votes')
       .select('option_index')
       .eq('poll_id', pollData.id);
 
-    // Laske äänet
-    const initialVotes = {};
-    let total = 0;
-    voteData.forEach(v => {
-      initialVotes[v.option_index] = (initialVotes[v.option_index] || 0) + 1;
-      total++;
-    });
-    setVotes(initialVotes);
-    setTotalVotes(total);
-
-    // SOITA ÄÄNI (Varmista että tiedosto on olemassa public/sounds kansiossa)
-    // alarmAudio.current.play().catch(e => console.log("Audio play failed", e));
+    if (voteData) {
+      const initialVotes = {};
+      let total = 0;
+      voteData.forEach(v => {
+        initialVotes[v.option_index] = (initialVotes[v.option_index] || 0) + 1;
+        total++;
+      });
+      setVotes(initialVotes);
+      setTotalVotes(total);
+    }
   };
 
-  // 3. KUUNNELLAAN UUSIA ÄÄNIÄ REAALIAJASSA
+  // 3. KUUNNELLAAN ÄÄNIÄ REAALIAJASSA
   useEffect(() => {
     if (!activePoll) return;
 
@@ -76,7 +79,9 @@ const PollTakeover = () => {
       .channel(`public:votes:${activePoll.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'poll_votes' }, 
         (payload) => {
-          // Kun uusi ääni tulee
+          // Varmistetaan että ääni kuuluu tähän kyselyyn
+          if (payload.new.poll_id !== activePoll.id) return;
+
           const optionIndex = payload.new.option_index;
           setVotes(prev => ({
             ...prev,
@@ -90,7 +95,8 @@ const PollTakeover = () => {
     return () => supabase.removeChannel(voteSub);
   }, [activePoll]);
 
-  if (!activePoll || !isVisible) return null;
+  // JOS EI AKTIIVISTA, EI NÄYTETÄ MITÄÄN
+  if (!activePoll) return null;
 
   return (
     <div className="jc-poll-overlay">
@@ -107,7 +113,6 @@ const PollTakeover = () => {
         <div className="jc-poll-options">
           {activePoll.options.map((opt, index) => {
             const voteCount = votes[index] || 0;
-            // Lasketaan prosentit palkkia varten
             const percent = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
             
             return (
