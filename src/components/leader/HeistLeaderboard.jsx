@@ -22,7 +22,7 @@ const HackerText = ({ text }) => {
 const HeistLeaderboard = () => {
   const navigate = useNavigate();
   // Kutsutaan moottoria ilman ID:tä, koska tämä on yleinen näyttö
-  const { agents, topTarget, chasers, active30Min, activeEvening, loading } = useHeistData();
+  const { agents, topTarget, chasers, active30Min = [], activeEvening = [], loading } = useHeistData();
   const [showAll, setShowAll] = useState(false);
 
   if (loading) return <div className="loading-scan">CONNECTING TO SATELLITE...</div>;
