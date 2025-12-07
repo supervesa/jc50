@@ -9,6 +9,8 @@ import TicketPage from './pages/TicketPage/TicketPage.jsx'; // Muista import!
 import LiveWall from './pages/LiveWall/LiveWall.jsx';
 import AgentPage from './pages/AgentPage/AgentPage';
 import AdminPage from './pages/AdminPage/AdminPage';
+import HeistLeaderboard from './components/leader/HeistLeaderboard';
+import HeistPersonalScoreboard from './pages/AgentPage/HeistPersonalScoreboard';
 function App() {
   return (
     <div className="App">
@@ -26,6 +28,8 @@ function App() {
           <Route path="/live" element={<LiveWall />} />
           <Route path="/agent" element={<AgentPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/leaderboard" element={<HeistLeaderboard />} />
+          <Route path="/personal-stats" element={<HeistPersonalScoreboard />} />
         </Routes>
       </main>
       <Footer />

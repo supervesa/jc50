@@ -1,5 +1,123 @@
 /* src/pages/AgentPage/AgentPage.css */
 
+/* --- HEADER (PÄIVITETTY) --- */
+.ap-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center; /* Keskittää pystysuunnassa */
+  background: linear-gradient(180deg, #161616 0%, #0d0d0d 100%); /* Hienovaraisempi liuku */
+  padding: 12px 15px;
+  border-bottom: 1px solid #333;
+  z-index: 50;
+  justify-content: space-between;
+  gap: 15px; /* Tärkeä: luo tasaisen välin osioiden välille */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Syvyysvaikutelma */
+}
+
+/* 1. AVATAR (Vasen) */
+.ap-avatar { 
+  width: 50px; 
+  height: 50px; 
+  border-radius: 50%; 
+  overflow: visible; /* Sallii liekin (hot indicator) näkyä */
+  position: relative;
+  border: 2px solid #333; 
+  background: #000; 
+  flex-shrink: 0; 
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+.ap-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.ap-initial { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #00ff41; background: #222; border-radius: 50%; font-size: 1.5rem; }
+
+/* Liekki-ikoni avatarin kulmassa */
+.hot-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: #000;
+  border-radius: 50%;
+  padding: 3px;
+  border: 1px solid #00ff41;
+  box-shadow: 0 0 8px #00ff41;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 2. KESKIOSA (Nimi ja statsit) */
+.ap-info { 
+  flex: 1; /* Täyttää tyhjän tilan */
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center;
+  overflow: hidden; /* Estää tekstin leviämisen */
+  min-width: 0; /* Flexbox-taika, joka estää tekstin venytyksen */
+}
+
+.ap-label { font-size: 0.65rem; color: #666; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+.ap-name { 
+  margin: 0; 
+  font-size: 1.1rem; 
+  text-transform: uppercase; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  font-weight: 800; 
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+/* Badge-rivi heti nimen alla */
+.ap-badges-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  height: 18px; /* Pitää rivin korkeuden vakiona */
+  margin: 3px 0;
+}
+.badge-icon { filter: drop-shadow(0 0 3px rgba(255,255,255,0.2)); }
+.badge-icon.gold { color: #ffd700; }
+.badge-icon.blue { color: #00aaff; }
+
+/* XP ja Rank */
+.ap-stats { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; }
+.xp-badge { 
+  color: #ffd700; 
+  font-family: monospace; 
+  font-weight: bold; 
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.05);
+}
+.rank-badge { color: #888; text-transform: uppercase; font-size: 0.7rem; }
+
+/* 3. OIKEA LAITA (Napit ja koodi) */
+/* --- OIKEA LAITA (Napit ja koodi) --- */
+.ap-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  /* Tämä varmistaa, että napin ja koodin välissä on ilmaa, etteivät ne mene päällekkäin */
+  gap: 15px; 
+  flex-shrink: 0;
+  position: relative; /* Tarvitaan z-indexin hallintaan */
+}
+
+/* ID-koodi laatikko */
+.ap-secret-code {
+  text-align: right;
+}
+.code-label { font-size: 0.6rem; color: #444; margin-bottom: 1px; }
+.code-val { 
+  font-size: 0.9rem; 
+  font-weight: bold; 
+  color: #666; 
+  font-family: monospace; 
+  letter-spacing: 1px; 
+}
+
 .ap-container {
   height: 100dvh; 
   width: 100%;
@@ -480,3 +598,290 @@
 
 .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+/* Lisää nämä olemassa olevan CSS:n sekaan */
+
+.ap-header {
+  position: relative; /* Jotta avatarin liekki voidaan sijoittaa */
+  /* ... vanhat tyylit ... */
+}
+
+.hot-indicator {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #000;
+  border-radius: 50%;
+  padding: 3px;
+  border: 1px solid #00ff41;
+  animation: pulse-green 2s infinite;
+}
+
+.ap-badges-row {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+  height: 16px; /* Varaa tilaa vaikka olisi tyhjä, ettei hypi */
+}
+
+.badge-icon.gold { color: #ffd700; filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5)); }
+.badge-icon.blue { color: #00aaff; filter: drop-shadow(0 0 2px rgba(0, 170, 255, 0.5)); }
+
+/* Oikean laidan asettelu */
+.ap-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* --- HOHTAVA TROPHY NAPPI --- */
+.trophy-btn {
+  /* Koko: Iso ja helppo osua */
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  
+  /* Asettelu */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Tyyli */
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(0, 0, 0, 0.4));
+  border: 2px solid #ffd700;
+  color: #ffd700;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  
+  /* Toiminnallisuus */
+  cursor: pointer;
+  transition: transform 0.1s;
+
+  /* --- KORJAUS KLIKKAUSONGELMAAN --- */
+  position: relative; 
+  z-index: 2000; /* Tämä varmistaa, ettei mikään mene napin päälle */
+  flex-shrink: 0; /* Estää nappia litistymästä */
+}
+
+.trophy-btn:active {
+  transform: scale(0.95);
+  background: #ffd700;
+  color: #000;
+}
+
+/* --- ID KOODI --- */
+.ap-secret-code {
+  position: relative;
+  z-index: 1; /* Pienempi kuin napilla */
+  text-align: center;
+  background: #222;
+  border: 1px solid #444;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* --- SCOREBOARD OVERLAY --- */
+.scoreboard-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.95);
+  z-index: 9999; /* Varmistetaan että on kaiken päällä */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  animation: slideUp 0.3s ease-out;
+  overflow-y: auto; /* Jos sisältö on pitkä */
+}
+
+.scoreboard-close-btn {
+  align-self: flex-end;
+  background: none; border: none;
+  color: #fff; font-size: 1rem;
+  margin-bottom: 20px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Lisää AgentPage.css loppuun varmistukseksi */
+a.trophy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none; /* Poistaa alleviivauksen */
+}
+
+/* --- PERSONAL SCOREBOARD (FULLSCREEN OVERLAY) --- */
+
+/* Tämä kontaineri peittää KOKO ruudun ja estää WebGL:n näkymisen */
+.ps-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh; /* Dynamic viewport height - toimii mobiilissa paremmin */
+  background-color: #050505; /* Täysin musta tausta */
+  z-index: 20000; /* Nousee varmasti kaiken päälle */
+  overflow-y: auto; /* Sallii pystyskrollauksen */
+  overflow-x: hidden; /* Estää sivuttaisheilumisen */
+  -webkit-overflow-scrolling: touch; /* Pehmeä skrollaus iOS:lla */
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: 'Courier New', monospace;
+  color: #eee;
+}
+
+/* Yläpalkki */
+.ps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.ps-back-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #aaa;
+  padding: 8px 16px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+/* --- HERO SECTION (Avatar & Rank) --- */
+.ps-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.ps-avatar-large {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 4px solid #333;
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: #000;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.ps-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ps-rank-huge {
+  font-size: 4rem; /* Todella iso numero */
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255,255,255,0.2);
+}
+
+.ps-rank-label {
+  font-size: 14px;
+  color: #888;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+/* --- DATA CARDS (Laatikot) --- */
+.ps-card {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.ps-card-title {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+}
+
+/* XP Bar Tyylit */
+.ps-xp-val {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #00ff41; /* Neon vihreä */
+  margin-bottom: 5px;
+}
+
+.ps-progress-bg {
+  width: 100%;
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+.ps-progress-fill {
+  height: 100%;
+  background: #00ff41;
+  width: 75%; /* Esimerkkiarvo, logiikka hoitaa tämän */
+}
+
+/* Kohde (Target) Tyylit */
+.ps-card.target {
+  border: 1px solid #552200;
+  background: linear-gradient(180deg, #1a0a00 0%, #050000 100%);
+}
+
+.ps-target-name {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.ps-target-gap {
+  color: #ff4400; /* Oranssi/Punainen */
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* --- BIG ACTION BUTTON --- */
+.ps-big-button {
+  display: block;
+  width: 100%;
+  background: #ffd700; /* Kulta */
+  color: #000;
+  font-size: 1.2rem;
+  font-weight: 900;
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  margin-top: 30px;
+  margin-bottom: 40px; /* Tilaa skrollauksen loppuun */
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.ps-big-button:active {
+  transform: scale(0.98);
+  background: #e6c200;
+}

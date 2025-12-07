@@ -1,14 +1,17 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import './AgentPage.css';
 
-// Komponentit
-import AgentHeader from './components/AgentHeader';
-import AgentChat from './components/AgentChat';
-import AgentMissions from './components/AgentMissions';
+// IMPORTIT (Nyt oikeat polut)
+import AgentHeader from './AgentHeader'; 
+import HeistPersonalScoreboard from './HeistPersonalScoreboard';
 import VaultTab from './VaultTab';     
 import RewardOverlay from './RewardOverlay'; 
+
+// Alakansion komponentit
+import AgentChat from './components/AgentChat';
+import AgentMissions from './components/AgentMissions';
 
 const AgentPage = () => {
   const [searchParams] = useSearchParams();
@@ -18,11 +21,10 @@ const AgentPage = () => {
   const [activeTab, setActiveTab] = useState('CHAT'); 
   const [loading, setLoading] = useState(true);
   const [rewardData, setRewardData] = useState(null); 
+  const [showScoreboard, setShowScoreboard] = useState(false);
   
   // DATA STATE
   const [identity, setIdentity] = useState(null);
-  const [myScore, setMyScore] = useState(0);
-  const [myRank, setMyRank] = useState('Harjoittelija');
   const [characterMap, setCharacterMap] = useState({});
   const [chatHistory, setChatHistory] = useState([]); 
 
@@ -36,20 +38,12 @@ const AgentPage = () => {
   const [personalMissionStatus, setPersonalMissionStatus] = useState('none');
   const [isVaultActive, setIsVaultActive] = useState(false);
 
-  const calculateRank = (points) => {
-    if (points >= 2000) return '00-AGENTTI';
-    if (points >= 1000) return 'MESTARIVAKOOJA';
-    if (points >= 500) return 'KENTTÄAGENTTI';
-    if (points >= 100) return 'TIEDUSTELIJA';
-    return 'HARJOITTELIJA';
-  };
-
   // --- DATAHAKU ---
   useEffect(() => {
     if (!guestId) { setLoading(false); return; }
 
     const init = async () => {
-      // 1. Sanakirja
+      // 1. Sanakirja (Muiden nimet chatissa)
       const { data: allChars } = await supabase.from('characters').select('assigned_guest_id, name, avatar_url');
       const charMap = {};
       if (allChars) allChars.forEach(c => {
@@ -67,13 +61,12 @@ const AgentPage = () => {
       // 2. Identiteetti
       const { data: myGuest } = await supabase.from('guests').select('name').eq('id', guestId).single();
       const { data: myChars } = await supabase.from('characters').select('*').eq('assigned_guest_id', guestId);
-      const { data: scoreData } = await supabase.from('leaderboard').select('total_score').eq('guest_id', guestId).single();
       
-      setMyScore(scoreData?.total_score || 0);
-      setMyRank(calculateRank(scoreData?.total_score || 0));
+      // HUOM: Poistimme tästä sen rikkinäisen 'total_score' haun, koska Header hoitaa pisteet nyt!
 
       if (myChars && myChars.length > 0) {
         setIdentity({
+          id: guestId, // TÄRKEÄ: ID välitetään headerille
           charName: myChars.map(c => c.name).join(' & '),
           realName: myGuest?.name,
           role: myChars[0].role,
@@ -83,7 +76,15 @@ const AgentPage = () => {
           secretMission: myChars[0].secret_mission 
         });
       } else {
-        setIdentity({ charName: null, realName: myGuest?.name || 'Tuntematon', role: 'Vieras', avatar: null, isCharacter: false, agentCode: 'N/A' });
+        setIdentity({ 
+          id: guestId,
+          charName: null, 
+          realName: myGuest?.name || 'Tuntematon', 
+          role: 'Vieras', 
+          avatar: null, 
+          isCharacter: false, 
+          agentCode: 'N/A' 
+        });
       }
 
       // 3. Status checks
@@ -130,14 +131,13 @@ const AgentPage = () => {
         if (payload.new.key === 'speakeasy_active') setIsVaultActive(payload.new.value);
       }).subscribe(),
       
-      // SCORE & MISSION STATUS
+      // SCORE UPDATES (Vain ilmoituksia varten, ei enää 'myScore' staten päivitystä)
       supabase.channel('ag_score').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_log', filter: `guest_id=eq.${guestId}` }, (payload) => {
         if (payload.eventType === 'UPDATE') {
            if (payload.new.mission_id === 'personal-objective') {
              setPersonalMissionStatus(payload.new.approval_status);
              if (payload.new.approval_status === 'approved') {
                setRewardData({ xp: payload.new.xp_earned, reason: 'Salainen tehtävä hyväksytty!' });
-               setMyScore(prev => prev + payload.new.xp_earned);
              }
              if (payload.new.approval_status === 'rejected') alert("Päämaja hylkäsi raporttisi. Yritä uudelleen.");
            } 
@@ -148,15 +148,12 @@ const AgentPage = () => {
            else if (payload.new.approval_status === 'approved') {
              const xpDiff = payload.new.xp_earned - payload.old.xp_earned;
              if (xpDiff > 0) {
-                setMyScore(prev => prev + xpDiff);
                 setRewardData({ xp: xpDiff, reason: 'Suoritus vahvistettu!' });
              }
            }
-           return;
         }
         if (payload.eventType === 'INSERT') {
           if (payload.new.approval_status === 'approved') {
-            setMyScore(prev => prev + payload.new.xp_earned);
             setRewardData({ xp: payload.new.xp_earned, reason: payload.new.custom_reason || 'Tehtävä suoritettu' });
           }
           if (payload.new.mission_id && payload.new.mission_id !== 'personal-objective') {
@@ -183,9 +180,6 @@ const AgentPage = () => {
   };
 
   const submitPersonalReport = async (reportText, imageUrl) => {
-    let proofString = reportText || "Ei tekstiraporttia.";
-    if (imageUrl) proofString += ` | [KATSO KUVA]`;
-
     const { error } = await supabase.from('mission_log').insert({
       guest_id: guestId,
       mission_id: 'personal-objective', 
@@ -193,12 +187,11 @@ const AgentPage = () => {
       approval_status: 'pending',
       proof_data: JSON.stringify({ text: reportText, image: imageUrl })
     });
-
     if (error) {
-      alert("Virhe lähetyksessä (olet ehkä jo lähettänyt raportin).");
+      alert("Virhe lähetyksessä.");
     } else {
       setPersonalMissionStatus('pending');
-      alert("Raportti lähetetty päämajaan! Pisteet kirjataan hyväksynnän jälkeen.");
+      alert("Raportti lähetetty päämajaan!");
     }
   };
 
@@ -241,8 +234,13 @@ const AgentPage = () => {
   return (
     <div className="ap-container">
       
-      <AgentHeader identity={identity} myScore={myScore} myRank={myRank} />
+      {/* 1. HEADER (Avaa scoreboardin) */}
+      <AgentHeader 
+        identity={identity} 
+        onOpenScoreboard={() => setShowScoreboard(true)}
+      />
 
+      {/* 2. TABS */}
       <div className="ap-tabs">
         <button className={activeTab === 'CHAT' ? 'active' : ''} onClick={() => setActiveTab('CHAT')}>💬 CHAT</button>
         <button className={activeTab === 'MISSIONS' ? 'active' : ''} onClick={() => setActiveTab('MISSIONS')}>🕵️ TEHTÄVÄT</button>
@@ -266,6 +264,15 @@ const AgentPage = () => {
 
       {rewardData && <RewardOverlay data={rewardData} onClose={() => setRewardData(null)} />}
 
+      {/* 3. SCOREBOARD OVERLAY */}
+      {showScoreboard && (
+        <HeistPersonalScoreboard 
+          guestId={guestId} 
+          onClose={() => setShowScoreboard(false)} 
+        />
+      )}
+
+      {/* 4. CONTENT */}
       <div className="ap-content">
         
         {activeTab === 'CHAT' && (
@@ -287,8 +294,6 @@ const AgentPage = () => {
             guestId={guestId}
             onMissionComplete={(id) => setCompletedMissionIds(prev => [...prev, id])}
             submitCode={submitCode}
-            
-            // KORJAUS: `guestId` on nyt vain kerran
             secretMission={identity.secretMission}
             personalMissionStatus={personalMissionStatus}
             onPersonalReport={submitPersonalReport}

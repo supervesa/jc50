@@ -5,6 +5,8 @@ import PhotoCard from './PhotoCard';
 import Kaleidoscope from '../../components/WebGLBackground/Kaleidoscope';
 import ChatOverlay from './ChatOverlay';
 import PollTakeover from './PollTakeover';
+// Varmista polku!
+import StatsTakeoverLogic from './components/StatsTakeover/StatsTakeoverLogic'; 
 import './LiveWall.css';
 
 function LiveWall() {
@@ -12,10 +14,25 @@ function LiveWall() {
   const [currentPost, setCurrentPost] = useState(null); 
   const [history, setHistory] = useState([]);   
   
+  // TILA: Ohjaa näkyykö tilastot vai ei
+  const [showStats, setShowStats] = useState(false); 
+
   const timerRef = useRef(null);
   const isTransitioning = useRef(false);
 
-  // --- ENRICH POSTS: HAE NIMET JA KAIKKI AVATARET ---
+  // --- PIKANÄPPÄIN 'S' (Pidetään varalta) ---
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key.toLowerCase() === 's') {
+        console.log("S-painettu, vaihdetaan stats tilaa");
+        setShowStats(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // --- ENRICH POSTS ---
   const enrichPosts = async (posts) => {
     const enriched = await Promise.all(posts.map(async (post) => {
       if (!post.guest_id) {
@@ -23,33 +40,25 @@ function LiveWall() {
       }
 
       try {
-        // Haetaan kaikki hahmot tälle guest_id:lle
         const { data: characters } = await supabase
           .from('characters')
           .select('name, role, avatar_url')
           .eq('assigned_guest_id', post.guest_id);
 
         if (characters && characters.length > 0) {
-          
-          // Nimet & Roolit kuten aiemmin
           const combinedNames = characters.map(c => c.name).join(' & ');
           const uniqueRoles = [...new Set(characters.map(c => c.role))];
           const combinedRoles = uniqueRoles.join(' / ');
-
-          // TÄMÄ ON UUTTA: Kerätään kaikki toimivat URL:t listaan
-          const avatarUrls = characters
-            .map(c => c.avatar_url)
-            .filter(url => url); // Poistaa tyhjät/nullit
+          const avatarUrls = characters.map(c => c.avatar_url).filter(url => url);
 
           return {
             ...post,
             displayName: combinedNames,
             displayRole: combinedRoles,
-            avatarUrls: avatarUrls // Palautetaan lista!
+            avatarUrls: avatarUrls
           };
         }
 
-        // Fallback: Vieraan oikea nimi
         const { data: guestData } = await supabase
           .from('guests')
           .select('name')
@@ -72,7 +81,7 @@ function LiveWall() {
     return enriched;
   };
 
-  // --- 2. ALUSTUS ---
+  // --- ALUSTUS ---
   useEffect(() => {
     const fetchInitial = async () => {
       const { data } = await supabase
@@ -84,7 +93,6 @@ function LiveWall() {
       if (data && data.length > 0) {
         const enriched = await enrichPosts(data);
         setCurrentPost(enriched[0]);
-        // Varmistetaan ettei nykyinen mene heti tuplana historiaan
         setHistory(enriched.slice(1, 6)); 
       }
     };
@@ -92,7 +100,7 @@ function LiveWall() {
     fetchInitial();
   }, []);
 
-  // --- 3. REALTIME (LIVE-VIRTA) ---
+  // --- REALTIME ---
   useEffect(() => {
     console.log("Live-yhteys käynnistyy...");
     
@@ -103,11 +111,8 @@ function LiveWall() {
         { event: 'INSERT', schema: 'public', table: 'live_posts' },
         async (payload) => {
           console.log('📸 Uusi kuva saapui:', payload.new);
-          
-          // Rikastetaan tiedot heti
           const [enrichedPost] = await enrichPosts([payload.new]);
           
-          // Lisätään jonoon (estä duplikaatit)
           setQueue((prev) => {
             if (prev.some(p => p.id === enrichedPost.id)) return prev;
             return [...prev, enrichedPost];
@@ -124,20 +129,21 @@ function LiveWall() {
     };
   }, []);
 
-  // --- 4. LOOP (KARUSELLI) ---
+  // --- LOOP ---
   useEffect(() => {
+    // Pysäytetään karuselli jos Stats-ruutu on päällä
+    if (showStats) return;
+
     const nextSlide = () => {
       if (isTransitioning.current) return;
 
       let nextPost = null;
       let isFromQueue = false;
 
-      // A. Otetaan jonosta
       if (queue.length > 0) {
         nextPost = queue[0];
         isFromQueue = true;
       } 
-      // B. Kierrätetään historiaa
       else if (history.length > 0) {
         const candidates = history.filter(h => h.id !== currentPost?.id);
         if (candidates.length > 0) {
@@ -148,7 +154,6 @@ function LiveWall() {
       if (nextPost) {
         isTransitioning.current = true;
         
-        // Päivitetään historia
         if (currentPost) {
           setHistory(prev => {
             const cleanPrev = prev.filter(p => p.id !== nextPost.id && p.id !== currentPost.id);
@@ -169,39 +174,59 @@ function LiveWall() {
     };
 
     const intervalTime = queue.length > 0 ? 5000 : 10000;
-    
     timerRef.current = setInterval(nextSlide, intervalTime);
 
     return () => clearInterval(timerRef.current);
-  }, [queue, history, currentPost]);
+  }, [queue, history, currentPost, showStats]);
 
   return (
     <div className="jc-live-wall">
       
-      {/* 1. TAUSTA (Kaleidoscope) */}
+      {/* 1. TAUSTA */}
       <div className="jc-gl-background">
          <Kaleidoscope /> 
       </div>
 
       {/* 2. SÄHKÖKÄYRÄ */}
       <ElectricWave />
-{/* UUSI CHAT TÄHÄN */}
+
+      {/* 3. OVERLAYS */}
       <ChatOverlay />
       <PollTakeover />
-      {/* 3. LOGO */}
+
+      {/* 4. STATS TAKEOVER */}
+      {/* Renderöidään aina, mutta komponentti itse päättää onko visible */}
+      <StatsTakeoverLogic isActive={showStats} />
+
+      {/* 5. LOGO */}
       <div className="jc-live-logo">
         <h1>JC 50</h1>
         <span>LIVE FEED</span>
       </div>
 
-      {/* 4. PÄÄKUVA (KESKELLÄ) */}
-      <div className="jc-stage-center">
-        {currentPost && <PhotoCard key={currentPost.id} post={currentPost} isActive={true} />}
+      {/* 6. PÄÄKUVA (Piilotetaan kun statsit päällä) */}
+      <div 
+        className="jc-stage-center" 
+        style={{ 
+          opacity: showStats ? 0 : 1, 
+          transition: 'opacity 0.5s ease-in-out',
+          pointerEvents: showStats ? 'none' : 'auto'
+        }}
+      >
+        {currentPost && (
+           <PhotoCard key={currentPost.id} post={currentPost} isActive={true} />
+        )}
       </div>
 
-      {/* 5. HISTORIA (ALHAALLA) */}
-      <div className="jc-stage-history">
-        {history.slice(0, 3).map((post, i) => (
+      {/* 7. HISTORIA (Piilotetaan kun statsit päällä) */}
+      <div 
+        className="jc-stage-history" 
+        style={{ 
+          opacity: showStats ? 0 : 1, 
+          transition: 'opacity 0.5s ease-in-out' 
+        }}
+      >
+        {!showStats && history.slice(0, 3).map((post, i) => (
           <div key={post.id} className={`jc-history-card pos-${i}`}>
             <img 
               src={post.image_url} 
@@ -211,6 +236,27 @@ function LiveWall() {
           </div>
         ))}
       </div>
+
+      {/* --- DEV BUTTON (POISTA TUOTANNOSTA) --- */}
+      <button
+        onClick={() => setShowStats(!showStats)}
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          zIndex: 999999, /* Varmasti päällimmäisenä */
+          background: showStats ? 'red' : 'green',
+          color: 'white',
+          border: '2px solid white',
+          padding: '10px 20px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          borderRadius: '5px',
+          boxShadow: '0 0 10px rgba(0,0,0,0.5)'
+        }}
+      >
+        {showStats ? 'CLOSE STATS' : 'SHOW STATS (DEV)'}
+      </button>
       
     </div>
   );

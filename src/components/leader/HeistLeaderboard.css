@@ -1,0 +1,181 @@
+/* --- APP-MAISEKSI LUKITSEMINEN --- */
+:root {
+  /* Estää "kumimaisen" venymisen iOS:ssä */
+  overscroll-behavior: none; 
+}
+
+/* Nollaa kaikki laatikkomallit, estää sivuttaisvuodot */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+.heist-dashboard {
+  /* 1. LUKITUS RUUTUUN */
+  position: fixed; 
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh; /* Dynamic viewport height (toimii mobiilipalkkien kanssa) */
+  z-index: 9999; /* Aina päällimmäisenä */
+  
+  /* 2. TAUSTA JA TEKSTI */
+  background-color: #050505;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  
+  /* 3. SKROLLAUS (Vain pystysuunnassa, ei sivuttain) */
+  overflow-y: auto; 
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Sulava skrollaus iOS:ssä */
+  overscroll-behavior: none; /* Estää taustan liikkumisen */
+
+  /* 4. ASETTELU */
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Estää sisällön leviämisen reunoista yli */
+img, svg, video, canvas, audio, iframe, embed, object {
+  max-width: 100%; 
+}
+
+.back-btn {
+  background: none; border: none; color: #666; cursor: pointer;
+  display: flex; align-items: center; gap: 5px; font-size: 0.8rem;
+  font-family: inherit; padding: 0; margin-bottom: 5px;
+  /* Estää tekstin valinnan naputtaessa */
+  user-select: none; 
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- KORJATTU "HAUSKA VIIVA" (SECTION TITLE) --- */
+/* Tämä tekee viivat tekstin molemmille puolille Flexboxilla */
+.section-title {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #444; 
+  font-size: 0.7rem; 
+  letter-spacing: 2px;
+  margin: 10px 0;
+  width: 100%;
+}
+
+/* Vasen ja oikea viiva */
+.section-title::before,
+.section-title::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #222;
+}
+
+/* Tyhjä tila tekstin ympärillä */
+.section-title:not(:empty)::before {
+  margin-right: 10px;
+}
+.section-title:not(:empty)::after {
+  margin-left: 10px;
+}
+
+/* --- OSA 1: ACTIVITY PODS --- */
+.activity-section {
+  display: flex; 
+  gap: 10px;
+  /* Varmistaa että mahtuvat vierekkäin mobiilissa */
+  width: 100%;
+}
+
+.activity-card {
+  flex: 1;
+  background: #0f0f0f;
+  border: 1px solid #333;
+  padding: 10px;
+  border-radius: 4px;
+  /* Estää sisällön venymisen */
+  min-width: 0; 
+}
+
+.activity-card.flash { border-color: #00ff41; box-shadow: 0 0 10px rgba(0, 255, 65, 0.1); }
+
+.act-header {
+  font-size: 0.7rem; color: #888; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 5px; font-weight: bold;
+  white-space: nowrap; /* Estää otsikon rivittymisen */
+}
+
+.act-row {
+  display: flex; justify-content: space-between; font-size: 0.8rem;
+  padding: 4px 0; border-bottom: 1px solid #1a1a1a;
+  align-items: center;
+}
+.act-row:last-child { border: none; }
+.act-rank { color: #555; width: 20px; flex-shrink: 0; }
+.act-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 5px; }
+.act-xp { color: #00ff41; font-weight: bold; font-size: 0.75rem; }
+.no-act { color: #444; font-size: 0.8rem; font-style: italic; text-align: center; padding: 5px; }
+
+/* --- OSA 2: TARGET & CHASERS --- */
+.top-tier-section { width: 100%; }
+
+.target-banner {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+  border: 1px solid #ffd700;
+  padding: 15px; border-radius: 4px; margin-bottom: 15px;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+  /* Estää animaation aiheuttaman tärinän */
+  transform: translateZ(0); 
+}
+
+.tb-label { color: #ffd700; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 5px; }
+.tb-content { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.tb-name { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 8px; word-break: break-word;}
+.icon-target { color: #ff3333; flex-shrink: 0; }
+.tb-xp { font-size: 1.4rem; color: #ffd700; font-weight: bold; white-space: nowrap; }
+
+.tb-badges { display: flex; gap: 5px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+.badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid; }
+.badge.gold { border-color: #ffd700; color: #ffd700; background: rgba(255, 215, 0, 0.1); }
+.badge.blue { border-color: #00aaff; color: #00aaff; background: rgba(0, 170, 255, 0.1); }
+
+.chasers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+.chaser-box {
+  background: #111; border: 1px solid #333; padding: 8px; border-radius: 4px;
+  text-align: center; position: relative;
+  /* Varmistaa että laatikot ovat saman korkuisia */
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.chaser-rank { font-size: 1.2rem; color: #222; font-weight: bold; position: absolute; top: 0; left: 5px; z-index: 0; }
+.chaser-name { font-size: 0.75rem; font-weight: bold; position: relative; z-index: 1; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; }
+.chaser-gap { font-size: 0.65rem; color: #666; margin-top: 4px; position: relative; z-index: 1; white-space: nowrap;}
+.red { color: #ff3333; }
+
+/* --- OSA 3: SCOREBOARD --- */
+.scoreboard-section { width: 100%; padding-bottom: 40px; }
+
+.scoreboard-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; table-layout: fixed; /* Tärkeä mobiilissa! */ }
+.scoreboard-table th { text-align: left; color: #666; font-size: 0.7rem; padding-bottom: 10px; border-bottom: 1px solid #333; }
+.scoreboard-table td { padding: 10px 5px; border-bottom: 1px solid #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.rank-col { color: #444; font-weight: bold; width: 30px; }
+.name-col { font-weight: bold; color: #ddd; display: flex; align-items: center; gap: 5px; overflow: hidden;}
+.mini-badges { display: flex; gap: 2px; margin-left: 5px; }
+.mini-badges .gold { color: #ffd700; flex-shrink: 0; }
+.mini-badges .blue { color: #00aaff; flex-shrink: 0; }
+
+.status-col { color: #666; font-size: 0.75rem; text-transform: uppercase; width: 80px; text-align: right; }
+.xp-col { color: #ffd700; font-weight: bold; font-family: monospace; width: 60px; text-align: right; }
+.text-right { text-align: right; }
+
+.top-row td { background: rgba(255, 255, 255, 0.03); }
+
+.show-more-btn {
+  width: 100%; padding: 15px; background: #111; border: 1px solid #333;
+  color: #888; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px;
+  font-family: inherit; font-size: 0.8rem; transition: background 0.2s;
+  /* Poistaa mobiilin naputusvärin */
+  -webkit-tap-highlight-color: transparent; 
+}
+.show-more-btn:active { background: #222; }
