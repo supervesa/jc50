@@ -131,36 +131,42 @@ const AgentPage = () => {
         if (payload.new.key === 'speakeasy_active') setIsVaultActive(payload.new.value);
       }).subscribe(),
       
-      // SCORE UPDATES (Vain ilmoituksia varten, ei enää 'myScore' staten päivitystä)
-      supabase.channel('ag_score').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_log', filter: `guest_id=eq.${guestId}` }, (payload) => {
-        if (payload.eventType === 'UPDATE') {
-           if (payload.new.mission_id === 'personal-objective') {
-             setPersonalMissionStatus(payload.new.approval_status);
-             if (payload.new.approval_status === 'approved') {
-               setRewardData({ xp: payload.new.xp_earned, reason: 'Salainen tehtävä hyväksytty!' });
-             }
-             if (payload.new.approval_status === 'rejected') alert("Päämaja hylkäsi raporttisi. Yritä uudelleen.");
-           } 
-           else if (payload.new.approval_status === 'rejected') {
-             setCompletedMissionIds(prev => prev.filter(id => id !== payload.new.mission_id));
-             alert("Tehtäväsuoritus hylättiin! Voit yrittää uudelleen.");
+     // SCORE UPDATES (Vain ilmoituksia varten, ei enää 'myScore' staten päivitystä)
+    supabase.channel('ag_score').on('postgres_changes', { event: '*', schema: 'public', table: 'mission_log', filter: `guest_id=eq.${guestId}` }, (payload) => {
+      
+      if (payload.eventType === 'UPDATE') {
+         if (payload.new.mission_id === 'personal-objective') {
+           setPersonalMissionStatus(payload.new.approval_status);
+           if (payload.new.approval_status === 'approved') {
+             setRewardData({ xp: payload.new.xp_earned, reason: 'Salainen tehtävä hyväksytty!' });
            }
-           else if (payload.new.approval_status === 'approved') {
-             const xpDiff = payload.new.xp_earned - payload.old.xp_earned;
-             if (xpDiff > 0) {
-                setRewardData({ xp: xpDiff, reason: 'Suoritus vahvistettu!' });
-             }
+           if (payload.new.approval_status === 'rejected') alert("Päämaja hylkäsi raporttisi. Yritä uudelleen.");
+         } 
+         else if (payload.new.approval_status === 'rejected') {
+           setCompletedMissionIds(prev => prev.filter(id => id !== payload.new.mission_id));
+           alert("Tehtäväsuoritus hylättiin! Voit yrittää uudelleen.");
+         }
+         else if (payload.new.approval_status === 'approved') {
+           const xpDiff = payload.new.xp_earned - payload.old.xp_earned;
+           if (xpDiff > 0) {
+              setRewardData({ xp: xpDiff, reason: 'Suoritus vahvistettu!' });
            }
-        }
-        if (payload.eventType === 'INSERT') {
-          if (payload.new.approval_status === 'approved') {
+         }
+      }
+
+      if (payload.eventType === 'INSERT') {
+        if (payload.new.approval_status === 'approved') {
+          // Varmistetaan, että XP on positiivinen ennen ilmoitusta (turvatoimi)
+          if (payload.new.xp_earned > 0) {
             setRewardData({ xp: payload.new.xp_earned, reason: payload.new.custom_reason || 'Tehtävä suoritettu' });
           }
-          if (payload.new.mission_id && payload.new.mission_id !== 'personal-objective') {
-            setCompletedMissionIds(prev => [...prev, payload.new.mission_id]);
-          }
         }
-      }).subscribe()
+        
+        if (payload.new.mission_id && payload.new.mission_id !== 'personal-objective') {
+          setCompletedMissionIds(prev => [...prev, payload.new.mission_id]);
+        }
+      }
+    }).subscribe()
     ];
 
     return () => subs.forEach(s => supabase.removeChannel(s));

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient'; 
 import { useHeistData } from '../../components/leader/useHeistData'; 
-import { Zap, Target, ArrowLeft, Trophy, Diamond, Wine } from 'lucide-react';
+import { Zap, Target, ArrowLeft, Trophy, Diamond, Wine, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import History from './components/History';
 import './AgentPage.css'; 
 
 const HeistPersonalScoreboard = () => {
@@ -11,6 +12,8 @@ const HeistPersonalScoreboard = () => {
   const navigate = useNavigate();
   
   const [profile, setProfile] = useState({ avatar: null, name: '' });
+  const [historyOpen, setHistoryOpen] = useState(false); // Haitarin tila
+  
   const { myStats, loading } = useHeistData(guestId);
 
   useEffect(() => {
@@ -46,19 +49,20 @@ const HeistPersonalScoreboard = () => {
   }, [guestId]);
 
   const goBack = () => navigate(-1);
+  const toggleHistory = () => setHistoryOpen(!historyOpen);
 
   if (loading) {
     return (
-      <div className="ps-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#00ff41', fontSize: '1.2rem' }}>LADATAAN PROFIILIA...</div>
+      <div className="ps-container ps-loading-container">
+        <div className="ps-loading-text">LADATAAN PROFIILIA...</div>
       </div>
     );
   }
 
   if (!myStats) {
     return (
-      <div className="ps-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'red', fontSize: '1.2rem', marginBottom: '20px' }}>VIRHE: TIETOJA EI LÖYTYNYT</div>
+      <div className="ps-container ps-error-container">
+        <div className="ps-error-text">VIRHE: TIETOJA EI LÖYTYNYT</div>
         <button className="ps-back-btn" onClick={goBack}>PALAA TAKAISIN</button>
       </div>
     );
@@ -77,54 +81,27 @@ const HeistPersonalScoreboard = () => {
         <button className="ps-back-btn" onClick={goBack}>
           <ArrowLeft size={18} /> Takaisin
         </button>
-        <div style={{ fontSize: '10px', color: '#444' }}>SECURE FILE: {myStats.agentCode}</div>
+        <div className="ps-header-meta">SECURE FILE: {myStats.agentCode}</div>
       </div>
 
       {/* 2. HERO: AVATAR JA SIJOITUS */}
       <div className="ps-hero">
         
-        {/* AVATAR WRAPPER - Tässä on se korjaus */}
-        <div style={{ position: 'relative', width: '120px', height: '120px', marginBottom: '10px' }}>
-          
-          {/* ITSE KUVA (Maskattu ympyräksi) */}
-          <div style={{ 
-            width: '100%', 
-            height: '100%', 
-            borderRadius: '50%', 
-            overflow: 'hidden', 
-            border: `4px solid ${isLeader ? '#ffd700' : '#333'}`,
-            background: '#000',
-            boxShadow: '0 0 20px rgba(0,0,0,0.5)',
-            boxSizing: 'border-box' // Varmistaa että border on sisällä
-          }}>
+        {/* AVATAR WRAPPER */}
+        <div className="ps-avatar-wrapper">
+          <div className={`ps-avatar-frame ${isLeader ? 'leader' : ''}`}>
             {displayAvatar ? (
-              <img src={displayAvatar} alt="Profiili" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={displayAvatar} alt="Profiili" className="ps-avatar-img" />
             ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', color: '#fff' }}>
+              <div className="ps-avatar-placeholder">
                 {displayName.charAt(0)}
               </div>
             )}
           </div>
           
-          {/* LIEKKI-INDIKAATTORI (Kuvan ulkopuolella, ei leikkaannu) */}
+          {/* LIEKKI-INDIKAATTORI */}
           {myStats.isHot && (
-            <div style={{ 
-              position: 'absolute', 
-              bottom: '0px', 
-              right: '0px', 
-              background: '#000', 
-              borderRadius: '50%', 
-              border: '2px solid #00ff41',
-              zIndex: 10,
-              
-              /* PAKOTETTU YMPYRÄMUOTO */
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 8px #00ff41'
-            }}>
+            <div className="ps-flame-badge">
               <Zap size={18} color="#00ff41" fill="#00ff41"/>
             </div>
           )}
@@ -134,7 +111,7 @@ const HeistPersonalScoreboard = () => {
         <div className="ps-rank-huge" style={{ color: rankColor }}>
           #{myStats.rank}
         </div>
-        <div style={{ fontSize: '1.4rem', fontWeight: 'bold', marginTop: '5px', textTransform: 'uppercase', color: '#fff' }}>
+        <div className="ps-agent-name">
           {displayName}
         </div>
       </div>
@@ -211,6 +188,23 @@ const HeistPersonalScoreboard = () => {
           </div>
         </div>
       )}
+
+      {/* --- UUSI OSIO: HISTORIA ACCORDION --- */}
+      <div className="ps-accordion">
+        <button className="ps-accordion-header" onClick={toggleHistory}>
+          <div className="ps-accordion-title">
+            <Clock size={18} color="#aaa" />
+            <span>Suoritusloki</span>
+          </div>
+          {historyOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        
+        {historyOpen && (
+          <div className="ps-accordion-content">
+            <History guestId={guestId} />
+          </div>
+        )}
+      </div>
 
       {/* 6. POISTUMISNAPPI */}
       <button className="ps-big-button" onClick={goBack}>

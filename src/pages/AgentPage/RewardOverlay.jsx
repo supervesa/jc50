@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 
 const RewardOverlay = ({ data, onClose }) => {
   useEffect(() => {
-    // Sulkeutuu automaattisesti 4 sekunnin kuluttua
-    const timer = setTimeout(onClose, 4000);
+    const timer = setTimeout(onClose, 6000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
@@ -11,7 +10,7 @@ const RewardOverlay = ({ data, onClose }) => {
     <div className="ap-reward-overlay">
       <div className="reward-content">
         <div className="reward-icon">🏆</div>
-        <h2>PALKITSU!</h2>
+        <h2>PALKITTU!</h2>
         <div className="reward-xp">+{data.xp} XP</div>
         <p className="reward-reason">{data.reason}</p>
       </div>

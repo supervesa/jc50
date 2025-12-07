@@ -885,3 +885,378 @@ a.trophy-btn {
   transform: scale(0.98);
   background: #e6c200;
 }
+
+/* --- HISTORY STYLES (for History.jsx) --- */
+
+.history-container {
+  padding: 15px;
+  flex-grow: 1;
+  overflow-y: auto;
+  background: #000;
+  font-family: 'Courier New', monospace;
+}
+
+.history-container h2 {
+  color: #00ff41;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+
+.history-loading, .history-empty {
+  text-align: center;
+  color: #666;
+  margin-top: 30px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  padding: 12px 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+  color: #eee;
+  /* border-left tulee inline styleinä */
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+.item-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #00ff41;
+}
+
+.item-timestamp {
+  font-size: 0.65rem;
+  color: #666;
+}
+
+.item-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-reason {
+  font-size: 0.9rem;
+  font-weight: bold;
+  flex: 1;
+  margin-right: 10px;
+}
+
+.item-xp {
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
+  white-space: nowrap;
+}
+/* AgentPage.css */
+
+/* --- Loading & Error States --- */
+.ps-loading-container,
+.ps-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+}
+
+.ps-loading-text {
+  color: #00ff41;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+
+.ps-error-text {
+  color: #ff3333;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+/* --- Hero Section Avatar --- */
+.ps-avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 10px;
+}
+
+.ps-avatar-frame {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  border: 4px solid #333; /* Default border */
+}
+
+.ps-avatar-frame.leader {
+  border-color: #ffd700;
+}
+
+.ps-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ps-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: #fff;
+}
+
+/* --- Hot Streak Flame --- */
+.ps-flame-badge {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  background: #000;
+  border-radius: 50%;
+  border: 2px solid #00ff41;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px #00ff41;
+}
+
+/* --- Header & Secure File Text --- */
+.ps-header-meta {
+  font-size: 10px;
+  color: #444;
+  letter-spacing: 1px;
+}
+
+/* --- Rank & Name --- */
+.ps-rank-huge {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  margin: 5px 0;
+}
+
+.ps-agent-name {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-top: 5px;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+/* --- Accordion Styles (Historia) --- */
+.ps-accordion {
+  width: 100%;
+  margin-top: 15px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.ps-accordion-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #111;
+  border: none;
+  color: #eee;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ps-accordion-header:hover {
+  background: #1a1a1a;
+}
+
+.ps-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ps-accordion-content {
+  background: #000;
+  border-top: 1px solid #333;
+  padding: 0; /* History-komponentilla on omat paddingit */
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* --- History Component Styles (UUSI HILLITTY TYYLI) --- */
+
+.history-container {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.history-loading,
+.history-empty {
+  padding: 30px;
+  text-align: center;
+  color: #555;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Hieman enemmän ilmaa korttien väliin */
+}
+
+/* Yksittäinen lokimerkintä */
+.history-item {
+  position: relative;
+  background: #0f0f0f; /* Hyvin tumma tausta */
+  border: 1px solid #222; /* Hienovaraiset kehykset ympäriinsä */
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+  overflow: hidden; /* Varmistaa että glow pysyy sisällä */
+}
+
+/* Hover-efekti nostaa korttia hieman */
+.history-item:hover {
+  transform: translateY(-1px);
+  background: #141414;
+  border-color: #333;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* Ylärivi: Status ja Aika */
+.history-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.history-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.history-time {
+  font-size: 0.7rem;
+  color: #444;
+  font-family: 'Courier New', monospace; /* "Koodari/Agentti" fontti ajalle */
+  letter-spacing: -0.5px;
+}
+
+/* Alarivi: Syy ja XP */
+.history-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.history-reason {
+  font-size: 0.95rem;
+  color: #ccc;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.history-xp {
+  font-size: 0.95rem;
+  font-weight: 800;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.03); /* Todella himmeä tausta numerolle */
+}
+
+/* --- Status Variants (Hillityt Glow-efektit) --- */
+
+/* 
+  Idea: Käytämme box-shadow 'inset' ominaisuutta luomaan pehmeän 
+  hohteen vasemmalle reunalle ilman kovaa viivaa.
+*/
+
+/* APPROVED (Green) */
+.history-item.status-approved {
+  /* Pehmeä vihreä hohde vasemmassa reunassa */
+  box-shadow: inset 3px 0 0 0 rgba(0, 255, 65, 0.5), 
+              inset 20px 0 40px -10px rgba(0, 255, 65, 0.05);
+}
+.history-item.status-approved .history-badge,
+.history-item.status-approved .history-xp {
+  color: #00ff41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.3); /* Tekstille pieni neon-hohde */
+}
+
+/* PENDING (Gold) */
+.history-item.status-pending {
+  box-shadow: inset 3px 0 0 0 rgba(255, 215, 0, 0.5), 
+              inset 20px 0 40px -10px rgba(255, 215, 0, 0.05);
+}
+.history-item.status-pending .history-badge,
+.history-item.status-pending .history-xp {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+/* REJECTED (Red) */
+.history-item.status-rejected {
+  box-shadow: inset 3px 0 0 0 rgba(255, 51, 51, 0.5), 
+              inset 20px 0 40px -10px rgba(255, 51, 51, 0.05);
+}
+.history-item.status-rejected .history-badge,
+.history-item.status-rejected .history-xp {
+  color: #ff3333;
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
+}

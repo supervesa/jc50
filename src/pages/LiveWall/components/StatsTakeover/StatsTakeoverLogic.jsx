@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useHeistData } from '../../../../components/leader/useHeistData'; 
 import StatsTakeoverView from './StatsTakeoverView';
 
-const StatsTakeoverLogic = ({ isActive }) => {
+// 1. Lisätty 'characters' propseihin
+const StatsTakeoverLogic = ({ isActive, characters }) => {
   const { 
     agents, 
     totalLoot, 
@@ -36,9 +37,10 @@ const StatsTakeoverLogic = ({ isActive }) => {
       screenIndex={screenIndex}
       totalLoot={totalLoot}
       heatLevel={globalHeat}
-      agents={agents} // Välitetään kaikki agentit (Top 5 varten)
+      agents={agents} 
       tickerEvents={tickerEvents}
       intelStats={intelStats} 
+      characters={characters} // 2. Välitetään data näkymälle
     />
   );
 };

@@ -230,8 +230,33 @@
 .st-rank { font-family: 'Josefin Sans', sans-serif; font-size: 1.8rem; font-weight: 700; width: 60px; color: var(--muted); }
 .rank-1 .st-rank { color: var(--plasma-gold); text-shadow: 0 0 10px var(--plasma-gold); }
 
-.st-leader-avatar-small { width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin-right: 20px; border: 2px solid rgba(255,255,255,0.2); }
-.st-leader-avatar-small img { width: 100%; height: 100%; object-fit: cover; }
+/* --- LEADER AVATAR FIX --- */
+.st-leader-avatar-small { 
+    width: 60px; height: 60px; 
+    border-radius: 50%; 
+    overflow: hidden; 
+    margin-right: 20px; 
+    border: 2px solid rgba(255,255,255,0.2); 
+    position: relative; /* FIX */
+    background: #222;
+}
+.st-leader-avatar-small img { 
+    width: 100%; height: 100%; 
+    object-fit: cover; 
+    position: absolute; /* FIX */
+    top: 0; left: 0;
+    z-index: 2; /* FIX */
+}
+.st-fallback-char-small {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 1.2rem;
+    color: rgba(255,255,255,0.5);
+    position: absolute; /* FIX */
+    top: 0; left: 0;
+    z-index: 1; /* FIX */
+}
+
 .st-leader-name { font-size: 1.2rem; font-weight: 600; text-transform: uppercase; color: var(--cream); }
 .st-leader-xp { font-size: 1.1rem; color: var(--turquoise); font-family: 'Outfit', monospace; font-weight: 600; }
 
@@ -241,11 +266,26 @@
     flex: 1; background: radial-gradient(circle, rgba(255, 0, 229, 0.05) 0%, transparent 70%); /* Magenta glow */
 }
 .st-rival-card { text-align: center; z-index: 2; }
+
+/* --- RIVAL AVATAR FIX --- */
 .st-rival-avatar {
-    width: 130px; height: 130px; border-radius: 50%; border: 3px solid var(--cream);
-    margin: 0 auto 10px; overflow: hidden; box-shadow: 0 0 30px rgba(255,255,255,0.1);
+    width: 130px; height: 130px; 
+    border-radius: 50%; 
+    border: 3px solid var(--cream);
+    margin: 0 auto 10px; 
+    overflow: hidden; 
+    box-shadow: 0 0 30px rgba(255,255,255,0.1);
+    position: relative; /* FIX */
+    background: #222;
 }
-.st-rival-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.st-rival-avatar img { 
+    width: 100%; height: 100%; 
+    object-fit: cover; 
+    position: absolute; /* FIX */
+    top: 0; left: 0;
+    z-index: 2; /* FIX */
+}
+
 .st-rival-name { font-family: 'Josefin Sans', sans-serif; font-size: 1.8rem; font-weight: 700; text-transform: uppercase; color: var(--cream); }
 .st-rival-xp { font-size: 1.3rem; color: var(--muted); font-family: monospace; }
 
@@ -381,7 +421,7 @@
 .viz-critical .st-viz-bar { background: #ff0000; box-shadow: 0 0 15px #ff0000; }
 .viz-medium .st-viz-bar { background: var(--plasma-gold); box-shadow: 0 0 10px var(--plasma-gold); }
 
-/* --- 3. TARGET SCANNER (OIKEA) --- */
+/* --- 3. TARGET SCANNER (OIKEA) & AVATAR FIX --- */
 .st-target-wrapper {
     position: relative;
     width: 160px; height: 160px;
@@ -393,10 +433,28 @@
     border-radius: 50%;
     overflow: hidden;
     border: 4px solid var(--plasma-gold);
-    position: relative;
+    position: relative; /* FIX */
     z-index: 1;
+    background: #222;
 }
-.st-target-avatar img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
+
+.st-target-avatar img { 
+    width: 100%; height: 100%; 
+    object-fit: cover; 
+    filter: sepia(0.2) contrast(1.1);
+    position: absolute; /* FIX */
+    top: 0; left: 0;
+    z-index: 2; /* FIX: Kuva nousee kirjaimen päälle */
+}
+
+.st-fallback-char {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; font-weight: 700; color: rgba(255,255,255,0.5);
+    position: absolute; /* FIX */
+    top: 0; left: 0;
+    z-index: 1; /* FIX: Kirjain jää alle */
+}
 
 /* Skannausviiva */
 .st-scan-line {

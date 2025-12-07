@@ -8,7 +8,8 @@ const StatsTakeoverView = ({
   totalLoot, 
   heatLevel, 
   agents, 
-  intelStats 
+  intelStats,
+  characters = [] // <--- 1. Lisätty characters oletusarvolla
 }) => {
   if (!active) return null;
 
@@ -43,13 +44,26 @@ const StatsTakeoverView = ({
     if (fallback) fallback.style.display = 'flex';
   };
 
-  // Yksinkertainen apufunktio kuvan URL:lle
-  // Noudattaa samaa logiikkaa kuin LiveWall: luotetaan tietokantaan
+  // --- 2. KORJATTU AVATARIEN HAKU ---
   const getAvatarSrc = (agent) => {
     if (!agent) return null;
-    // Estetään dummy-datan (esim "d1") latausyritykset, jotka aiheuttavat 400-virheitä
+    
+    // Estetään dummy-datan latausyritykset
     if (agent.id && agent.id.length < 5) return null;
-    return agent.avatar_url;
+
+    // A) Jos avatar tulee suoraan agentin mukana (esim. jos back-end tekee joinin)
+    if (agent.avatar_url) return agent.avatar_url;
+
+    // B) Jos ei, etsitään se characters-listasta ID:n perusteella
+    if (characters && characters.length > 0) {
+      // Oletetaan että agent.id vastaa characters-taulukon id:tä
+      const foundChar = characters.find(c => c.id === agent.id);
+      if (foundChar && foundChar.avatar_url) {
+        return foundChar.avatar_url;
+      }
+    }
+
+    return null; 
   };
 
   return (
