@@ -1,0 +1,270 @@
+@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+/* --- PÄÄCONTAINER --- */
+.wall-container {
+  min-height: 100vh;
+  /* Moderni tapa huomioida mobiiliselaimen palkit */
+  min-height: 100dvh; 
+  background-color: #121212;
+  padding: 10px;
+  color: #fff;
+  overflow-x: hidden;
+  /* Iso padding alas oletuksena */
+  padding-bottom: 100px;
+}
+
+.wall-header {
+  text-align: center;
+  margin: 20px 0 30px 0;
+}
+
+.wall-title {
+  font-family: 'Indie Flower', cursive;
+  font-size: 2.5rem;
+  color: #00e7ff;
+  text-shadow: 0 0 10px rgba(0, 231, 255, 0.4);
+  margin: 0;
+}
+
+/* --- MASONRY GRID (DESKTOP) --- */
+.polaroid-grid {
+  /* Oletus: Desktopilla 4 saraketta */
+  column-count: 4;
+  column-gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* --- POLAROID KORTTI --- */
+.polaroid-item {
+  background: white;
+  padding: 6px 6px 35px 6px; 
+  margin-bottom: 20px; 
+  border-radius: 2px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  
+  /* Estää kuvan katkeamisen sarakkeen vaihtuessa */
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  
+  cursor: pointer;
+  position: relative;
+  
+  /* Desktop-animaatiot (nämä nollataan mobiilissa) */
+  transition: transform 0.2s, box-shadow 0.2s;
+  will-change: transform;
+}
+
+/* Hover-efekti vain, jos laitteessa on hiiri (estää mobiilihuojumisen) */
+@media (hover: hover) {
+  .polaroid-item:hover {
+    transform: scale(1.02) !important; 
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    z-index: 10;
+  }
+}
+
+.polaroid-img {
+  width: 100%;
+  height: auto; 
+  display: block;
+  background: #eee;
+  filter: contrast(1.05) sepia(0.1); 
+  object-fit: cover; 
+}
+
+.polaroid-caption {
+  position: absolute;
+  bottom: 2px;
+  left: 5px;
+  right: 5px;
+  font-family: 'Indie Flower', cursive;
+  color: #222;
+  font-size: 1rem;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Indikaattorit */
+.polaroid-badges {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: flex;
+  gap: 4px;
+}
+
+.badge {
+  background: #222;
+  color: #fff;
+  border-radius: 12px;
+  padding: 3px 7px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+.badge.hot { background: linear-gradient(135deg, #ff9a9e 0%, #ff5e62 100%); color: white; }
+.badge.comments { background: #00e7ff; color: #000; }
+
+/* --------------------------------------------------------- */
+/* --- MOBIILIOPTIMOINTI (MAX-WIDTH 768PX) --- */
+/* --------------------------------------------------------- */
+@media (max-width: 768px) {
+  .wall-container {
+    padding: 15px; /* Hieman enemmän tilaa reunoille */
+    /* Reilu tila alas, jotta osoitepalkki ei peitä viimeistä kuvaa */
+    padding-bottom: 160px; 
+    overflow-y: scroll; 
+    -webkit-overflow-scrolling: touch; 
+  }
+
+  .polaroid-grid {
+    /* NYT: Yksi sarake mobiilissa */
+    column-count: 1; 
+    column-gap: 0;
+  }
+
+  .polaroid-item {
+    /* Pakotetaan kuvat suoraan riviin */
+    transform: none !important; 
+    margin-bottom: 25px; /* Enemmän väliä kuvien väliin */
+    
+    /* Poistetaan raskaat varjot */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  .polaroid-item:active {
+    transform: scale(0.99) !important;
+  }
+
+  .wall-title {
+    font-size: 2rem; 
+  }
+}
+
+/* --- FULLSCREEN OVERLAY (Säilyy ennallaan) --- */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.96);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.overlay-header {
+  padding: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+.btn-close {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: white;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.overlay-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 80px; 
+}
+
+.overlay-image-wrapper {
+  width: 100%;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  max-height: 50vh; 
+  min-height: 250px;
+}
+
+.overlay-img {
+  max-width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+}
+
+.hype-fab {
+  position: absolute;
+  bottom: -25px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: white;
+  border: 4px solid #121212;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+.hype-fab:active { transform: scale(0.92); }
+
+.anim-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes pop { 50% { transform: scale(1.5); } }
+
+.hype-count {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #333;
+  margin-top: -2px;
+}
+
+.comments-section {
+  padding: 30px 15px 15px 15px;
+}
+.comment-item {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+.comment-author { font-weight: bold; color: #00e7ff; font-size: 0.85rem; }
+.comment-text { color: #eee; font-size: 0.95rem; line-height: 1.4; margin-top: 2px; word-break: break-word; }
+
+.comment-input-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: #1e1e1e;
+  padding: 10px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom)); 
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #333;
+}
+.comment-input {
+  background: #333;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 15px;
+  color: white;
+  outline: none;
+  font-size: 1rem;
+}
+.btn-send {
+  background: #00e7ff;
+  color: #000;
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

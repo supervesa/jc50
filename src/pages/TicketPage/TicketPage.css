@@ -1324,3 +1324,27 @@ html, body {
 .success-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white;}
 .success-icon { width: 80px; height: 80px; color: var(--studio-success); margin-bottom: 20px; }
 .success-actions { display: flex; gap: 20px; margin-top: 30px; }
+
+/* --- Lisäys TicketPage.css --- */
+
+.header-wall-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--neon-blue, #00e7ff); /* Käytä neon-väriä */
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border: 1px solid rgba(0, 231, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(0, 231, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.header-wall-link:hover {
+  background: rgba(0, 231, 255, 0.15);
+  box-shadow: 0 0 8px rgba(0, 231, 255, 0.4);
+  transform: translateY(-1px);
+}

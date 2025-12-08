@@ -1,19 +1,30 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Smartphone, IdCard, Camera, ScanLine, ShieldCheck } from 'lucide-react';
+import { Smartphone, IdCard, Camera, ScanLine, ShieldCheck, Images } from 'lucide-react';
 import './TicketPage.css';
 
 function TicketHeader({ id, activeTab, setActiveTab }) {
+  // Varmistetaan että ID on olemassa linkkiä varten, muuten estetään 'undefined' urlissa
+  const wallLink = id ? `/wall/${id}` : '/wall';
+
   return (
     <header className="ticket-header-container">
       
-      {/* Yläpalkki: Status & ID */}
+      {/* Yläpalkki: Status & ID & Wall-linkki */}
       <div className="ticket-top-bar">
         <div className="status-badge">
           <ShieldCheck size={14} /> ACCESS GRANTED
         </div>
-        <div className="ticket-id-display">
-          ID: {id ? id.slice(0, 8).toUpperCase() : '........'}
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {/* UUSI LINKKI SEINÄLLE */}
+          <Link to={wallLink} className="header-wall-link" title="Avaa Juhlafeed">
+            <Images size={16} /> <span>LIVE WALL</span>
+          </Link>
+
+          <div className="ticket-id-display">
+            ID: {id ? id.slice(0, 8).toUpperCase() : '........'}
+          </div>
         </div>
       </div>
 

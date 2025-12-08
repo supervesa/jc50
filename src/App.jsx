@@ -11,6 +11,7 @@ import AgentPage from './pages/AgentPage/AgentPage';
 import AdminPage from './pages/AdminPage/AdminPage';
 import HeistLeaderboard from './components/leader/HeistLeaderboard';
 import HeistPersonalScoreboard from './pages/AgentPage/HeistPersonalScoreboard';
+import PhotoWall from './pages/PhotoWall';
 function App() {
   return (
     <div className="App">
@@ -30,6 +31,7 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/leaderboard" element={<HeistLeaderboard />} />
           <Route path="/personal-stats" element={<HeistPersonalScoreboard />} />
+   <Route path="/wall/:guestId?" element={<PhotoWall />} />
         </Routes>
       </main>
       <Footer />
