@@ -4,22 +4,22 @@ import { supabase } from '../../../lib/supabaseClient';
 const FlashMissions = ({ activeFlash, flashCount }) => {
   
   const startFlash = async (type, title, xp) => {
-    // Lopeta edellinen jos on
-    if (activeFlash) {
-       await supabase.from('flash_missions').update({ status: 'ended', end_time: new Date().toISOString() }).eq('id', activeFlash.id);
-    }
+    // 1. VAROTOIMI: Suljetaan ensin KAIKKI vanhat aktiiviset tehtävät (poistaa haamut)
+    await supabase.from('flash_missions')
+      .update({ status: 'ended', end_time: new Date().toISOString() })
+      .eq('status', 'active');
     
+    // 2. Luodaan uusi
     await supabase.from('flash_missions').insert({ 
       type, title, xp_reward: xp, status: 'active' 
     });
   };
 
   const stopFlash = async () => {
-    if (!activeFlash) return;
-    await supabase.from('flash_missions').update({ 
-      status: 'ended', 
-      end_time: new Date().toISOString() 
-    }).eq('id', activeFlash.id);
+    // Suljetaan kaikki aktiiviset, ei vain yhtä ID:tä
+    await supabase.from('flash_missions')
+      .update({ status: 'ended', end_time: new Date().toISOString() })
+      .eq('status', 'active');
   };
 
   return (
@@ -29,8 +29,8 @@ const FlashMissions = ({ activeFlash, flashCount }) => {
       {activeFlash ? (
         <div className="flash-active-card">
           <h3 className="blink">⚠️ LIVE: {activeFlash.title}</h3>
-          <div className="flash-stats">SUORITNUITTA: {flashCount}</div>
-          <button className="btn-stop-large" onClick={stopFlash}>⏹ PÄÄTÄ TEHTÄVÄ</button>
+          <div className="flash-stats">SUORITTANEITA: {flashCount}</div>
+          <button className="btn-stop-large" onClick={stopFlash}>⏹ PÄÄTÄ TEHTÄVÄ (STOP ALL)</button>
         </div>
       ) : (
         <div className="flash-buttons">
