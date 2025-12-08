@@ -1,4 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Camera, 
+  Trash2, 
+  Type, 
+  Smile, 
+  Frame, 
+  X, 
+  Send, 
+  Share2, 
+  CheckCircle,
+  ArrowLeft,
+  Move
+} from 'lucide-react';
 import './TicketPage.css';
 
 // --- DATA ---
@@ -30,7 +43,7 @@ const FRAMES = [
   }
 ];
 
-const STICKERS = ["🕶️", "🎩", "💋", "🍸", "💃", "🕺", "🕵️", "🔥", "🎉", "⭐"];
+const STICKERS = ["🕶️", "🎩", "💋", "🍸", "💃", "🕺", "🕵️", "🔥", "🎉", "⭐", "🦄", "🌈"];
 
 function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete, uploading }) {
   // --- STATE ---
@@ -38,7 +51,7 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
   const [activeFrameId, setActiveFrameId] = useState('none');
   const [activeTool, setActiveTool] = useState('frames'); // 'frames' | 'stickers' | 'text'
   
-  // Elementit kankaalla (tausta + tarrat/tekstit)
+  // Elementit kankaalla
   const [bgPan, setBgPan] = useState({ x: 0, y: 0 }); 
   const [overlays, setOverlays] = useState([]); 
   
@@ -47,7 +60,7 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
   const isDragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
 
-  // Työkalun input (kuvan päälle tuleva teksti)
+  // Työkalun input
   const [toolInputText, setToolInputText] = useState('');
 
   // Prosessointi
@@ -104,7 +117,7 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
     }
     ctx.drawImage(img, offsetX, offsetY, renderW, renderH);
 
-    // B) TARRAT & KUVA-TEKSTIT
+    // B) TARRAT & TEKSTIT
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
@@ -140,23 +153,34 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
 
   useEffect(() => { drawCanvas(); }, [selectedImage, activeFrameId, bgPan, overlays, dragTarget]);
 
-  // --- LISÄYSTOIMINNOT ---
+  // --- LOGIIKKA: LISÄYS & POISTO ---
+  
   const addOverlay = (type, content) => {
+    if (!content) return; // Estä tyhjät
     const newId = Date.now();
+    // Asetetaan keskelle
     const newItem = { id: newId, type, content, x: 540, y: 540 }; 
     setOverlays([...overlays, newItem]);
     setDragTarget(newId);
     if (type === 'text') setToolInputText('');
   };
 
-  const removeSelectedOverlay = () => {
+  // TÄMÄ ON KORJATTU POISTOFUNKTIO
+  const removeSelectedOverlay = (e) => {
+    // Pysäytetään tapahtuman leviäminen, jotta "dragStart" ei käynnisty
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+
     if (dragTarget && dragTarget !== 'bg') {
-      setOverlays(overlays.filter(o => o.id !== dragTarget));
+      const newOverlays = overlays.filter(o => o.id !== dragTarget);
+      setOverlays(newOverlays);
       setDragTarget(null);
     }
   };
 
-  // --- RAAHAUS ---
+  // --- RAAHAUS (DRAG) ---
   const getCanvasCoords = (clientX, clientY) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const scale = 1080 / rect.width;
@@ -167,12 +191,18 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
     isDragging.current = true;
     lastPos.current = getCanvasCoords(cx, cy);
     const { x, y } = lastPos.current;
+    
+    // Tarkistetaan osutaanko johonkin elementtiin
     let hitId = null;
+    // Käydään läpi käänteisessä järjestyksessä (päällimmäinen ensin)
     for (let i = overlays.length - 1; i >= 0; i--) {
       const item = overlays[i];
       const dx = x - item.x;
       const dy = y - item.y;
-      if (Math.sqrt(dx*dx + dy*dy) < 120) { hitId = item.id; break; }
+      if (Math.sqrt(dx*dx + dy*dy) < 150) { // Kasvatettu osuma-aluetta hieman
+        hitId = item.id; 
+        break; 
+      }
     }
     setDragTarget(hitId || 'bg');
   };
@@ -192,8 +222,21 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
   };
 
   const endDrag = () => { isDragging.current = false; };
-  const handleStart = (e) => { e.preventDefault(); const pt = e.touches ? e.touches[0] : e; startDrag(pt.clientX, pt.clientY); };
-  const handleMove = (e) => { if(isDragging.current) e.preventDefault(); const pt = e.touches ? e.touches[0] : e; moveDrag(pt.clientX, pt.clientY); };
+  
+  // Wrapperit hiiri/kosketustapahtumille
+  const handleStart = (e) => { 
+    // Ei estetä defaulttia heti, jotta inputit toimii, mutta kankaalla estetään
+    // e.preventDefault(); 
+    const pt = e.touches ? e.touches[0] : e; 
+    startDrag(pt.clientX, pt.clientY); 
+  };
+  const handleMove = (e) => { 
+    if(isDragging.current) {
+      e.preventDefault(); // Estä sivun scrollaus raahauksen aikana
+      const pt = e.touches ? e.touches[0] : e; 
+      moveDrag(pt.clientX, pt.clientY); 
+    }
+  };
 
   // --- LÄHETYS ---
   const handlePost = async () => {
@@ -213,104 +256,148 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
 
   const closeStudio = () => { setSelectedImage(null); setShowSuccess(false); setPhotoMessage(''); };
 
-  // ---------------- RENDER ----------------
-
+  // --- RENDER ---
   if (selectedImage) {
     return (
-      <div className="studio-container">
+      <div className="studio-overlay">
         
-        {/* 1. KANGAS */}
-        <div 
-          className="studio-canvas-wrapper"
-          onMouseDown={handleStart} onMouseMove={handleMove} onMouseUp={endDrag} onMouseLeave={endDrag}
-          onTouchStart={handleStart} onTouchMove={handleMove} onTouchEnd={endDrag}
-        >
-           <canvas ref={canvasRef} className="studio-canvas" />
-           <div className={`delete-overlay-btn ${dragTarget && dragTarget !== 'bg' && !showSuccess ? 'visible' : ''}`}>
-              Poista painamalla 🗑️
-           </div>
+        {/* YLÄPALKKI */}
+        <div className="studio-header">
+          <button onClick={closeStudio} className="btn-ghost">
+            <X size={24} /> Peruuta
+          </button>
+          <span className="studio-title">Muokkaa</span>
+          <button 
+            onClick={handlePost} 
+            className="btn-primary" 
+            disabled={uploading || showSuccess}
+          >
+            {uploading ? '...' : <><Send size={18} /> Lähetä</>}
+          </button>
         </div>
 
+        {/* EDITORIALUE */}
         {showSuccess ? (
-           <div style={{ textAlign:'center', width:'100%' }}>
-             <h3 style={{color: 'var(--lime)', marginBottom:'1rem'}}>✅ KUVA LÄHETETTY!</h3>
-             <div className="bottom-actions">
-                <button onClick={closeStudio} className="studio-btn-secondary">🔙 Alkuun</button>
-                <button onClick={handleShare} className="studio-btn-primary">📤 Jaa</button>
+           <div className="success-view">
+             <CheckCircle className="success-icon" />
+             <h2>Lähetetty!</h2>
+             <div className="success-actions">
+                <button onClick={closeStudio} className="btn-ghost" style={{border: '1px solid #444', borderRadius: '20px'}}>
+                  <ArrowLeft size={18} /> Palaa
+                </button>
+                <button onClick={handleShare} className="btn-primary">
+                  <Share2 size={18} /> Jaa
+                </button>
              </div>
            </div>
         ) : (
           <>
-            <p className="studio-hint">Liikuta kuvaa tai tarroja sormella.</p>
-            
-            {/* 2. PALAUTETTU VIESTIKENTTÄ (Live-seinälle) */}
-            <div className="caption-container">
-                <input 
-                  type="text" 
-                  className="caption-input" 
-                  placeholder="Kirjoita kuvateksti seinälle..." 
-                  value={photoMessage} // Tämä tulee TicketPagesta
-                  onChange={(e) => setPhotoMessage(e.target.value)}
-                />
+            <div 
+              className="studio-workspace"
+              // Tapahtumat kytketty tähän wrapperiin
+              onMouseDown={handleStart} 
+              onMouseMove={handleMove} 
+              onMouseUp={endDrag} 
+              onMouseLeave={endDrag}
+              onTouchStart={handleStart} 
+              onTouchMove={handleMove} 
+              onTouchEnd={endDrag}
+            >
+               <div className="canvas-wrapper">
+                 <canvas ref={canvasRef} className="studio-canvas" />
+                 
+                 {/* POISTA-NAPPI (Nyt oikein sijoitettu) */}
+                 <button 
+                    className={`delete-hint-overlay ${dragTarget && dragTarget !== 'bg' ? 'visible' : ''}`}
+                    onClick={removeSelectedOverlay}
+                    // TÄRKEÄ: Estä raahauksen käynnistyminen napista
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    style={{ 
+                      pointerEvents: dragTarget && dragTarget !== 'bg' ? 'auto' : 'none', 
+                      cursor: 'pointer' 
+                    }}
+                 >
+                    <Trash2 size={20} />
+                    <span>Poista valittu</span>
+                 </button>
+               </div>
             </div>
 
-            {/* 3. TYÖKALUVALIKKO (TABS) */}
-            <div className="tool-tabs">
-              <button onClick={() => setActiveTool('frames')} className={`tab-btn ${activeTool === 'frames' ? 'active' : ''}`}>🎨 Kehykset</button>
-              <button onClick={() => setActiveTool('stickers')} className={`tab-btn ${activeTool === 'stickers' ? 'active' : ''}`}>😎 Tarrat</button>
-              <button onClick={() => setActiveTool('text')} className={`tab-btn ${activeTool === 'text' ? 'active' : ''}`}>📝 Teksti</button>
-            </div>
-
-            {/* 4. TYÖKALUN SISÄLTÖ */}
-            <div className="tool-content">
-              {activeTool === 'frames' && (
-                <div className="frame-selector">
-                  {FRAMES.map(frame => (
-                    <div 
-                      key={frame.id}
-                      className={`frame-btn-item ${activeFrameId === frame.id ? 'selected' : ''}`}
-                      onClick={() => setActiveFrameId(frame.id)}
-                      style={{ borderColor: activeFrameId === frame.id ? 'var(--turquoise)' : frame.color }}
-                    >
-                      {frame.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTool === 'stickers' && (
-                <div className="sticker-grid">
-                  {STICKERS.map(sticker => (
-                    <button key={sticker} className="sticker-btn" onClick={() => addOverlay('sticker', sticker)}>
-                      {sticker}
-                    </button>
-                  ))}
-                  <button className="sticker-btn" onClick={removeSelectedOverlay} style={{background:'rgba(255,0,0,0.2)'}}>🗑️</button>
-                </div>
-              )}
-
-              {/* TÄMÄ INPUT ON KUVAN PÄÄLLE TULEVALLE TEKSTILLE */}
-              {activeTool === 'text' && (
-                <div className="text-tool-wrapper">
+            {/* TYÖKALUT */}
+            <div className="studio-controls">
+                
+                {/* Viestikenttä seinälle */}
+                <div className="caption-area">
                   <input 
                     type="text" 
-                    className="text-tool-input" 
-                    placeholder="Teksti kuvaan..." 
-                    value={toolInputText}
-                    onChange={(e) => setToolInputText(e.target.value)}
+                    className="caption-input" 
+                    placeholder="Kirjoita viesti seinälle (valinnainen)..." 
+                    value={photoMessage} 
+                    onChange={(e) => setPhotoMessage(e.target.value)}
                   />
-                  <button className="text-add-btn" onClick={() => addOverlay('text', toolInputText || 'TEXT')}>LISÄÄ</button>
-                  <button className="text-add-btn" onClick={removeSelectedOverlay} style={{background:'#444', color:'#fff'}}>🗑️</button>
                 </div>
-              )}
-            </div>
 
-            {/* 5. ALAOSAN NAPIT */}
-            <div className="bottom-actions">
-              <button onClick={closeStudio} className="studio-btn-secondary">Peruuta</button>
-              <button onClick={handlePost} className="studio-btn-primary" disabled={uploading}>
-                {uploading ? 'Lähetetään...' : '🚀 LÄHETÄ'}
-              </button>
+                {/* Tabit */}
+                <div className="tool-tabs">
+                  <button onClick={() => setActiveTool('frames')} className={`tab-btn ${activeTool === 'frames' ? 'active' : ''}`}>
+                    <Frame /> Kehykset
+                  </button>
+                  <button onClick={() => setActiveTool('stickers')} className={`tab-btn ${activeTool === 'stickers' ? 'active' : ''}`}>
+                    <Smile /> Tarrat
+                  </button>
+                  <button onClick={() => setActiveTool('text')} className={`tab-btn ${activeTool === 'text' ? 'active' : ''}`}>
+                    <Type /> Teksti
+                  </button>
+                </div>
+
+                {/* Paneeli */}
+                <div className="tool-panel">
+                  
+                  {activeTool === 'frames' && (
+                    <div className="horizontal-scroll">
+                      {FRAMES.map(frame => (
+                        <div 
+                          key={frame.id}
+                          className={`frame-item ${activeFrameId === frame.id ? 'selected' : ''}`}
+                          onClick={() => setActiveFrameId(frame.id)}
+                          style={{ borderTop: `4px solid ${frame.color}` }}
+                        >
+                          {frame.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeTool === 'stickers' && (
+                    <div className="horizontal-scroll">
+                      {STICKERS.map(sticker => (
+                        <button key={sticker} className="sticker-item" onClick={() => addOverlay('sticker', sticker)}>
+                          {sticker}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeTool === 'text' && (
+                    <div className="text-tool-row">
+                      <input 
+                        type="text" 
+                        className="text-input-modern" 
+                        placeholder="Teksti kuvaan..." 
+                        value={toolInputText}
+                        onChange={(e) => setToolInputText(e.target.value)}
+                      />
+                      <button 
+                        className="btn-add-text" 
+                        onClick={() => addOverlay('text', toolInputText || 'TEXT')}
+                      >
+                        <Move size={20} color="black" />
+                      </button>
+                    </div>
+                  )}
+
+                </div>
             </div>
           </>
         )}
@@ -318,40 +405,39 @@ function PhotoFeed({ myPhotos, photoMessage, setPhotoMessage, onUpload, onDelete
     );
   }
 
-  // --- PERUSNÄKYMÄ ---
+  // --- PERUSNÄKYMÄ (FEED) ---
   return (
-    <div>
-      <section className="jc-card medium mb-2" style={{textAlign:'center'}}>
-        <h3 className="jc-h2 feed-header">Juhlafeed</h3>
-        <p className="small" style={{marginBottom:'1.5rem'}}>
-          Ota kuva, lisää tarrat ja jaa screeneille!
-        </p>
+    <div className="feed-container">
+      <div className="upload-card">
+        <h2 style={{margin:'0 0 10px 0', fontSize:'1.5rem'}}>📸 Juhlafeed</h2>
+        <p style={{color:'#aaa', marginBottom:'20px'}}>Jaa tunnelmat screeneille!</p>
 
-        <div className="jc-form">
-          <label className={`jc-cta primary upload-area ${uploading ? 'disabled' : ''}`} style={{display:'inline-block', width:'100%', maxWidth:'300px'}}>
-            {uploading ? 'Käsitellään...' : '📸 OTA KUVA'}
-            <input 
-              type="file" 
-              accept="image/*" 
-              capture="environment" 
-              style={{ display: 'none' }} 
-              onChange={handleFileChange} 
-              disabled={uploading} 
-            />
-          </label>
-        </div>
-      </section>
+        <label className={`upload-btn-label ${uploading ? 'disabled' : ''}`}>
+          {uploading ? 'Käsitellään...' : <><Camera size={24} /> OTA KUVA</>}
+          <input 
+            type="file" 
+            accept="image/*" 
+            capture="environment" 
+            style={{ display: 'none' }} 
+            onChange={handleFileChange} 
+            disabled={uploading} 
+          />
+        </label>
+      </div>
 
-      <h4 className="feed-title-small" style={{textAlign:'center'}}>MINUN OTOKSENI ({myPhotos.length})</h4>
-      <div className="jc-grid">
+      <div style={{marginBottom: '15px', color: '#666', fontSize:'0.9rem', textTransform:'uppercase'}}>
+        Minun otokseni ({myPhotos.length})
+      </div>
+      
+      <div className="photo-grid">
         {myPhotos.map(photo => (
-          <div key={photo.id} className="jc-col-6">
-            <div className="photo-item">
-              <img src={photo.image_url} alt="Post" className="photo-img" />
-              <div className="photo-meta">
-                <p className="photo-msg">"{photo.message || '-'}"</p>
-                <button onClick={() => onDelete(photo.id)} className="photo-delete">Poista</button>
-              </div>
+          <div key={photo.id} className="photo-card">
+            <img src={photo.image_url} alt="Post" />
+            <div className="photo-actions">
+              <span className="photo-msg">{photo.message}</span>
+              <button onClick={() => onDelete(photo.id)} className="btn-icon-small">
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         ))}

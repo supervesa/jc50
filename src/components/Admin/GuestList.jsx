@@ -1,4 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { 
+  Search, Download, Grid, List, 
+  Database, UserPlus, Users, 
+  Trophy, Link as LinkIcon, AlertCircle 
+} from 'lucide-react';
 import './AdminPage.css'; // Käytetään samoja tyylejä
 
 function GuestList({ guests, splits = [], characters = [] }) {
@@ -6,8 +11,7 @@ function GuestList({ guests, splits = [], characters = [] }) {
   const [filterType, setFilterType] = useState('ALL'); 
   const [viewMode, setViewMode] = useState('GRID'); 
 
-  // --- DATAN RIKASTAMINEN (ENRICHMENT) ---
-  // Yhdistetään vieraisiin tieto hahmoista ja split-kytköksistä
+  // --- DATAN RIKASTAMINEN ---
   const enrichedGuests = useMemo(() => {
     return guests.map(g => {
       // 1. Hahmot
@@ -40,15 +44,12 @@ function GuestList({ guests, splits = [], characters = [] }) {
     });
   }, [guests, splits, characters]);
 
-  // --- LASKURI ---
+  // --- LASKURI (HUD STATS) ---
   const stats = useMemo(() => {
     const realGuests = guests.length; // Tietokannan rivit
     let ghostAvecs = 0;
 
     guests.forEach(g => {
-      // Jos tuo puolison, mutta EI OLE splitannut (eli puoliso ei ole vielä omana rivinään)
-      // Niin silloin lasketaan +1 haamu.
-      // Jos on splitannut, puoliso on jo mukana 'realGuests' luvussa.
       const isSplit = splits.some(s => s.parent_guest_id === g.id);
       if (g.brings_spouse && !isSplit) {
         ghostAvecs++;
@@ -61,20 +62,21 @@ function GuestList({ guests, splits = [], characters = [] }) {
   // --- SUODATUS ---
   const filteredGuests = useMemo(() => {
     return enrichedGuests.filter(guest => {
+      const s = searchTerm.toLowerCase();
       const matchesSearch = 
-        guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        guest.email.toLowerCase().includes(searchTerm.toLowerCase());
+        guest.name.toLowerCase().includes(s) ||
+        (guest.email && guest.email.toLowerCase().includes(s));
       
       let matchesFilter = true;
       if (filterType === 'NO_CHAR') matchesFilter = !guest.mainCharacter;
       if (filterType === 'AVEC') matchesFilter = guest.brings_spouse || guest.isChild; 
-      if (filterType === 'DIET') matchesFilter = guest.dietary_restrictions;
+      if (filterType === 'DIET') matchesFilter = guest.dietary_restrictions && guest.dietary_restrictions.length > 0;
 
       return matchesSearch && matchesFilter;
     });
   }, [enrichedGuests, searchTerm, filterType]);
 
-  // --- CSV ---
+  // --- CSV LATAUS ---
   const downloadCSV = () => {
     if (enrichedGuests.length === 0) return;
     const headers = ["Nimi,Sähköposti,Status,Avec/Linkki,Allergiat,Hahmo,Rooli"];
@@ -109,7 +111,7 @@ function GuestList({ guests, splits = [], characters = [] }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `jc_lista.csv`);
+    link.setAttribute("download", `jc_lista_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -119,103 +121,184 @@ function GuestList({ guests, splits = [], characters = [] }) {
 
   return (
     <div>
-      {/* STATS */}
-      <div className="jc-card medium mb-2 guest-stats-row">
-        <div className="stat-box">
-          <div className="stat-label text-turquoise">KORTIT (DB)</div>
+      {/* 1. HUD STATS ROW */}
+      <div className="jc-card guest-stats-row">
+        
+        <div className="stat-box turquoise">
+          <div className="stat-label">
+            <Database size={16} /> Kortit (DB)
+          </div>
           <div className="stat-value">{stats.real}</div>
         </div>
-        <div className="stat-box">
-          <div className="stat-label text-magenta">LINKITTÖMÄT AVECIT</div>
+
+        <div className="stat-box magenta">
+          <div className="stat-label">
+            <UserPlus size={16} /> Linkittömät Avecit
+          </div>
           <div className="stat-value">{stats.ghosts}</div>
         </div>
-        <div className="stat-box stat-divider">
-          <div className="stat-label text-gold">YHTEENSÄ (PÄÄLUKU)</div>
-          <div className="stat-value text-gold">{stats.total}</div>
+
+        <div className="stat-box gold">
+          <div className="stat-label">
+            <Users size={16} /> Yhteensä (Pääluku)
+          </div>
+          <div className="stat-value">{stats.total}</div>
         </div>
+
       </div>
 
-      {/* CATERING */}
+      {/* 2. CATERING ALERT (Vain jos allergioita) */}
       {allDiets.length > 0 && (
-        <div className="jc-card small mb-2 catering-wrapper">
-          <h3 className="small text-gold" style={{ margin: 0 }}>⚠️ CATERING:</h3>
-          <div className="diet-tags-row">
-            {allDiets.map((diet, i) => <span key={i} className="diet-tag">{diet}</span>)}
+        <div className="jc-card small mb-2" style={{borderColor:'#ffaa00', background:'rgba(255, 170, 0, 0.05)'}}>
+          <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'0.5rem'}}>
+            <AlertCircle size={16} color="#ffaa00"/>
+            <h4 className="small text-gold" style={{ margin: 0 }}>CATERING HUOMIOT</h4>
+          </div>
+          <div style={{display:'flex', flexWrap:'wrap', gap:'8px'}}>
+            {allDiets.map((diet, i) => (
+              <span key={i} className="jc-badge" style={{borderColor:'#ffaa00', color:'#ffaa00', fontSize:'0.75rem'}}>
+                {diet}
+              </span>
+            ))}
           </div>
         </div>
       )}
 
-      {/* TOOLBAR */}
+      {/* 3. TOOLBAR */}
       <div className="jc-toolbar" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '2rem' }}>
-        <button onClick={downloadCSV} className="jc-filter-btn">📥 Lataa CSV</button>
-        <input type="text" placeholder="Etsi..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="jc-search-input" style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }} />
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setFilterType('ALL')} className={`jc-filter-btn ${filterType === 'ALL' ? 'active' : ''}`}>Kaikki</button>
-          <button onClick={() => setFilterType('AVEC')} className={`jc-filter-btn ${filterType === 'AVEC' ? 'active' : ''}`}>Avec</button>
-          <button onClick={() => setFilterType('DIET')} className={`jc-filter-btn ${filterType === 'DIET' ? 'active' : ''}`}>Allergiat</button>
+        
+        {/* Haku */}
+        <div className="jc-form" style={{flex:1, marginBottom:0, position:'relative', minWidth:'200px'}}>
+           <Search size={18} style={{position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'var(--muted)'}} />
+           <input 
+             type="text" 
+             placeholder="Etsi listalta..." 
+             value={searchTerm} 
+             onChange={(e) => setSearchTerm(e.target.value)} 
+             className="jc-input-custom" 
+             style={{marginBottom:0, paddingLeft:'40px'}} 
+            />
         </div>
-        <div style={{ marginLeft: 'auto' }}>
-          <button onClick={() => setViewMode('GRID')} className={`jc-view-btn ${viewMode === 'GRID' ? 'active' : ''}`}>Grid</button>
-          <button onClick={() => setViewMode('TABLE')} className={`jc-view-btn ${viewMode === 'TABLE' ? 'active' : ''}`}>List</button>
+
+        {/* Suodattimet */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => setFilterType('ALL')} className={`jc-cta ${filterType === 'ALL' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Kaikki</button>
+          <button onClick={() => setFilterType('AVEC')} className={`jc-cta ${filterType === 'AVEC' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Avecit</button>
+          <button onClick={() => setFilterType('DIET')} className={`jc-cta ${filterType === 'DIET' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Allergiat</button>
+        </div>
+
+        {/* Näkymävalinta & Lataus */}
+        <div style={{ display:'flex', gap:'0.5rem', marginLeft:'auto' }}>
+           <button onClick={downloadCSV} className="jc-cta ghost" title="Lataa CSV" style={{padding:'0.5rem'}}>
+             <Download size={20} />
+           </button>
+           <div style={{width:'1px', background:'rgba(255,255,255,0.2)', margin:'0 5px'}}></div>
+           <button onClick={() => setViewMode('GRID')} className={`jc-cta ${viewMode === 'GRID' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem'}}>
+             <Grid size={20} />
+           </button>
+           <button onClick={() => setViewMode('TABLE')} className={`jc-cta ${viewMode === 'TABLE' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem'}}>
+             <List size={20} />
+           </button>
         </div>
       </div>
 
-      {/* GRID VIEW */}
+      {/* 4. GRID VIEW */}
       {viewMode === 'GRID' && (
         <div className="jc-grid">
           {filteredGuests.map(guest => (
-            <div key={guest.id} className="jc-col-4">
-              <div className="jc-card small" style={{height:'100%'}}>
-                <div className="guest-card-content">
-                  
-                  {/* LAPSI-INDIKAATTORI */}
-                  {guest.isChild && (
-                    <div style={{fontSize:'0.75rem', color:'var(--magenta)', marginBottom:'5px', textTransform:'uppercase', fontWeight:'bold'}}>
-                      ↳ Kutsunut: {guest.parentName}
-                    </div>
-                  )}
+            <div key={guest.id} className="jc-col-4" style={{minWidth:'300px'}}>
+              <div className="jc-card small" style={{height:'100%', position:'relative', overflow:'hidden'}}>
+                
+                {/* Lapsi-indikaattori (Väriraita vasemmalla) */}
+                {guest.isChild && (
+                  <div style={{position:'absolute', left:0, top:0, bottom:0, width:'4px', background:'var(--turquoise)'}}></div>
+                )}
+                {guest.isParent && (
+                  <div style={{position:'absolute', left:0, top:0, bottom:0, width:'4px', background:'var(--magenta)'}}></div>
+                )}
 
-                  <h3 className="text-turquoise" style={{margin:0}}>{guest.name}</h3>
-                  <p className="guest-card-email">{guest.email}</p>
+                <div style={{paddingLeft: (guest.isChild || guest.isParent) ? '10px' : '0'}}>
                   
-                  {/* AVEC TIEDOT */}
+                  {/* Header */}
+                  <div style={{marginBottom:'10px'}}>
+                    {guest.isChild && (
+                       <div className="small text-turquoise" style={{marginBottom:'2px', display:'flex', alignItems:'center', gap:'5px'}}>
+                         <LinkIcon size={12}/> Kutsunut: {guest.parentName}
+                       </div>
+                    )}
+                    <h3 style={{margin:0, color:'var(--cream)', fontSize:'1.1rem'}}>{guest.name}</h3>
+                    <div className="small" style={{opacity:0.6}}>{guest.email}</div>
+                  </div>
+                  
+                  {/* Avec Info */}
                   {guest.brings_spouse && (
-                    <div className={`spouse-info-box ${guest.isParent ? 'split' : 'linked'}`}>
+                    <div style={{background:'rgba(255,255,255,0.05)', padding:'8px', borderRadius:'6px', marginBottom:'10px'}}>
                       {guest.isParent ? (
-                        <>
-                          <span className="small text-magenta">AVEC ERIYTETTY:</span> <strong>{guest.childName}</strong>
-                          <span className="split-badge">✔ Löytyy omana korttinaan</span>
-                        </>
+                        <div style={{display:'flex', alignItems:'center', gap:'6px', color:'var(--magenta)'}}>
+                           <LinkIcon size={14} /> 
+                           <span className="small">Linkki: <strong>{guest.childName}</strong></span>
+                        </div>
                       ) : (
-                        <>
-                          <span className="small text-magenta">+ AVEC:</span> <strong>{guest.spouse_name}</strong>
-                        </>
+                        <div style={{display:'flex', alignItems:'center', gap:'6px', color:'var(--plasma-gold)'}}>
+                           <UserPlus size={14} /> 
+                           <span className="small">Ilmoitettu: <strong>{guest.spouse_name}</strong></span>
+                        </div>
                       )}
                     </div>
                   )}
 
-                  <div className="guest-roles-section">
+                  {/* Roolit - KORJATTU LINKIT (/agent?id=UUID) */}
+                  <div style={{display:'flex', flexDirection:'column', gap:'5px'}}>
                     {guest.mainCharacter ? (
-                      <div className="role-row">
-                        <span className="small text-turquoise">ROOLI:</span> <strong>{guest.mainCharacter.name}</strong>
+                      <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
+                        <Trophy size={14} color="var(--turquoise)"/> 
+                        <span className="small">Rooli: 
+                          <a 
+                            href={`/agent?id=${guest.mainCharacter.id}`} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            style={{color:'var(--turquoise)', fontWeight:'bold', textDecoration:'underline', marginLeft:'4px'}}
+                          >
+                            {guest.mainCharacter.name}
+                          </a>
+                        </span>
                       </div>
-                    ) : <span className="small" style={{opacity:0.5}}>Ei pääroolia</span>}
+                    ) : (
+                      <span className="small" style={{opacity:0.3}}>Ei roolia</span>
+                    )}
                     
-                    {/* Näytä "Matin" kortissa avec-hahmo VAIN jos se on vielä Matilla */}
+                    {/* Avecin rooli (jos "haamu" tai muuten saatavilla) */}
                     {guest.spouseCharacter && (
-                      <div className="role-row" style={{marginTop:'0.5rem'}}>
-                        <span className="small text-magenta">AVEC ROOLI:</span> <strong>{guest.spouseCharacter.name}</strong>
+                      <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
+                        <Trophy size={14} color="var(--plasma-gold)"/> 
+                        <span className="small">Avec Rooli: 
+                          <a 
+                            href={`/agent?id=${guest.spouseCharacter.id}`} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            style={{color:'var(--plasma-gold)', fontWeight:'bold', textDecoration:'underline', marginLeft:'4px'}}
+                          >
+                            {guest.spouseCharacter.name}
+                          </a>
+                        </span>
                       </div>
                     )}
                   </div>
+                  
+                  {/* Allergiat */}
+                  {guest.dietary_restrictions && (
+                    <div style={{marginTop:'10px', paddingTop:'10px', borderTop:'1px solid rgba(255,255,255,0.1)', color:'#ffaa00', fontSize:'0.85rem', display:'flex', gap:'5px'}}>
+                      <AlertCircle size={14} /> {guest.dietary_restrictions}
+                    </div>
+                  )}
 
-                  <div className="guest-link-row">
-                    <a href={`/lippu/${guest.id}`} target="_blank" rel="noreferrer" style={{color:'inherit', textDecoration:'underline'}}>
-                      Linkki: /lippu/{guest.id}
+                  {/* Vieraan oma linkki */}
+                  <div style={{marginTop:'10px'}}>
+                    <a href={`/lippu/${guest.id}`} target="_blank" rel="noreferrer" className="small" style={{color:'var(--turquoise)', display:'flex', alignItems:'center', gap:'4px'}}>
+                      <LinkIcon size={12}/> Avaa Lippulinkki
                     </a>
                   </div>
-                  
-                  {guest.dietary_restrictions && <div className="guest-alert-row">⚠️ {guest.dietary_restrictions}</div>}
+
                 </div>
               </div>
             </div>
@@ -223,29 +306,54 @@ function GuestList({ guests, splits = [], characters = [] }) {
         </div>
       )}
 
-      {/* TABLE VIEW (Vastaava logiikka) */}
+      {/* 5. TABLE VIEW */}
       {viewMode === 'TABLE' && (
-        <div className="jc-table-container">
-          <table className="jc-table">
-            <thead><tr><th>Nimi</th><th>Sähköposti</th><th>Hahmo</th><th>Avec</th><th>Linkki</th><th>Allergiat</th></tr></thead>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%', borderCollapse:'collapse', color:'var(--cream)'}}>
+            <thead>
+              <tr style={{borderBottom:'1px solid rgba(255,255,255,0.1)', textAlign:'left'}}>
+                <th style={{padding:'10px'}}>Nimi</th>
+                <th style={{padding:'10px'}}>Status</th>
+                <th style={{padding:'10px'}}>Hahmo</th>
+                <th style={{padding:'10px'}}>Avec / Linkki</th>
+                <th style={{padding:'10px'}}>Allergiat</th>
+                <th style={{padding:'10px'}}>Linkki</th>
+              </tr>
+            </thead>
             <tbody>
               {filteredGuests.map(g => (
-                <tr key={g.id}>
-                  <td>
-                    {g.isChild && <span style={{color:'var(--magenta)'}}>↳ </span>}
+                <tr key={g.id} style={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                  <td style={{padding:'10px'}}>
                     {g.name}
+                    <div className="small" style={{opacity:0.5}}>{g.email}</div>
                   </td>
-                  <td>{g.email}</td>
-                  <td>{g.mainCharacter ? g.mainCharacter.name : '-'}</td>
-                  <td>
-                    {g.brings_spouse ? (
-                      g.isParent 
-                        ? <span style={{color:'#888'}}>{g.childName} (Eriytetty)</span>
-                        : g.spouse_name
+                  <td style={{padding:'10px'}}>
+                    {g.isChild && <span className="jc-badge" style={{borderColor:'var(--turquoise)', color:'var(--turquoise)'}}>Avec</span>}
+                    {g.isParent && <span className="jc-badge" style={{borderColor:'var(--magenta)', color:'var(--magenta)'}}>Kutsuja</span>}
+                    {!g.isChild && !g.isParent && <span style={{opacity:0.5}}>Vieras</span>}
+                  </td>
+                  <td style={{padding:'10px'}}>
+                    {g.mainCharacter ? (
+                      <a href={`/agent?id=${g.mainCharacter.id}`} target="_blank" rel="noreferrer" style={{color:'var(--turquoise)', textDecoration:'underline'}}>
+                        {g.mainCharacter.name}
+                      </a>
                     ) : '-'}
                   </td>
-                  <td><a href={`/lippu/${g.id}`} target="_blank" rel="noreferrer">Avaa</a></td>
-                  <td>{g.dietary_restrictions || '-'}</td>
+                  <td style={{padding:'10px'}}>
+                    {g.brings_spouse ? (
+                      g.isParent 
+                        ? <span style={{color:'var(--magenta)'}}>{g.childName} (Link)</span>
+                        : <span style={{color:'var(--plasma-gold)'}}>{g.spouse_name} (Ilm.)</span>
+                    ) : '-'}
+                  </td>
+                  <td style={{padding:'10px', color: g.dietary_restrictions ? '#ffaa00' : 'inherit'}}>
+                    {g.dietary_restrictions || '-'}
+                  </td>
+                  <td style={{padding:'10px'}}>
+                    <a href={`/lippu/${g.id}`} target="_blank" rel="noreferrer" style={{color:'var(--turquoise)'}}>
+                      <LinkIcon size={16} />
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>

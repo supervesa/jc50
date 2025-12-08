@@ -279,3 +279,99 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* --- HUD / STATS ROW --- */
+
+.guest-stats-row {
+  /* TÄMÄ PAKOTTAA LAATIKOT RIVILLE */
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr); /* 3 yhtä leveää saraketta */
+  gap: 0; /* Ei väliä, käytetään reunaviivoja erottimina */
+  
+  /* Tyyli */
+  background: rgba(11, 11, 16, 0.85) !important; /* Tumma tausta */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  padding: 0 !important; /* Nollataan padding jotta dividerit toimii */
+  overflow: hidden; /* Pyöristetyt kulmat pysyy siistinä */
+  margin-bottom: 2rem;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  position: relative;
+  transition: background 0.2s;
+}
+
+/* Erotinviivat laatikoiden väliin */
+.stat-box:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-box:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* LABEL: Pieni otsikko ylhäällä */
+.stat-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+
+/* VALUE: Iso numero alhaalla */
+.stat-value {
+  font-family: "Josefin Sans", sans-serif; /* Tai 'Orbitron' */
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- VÄRITEEMAT (Neon Glow) --- */
+
+/* Turquoise (DB Kortit) */
+.stat-box.turquoise .stat-label { color: var(--turquoise); }
+.stat-box.turquoise .stat-value {
+  color: var(--turquoise);
+  text-shadow: 0 0 20px rgba(0, 231, 255, 0.4);
+}
+
+/* Magenta (Linkittömät) */
+.stat-box.magenta .stat-label { color: var(--magenta); }
+.stat-box.magenta .stat-value {
+  color: var(--magenta);
+  text-shadow: 0 0 20px rgba(255, 0, 229, 0.4);
+}
+
+/* Gold (Yhteensä) */
+.stat-box.gold .stat-label { color: var(--plasma-gold); }
+.stat-box.gold .stat-value {
+  color: var(--plasma-gold);
+  text-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+}
+
+/* Mobiilioptimointi: Alle 700px leveydellä pinotaan päällekkäin */
+@media (max-width: 700px) {
+  .guest-stats-row {
+    grid-template-columns: 1fr; /* Yksi sarake */
+  }
+  .stat-box:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .stat-value {
+    font-size: 2rem;
+  }
+}
