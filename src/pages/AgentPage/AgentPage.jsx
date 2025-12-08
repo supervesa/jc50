@@ -26,13 +26,13 @@ const AgentPage = () => {
   const [showScoreboard, setShowScoreboard] = useState(false);
 
   // Käytetään custom hookia datan hakuun.
-  // Tämä pitää itse komponentin koodin siistinä.
   const {
     loading, 
     identity, 
     characterMap, 
     chatHistory, 
     missions, 
+    visibleMissions, // <-- HAETAAN VALMIIKSI JÄRJESTETTY LISTA
     completedMissionIds, 
     setCompletedMissionIds,
     activePoll, 
@@ -44,7 +44,7 @@ const AgentPage = () => {
     isVaultActive, 
     rewardData, 
     setRewardData,
-    nextMission, // <--- UUSI: Seuraava suositeltu tehtävä
+    nextMission, 
     // Actions
     handleVote, 
     handleSendChat, 
@@ -109,12 +109,12 @@ const AgentPage = () => {
         {activeTab === 'HOME' && (
           <AgentDashboard 
             identity={identity}
-            nextMission={nextMission}     // Välitetään seuraava tehtävä
+            nextMission={nextMission}
             isVaultActive={isVaultActive}
             activePoll={activePoll}
-            onNavigate={setActiveTab}     // Mahdollistaa hyppäämisen muihin tabeihin
-            onOpenScoreboard={() => setShowScoreboard(true)} // Hero-kortin klikkaus
-                    hasVoted={hasVoted}
+            onNavigate={setActiveTab}
+            onOpenScoreboard={() => setShowScoreboard(true)}
+            hasVoted={hasVoted}
             onVote={handleVote}
           />
         )}
@@ -135,8 +135,8 @@ const AgentPage = () => {
         {/* TAB: TEHTÄVÄT */}
         {activeTab === 'MISSIONS' && (
           <AgentMissions 
-            missions={missions}
-            completedIds={completedMissionIds}
+            missions={visibleMissions} // <-- VÄLITETÄÄN SEKOITETTU LISTA
+            completedIds={completedMissionIds} 
             guestId={guestId}
             onMissionComplete={(id) => setCompletedMissionIds(prev => [...prev, id])}
             submitCode={submitCode}

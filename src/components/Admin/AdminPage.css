@@ -1,0 +1,281 @@
+/* --- GUEST LIST STATS --- */
+.guest-stats-row {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.stat-divider {
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  padding-left: 2rem;
+}
+
+/* Värit tekstille */
+.text-turquoise { color: var(--turquoise); }
+.text-magenta { color: var(--magenta); }
+.text-gold { color: var(--plasma-gold); }
+
+
+
+/* --- GUEST CARD --- */
+.guest-card-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.guest-card-email {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin: 0 0 1rem 0;
+  word-break: break-all;
+}
+
+/* Avec Box Styles */
+.spouse-info-box {
+  padding: 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.spouse-info-box.linked {
+  background: rgba(255, 0, 229, 0.1);
+  border: 1px solid transparent;
+}
+
+.spouse-info-box.split {
+  background: #222;
+  border: 1px dashed #555;
+  color: #aaa;
+}
+
+.split-badge {
+  font-size: 0.75rem;
+  color: #00ff41;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Role Section */
+.guest-roles-section {
+  margin-top: auto;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.role-row {
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.guest-link-row {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  opacity: 0.5;
+  word-break: break-all;
+}
+
+.guest-alert-row {
+  margin-top: 0.8rem;
+  color: var(--plasma-gold);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* --- GUEST MANAGER (Cyberpunk Theme) --- */
+
+.guest-manager-container {
+  position: relative;
+  min-height: 80vh;
+  padding-bottom: 4rem; 
+}
+
+/* 1. LIST VIEW */
+.manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* List item */
+.guest-list-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  /* EI punaista reunaa */
+}
+
+.guest-list-card:hover {
+  border-color: var(--turquoise);
+  box-shadow: 0 0 15px rgba(0, 231, 255, 0.15);
+  transform: translateX(5px);
+}
+
+.item-main {
+  flex: 1;
+  padding-left: 10px;
+}
+
+.item-name {
+  font-family: "Outfit", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--cream);
+  margin-bottom: 4px;
+}
+
+.item-sub {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.item-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 2. DETAIL VIEW (Fixed Overlay) */
+.manager-detail-view {
+  position: fixed;
+  inset: 0; 
+  z-index: 2000;
+  background: rgba(11, 11, 16, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn var(--mid) ease-out;
+}
+
+.detail-header {
+  flex: 0 0 auto; 
+  padding: 1rem var(--container-pad);
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.detail-content {
+  flex: 1; 
+  overflow-y: auto; 
+  padding: var(--container-pad);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.detail-content-inner {
+  width: 100%;
+  max-width: 600px;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--turquoise);
+  font-family: "Josefin Sans", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-back:hover {
+  text-shadow: 0 0 10px var(--turquoise);
+}
+
+.id-box {
+  background: rgba(0,0,0,0.3); 
+  padding: 10px; 
+  border-radius: 6px; 
+  font-family: monospace; 
+  margin-bottom: 1rem; 
+  color: var(--muted); 
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.jc-input-custom {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--cream);
+  padding: 12px;
+  border-radius: 8px;
+  width: 100%;
+  font-family: "Outfit", sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.jc-input-custom:focus {
+  border-color: var(--turquoise);
+  box-shadow: 0 0 15px rgba(0, 231, 255, 0.1);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* --- MODAL STYLES (Create Guest) --- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-color: var(--turquoise);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+  /* Perii jc-card perusasetukset (glassmorphism) teemasta */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -1,49 +1,75 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+
+// Komponentit
 import GuestList from '../../components/Admin/GuestList';
 import CharacterFactory from '../../components/Admin/CharacterFactory';
 import RelationManager from '../../components/Admin/RelationManager';
-import CharacterCasting from '../../components/Admin/CharacterCasting'; // UUSI IMPORT
+import CharacterCasting from '../../components/Admin/CharacterCasting'; 
+import GuestManager from '../../components/Admin/GuestManager';
 
 function SecretPage() {
   const [activeTab, setActiveTab] = useState('GUESTS'); 
   const [loading, setLoading] = useState(true);
   
-  // Data
+  // DATA STATE
   const [guests, setGuests] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [relationships, setRelationships] = useState([]);
+  const [splits, setSplits] = useState([]); // <--- UUSI: Split-tiedot
 
-  // Datan päivitys
+  // --- DATAHAKU ---
   const refreshData = async () => {
-    setLoading(true);
+    // setLoading(true); // Kommentoin pois, jotta realtime ei välkytä latausruutua
     try {
+      // Haetaan kaikki tarvittavat taulut
       const { data: gData } = await supabase.from('guests').select('*').order('created_at', { ascending: false });
       const { data: cData } = await supabase.from('characters').select('*').order('name');
       const { data: rData } = await supabase.from('character_relationships').select('*');
+      const { data: sData } = await supabase.from('guest_splits').select('*'); // <--- UUSI
 
+      // Päivitetään tilat
+      if (cData) setCharacters(cData);
+      if (rData) setRelationships(rData);
+      if (sData) setSplits(sData); // <--- UUSI
+
+      // Yhdistetään vieraisiin hahmot valmiiksi (GuestList ja Casting hyödyntävät tätä tai raakadataa)
       if (gData && cData) {
         const merged = gData.map(g => {
           const myChars = cData.filter(c => c.assigned_guest_id === g.id);
           return { 
             ...g, 
+            // Nämä auttavat vanhoja komponentteja, uusi GuestList laskee nämä itsekin
             mainCharacter: myChars.find(c => !c.is_spouse_character) || null,
             spouseCharacter: myChars.find(c => c.is_spouse_character) || null
           };
         });
         setGuests(merged);
-        setCharacters(cData);
       }
-      if (rData) setRelationships(rData);
 
     } catch (err) {
-      console.error(err);
+      console.error("Datanhaku epäonnistui:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { refreshData(); }, []);
+  // --- REALTIME KUUNTELU ---
+  useEffect(() => {
+    refreshData(); // Ensimmäinen haku
+
+    // Tilataan muutokset kaikkiin oleellisiin tauluihin
+    const channel = supabase.channel('secret_page_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guests' }, refreshData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'characters' }, refreshData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guest_splits' }, refreshData) // <--- Kuuntele splittejä
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'character_relationships' }, refreshData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <div className="jc-wrapper">
@@ -54,18 +80,55 @@ function SecretPage() {
           <button onClick={()=>setActiveTab('CASTING')} className={`jc-cta ${activeTab==='CASTING'?'primary':'ghost'}`}>Roolitus</button>
           <button onClick={()=>setActiveTab('CHARS')} className={`jc-cta ${activeTab==='CHARS'?'primary':'ghost'}`}>Hahmot</button>
           <button onClick={()=>setActiveTab('RELATIONS')} className={`jc-cta ${activeTab==='RELATIONS'?'primary':'ghost'}`}>Relaatiot</button>
+          <button onClick={()=>setActiveTab('MANAGER')} className={`jc-cta ${activeTab==='RELATIONS'?'primary':'ghost'}`}>Hallinta</button>
         </div>
       </header>
 
-      {loading && <div style={{textAlign:'center'}}>Ladataan...</div>}
+      {loading && <div style={{textAlign:'center'}}>Ladataan dataa...</div>}
 
       {!loading && (
         <>
-          {activeTab === 'GUESTS' && <GuestList guests={guests} characters={characters} onUpdate={refreshData} />}
-          {activeTab === 'CASTING' && <CharacterCasting guests={guests} characters={characters} onUpdate={refreshData} />}
-          {/* LISÄTTY: characters={characters} */}
-{activeTab === 'CHARS' && <CharacterFactory characters={characters} onUpdate={refreshData} />}
-          {activeTab === 'RELATIONS' && <RelationManager characters={characters} relationships={relationships} onUpdate={refreshData} />}
+          {activeTab === 'GUESTS' && (
+            <GuestList 
+              guests={guests} 
+              characters={characters} 
+              splits={splits} // <--- VÄLITETÄÄN SPLITS
+              onUpdate={refreshData} 
+            />
+          )}
+          
+          {activeTab === 'CASTING' && (
+            <CharacterCasting 
+              guests={guests} 
+              characters={characters} 
+              splits={splits} // <--- VÄLITETÄÄN SPLITS (jos tarvitaan)
+              onUpdate={refreshData} 
+            />
+          )}
+          
+          {activeTab === 'CHARS' && (
+            <CharacterFactory 
+              characters={characters} 
+              guests={guests} // <--- LISÄTTY: CharacterFactory tarvitsi guests-listan näyttääkseen omistajan
+              onUpdate={refreshData} 
+            />
+          )}
+          
+          {activeTab === 'RELATIONS' && (
+            <RelationManager 
+              characters={characters} 
+              relationships={relationships} 
+              onUpdate={refreshData} 
+            />
+          )}
+          {activeTab === 'MANAGER' && (
+  <GuestManager 
+    guests={guests} 
+    characters={characters} 
+    splits={splits} 
+    onUpdate={refreshData} 
+  />
+)}
         </>
       )}
     </div>

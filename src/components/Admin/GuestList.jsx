@@ -1,78 +1,146 @@
 import React, { useState, useMemo } from 'react';
+import './AdminPage.css'; // Käytetään samoja tyylejä
 
-function GuestList({ guests }) {
+function GuestList({ guests, splits = [], characters = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL'); 
   const [viewMode, setViewMode] = useState('GRID'); 
 
-  // --- CSV ---
-  const downloadCSV = () => {
-    if (guests.length === 0) return;
-    const headers = ["Nimi,Sähköposti,Avec,Avecin Nimi,Allergiat,Hahmo,Rooli,Avecin Hahmo,Avecin Rooli,Ilmoittautunut"];
-    const rows = guests.map(g => {
-      const safeDiet = g.dietary_restrictions ? `"${g.dietary_restrictions.replace(/"/g, '""')}"` : "-";
-      const safeSpouse = g.spouse_name ? `"${g.spouse_name}"` : "-";
-      const charName = g.mainCharacter ? `"${g.mainCharacter.name}"` : "-";
-      const charRole = g.mainCharacter ? `"${g.mainCharacter.role}"` : "-";
-      const spCharName = g.spouseCharacter ? `"${g.spouseCharacter.name}"` : "-";
-      const spCharRole = g.spouseCharacter ? `"${g.spouseCharacter.role}"` : "-";
-      
-      return [
-        `"${g.name}"`, g.email, g.brings_spouse ? "Kyllä" : "Ei", safeSpouse, safeDiet,
-        charName, charRole, spCharName, spCharRole,
-        new Date(g.created_at).toLocaleDateString('fi-FI')
-      ].join(",");
+  // --- DATAN RIKASTAMINEN (ENRICHMENT) ---
+  // Yhdistetään vieraisiin tieto hahmoista ja split-kytköksistä
+  const enrichedGuests = useMemo(() => {
+    return guests.map(g => {
+      // 1. Hahmot
+      const myChars = characters.filter(c => c.assigned_guest_id === g.id);
+      const mainCharacter = myChars.find(c => !c.is_spouse_character) || myChars[0];
+      const spouseCharacter = myChars.find(c => c.is_spouse_character && c.id !== mainCharacter?.id);
+
+      // 2. Onko tämä vieras "lapsi" (splitattu)?
+      const splitAsChild = splits.find(s => s.child_guest_id === g.id);
+      const parentName = splitAsChild 
+        ? guests.find(p => p.id === splitAsChild.parent_guest_id)?.name 
+        : null;
+
+      // 3. Onko tällä vieraalla "lapsia" (splitannut avecin)?
+      const splitAsParent = splits.find(s => s.parent_guest_id === g.id);
+      const childName = splitAsParent 
+        ? guests.find(c => c.id === splitAsParent.child_guest_id)?.name 
+        : null;
+
+      return { 
+        ...g, 
+        mainCharacter, 
+        spouseCharacter,
+        isChild: !!splitAsChild, 
+        parentName,
+        isParent: !!splitAsParent,
+        childName,
+        childId: splitAsParent?.child_guest_id
+      };
     });
-    const csvContent = "\uFEFF" + [headers, ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `jc50_lista.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  }, [guests, splits, characters]);
+
+  // --- LASKURI ---
+  const stats = useMemo(() => {
+    const realGuests = guests.length; // Tietokannan rivit
+    let ghostAvecs = 0;
+
+    guests.forEach(g => {
+      // Jos tuo puolison, mutta EI OLE splitannut (eli puoliso ei ole vielä omana rivinään)
+      // Niin silloin lasketaan +1 haamu.
+      // Jos on splitannut, puoliso on jo mukana 'realGuests' luvussa.
+      const isSplit = splits.some(s => s.parent_guest_id === g.id);
+      if (g.brings_spouse && !isSplit) {
+        ghostAvecs++;
+      }
+    });
+
+    return { total: realGuests + ghostAvecs, real: realGuests, ghosts: ghostAvecs };
+  }, [guests, splits]);
 
   // --- SUODATUS ---
-  const allDiets = guests.filter(g => g.dietary_restrictions).map(g => g.dietary_restrictions);
-
   const filteredGuests = useMemo(() => {
-    return guests.filter(guest => {
+    return enrichedGuests.filter(guest => {
       const matchesSearch = 
         guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guest.email.toLowerCase().includes(searchTerm.toLowerCase());
       
       let matchesFilter = true;
-      if (filterType === 'NO_CHAR') matchesFilter = !guest.mainCharacter || (guest.brings_spouse && !guest.spouseCharacter);
-      if (filterType === 'AVEC') matchesFilter = guest.brings_spouse;
+      if (filterType === 'NO_CHAR') matchesFilter = !guest.mainCharacter;
+      if (filterType === 'AVEC') matchesFilter = guest.brings_spouse || guest.isChild; 
       if (filterType === 'DIET') matchesFilter = guest.dietary_restrictions;
 
       return matchesSearch && matchesFilter;
     });
-  }, [guests, searchTerm, filterType]);
+  }, [enrichedGuests, searchTerm, filterType]);
 
-  const mainGuests = guests.length;
-  const spouses = guests.filter(g => g.brings_spouse).length;
-  const totalHeadcount = mainGuests + spouses;
+  // --- CSV ---
+  const downloadCSV = () => {
+    if (enrichedGuests.length === 0) return;
+    const headers = ["Nimi,Sähköposti,Status,Avec/Linkki,Allergiat,Hahmo,Rooli"];
+    
+    const rows = enrichedGuests.map(g => {
+      const safeDiet = g.dietary_restrictions ? `"${g.dietary_restrictions.replace(/"/g, '""')}"` : "-";
+      let status = "Vieras";
+      let linkInfo = "-";
+
+      if (g.isChild) {
+        status = `Avec (Kutsuja: ${g.parentName})`;
+      } else if (g.brings_spouse) {
+        if (g.isParent) {
+          status = "Vieras + Avec (Eriytetty)";
+          linkInfo = `Avec: ${g.childName}`;
+        } else {
+          status = "Vieras + Avec (Yhdessä)";
+          linkInfo = `Avec: ${g.spouse_name}`;
+        }
+      }
+
+      const charName = g.mainCharacter ? `"${g.mainCharacter.name}"` : "-";
+      const charRole = g.mainCharacter ? `"${g.mainCharacter.role}"` : "-";
+      
+      return [
+        `"${g.name}"`, g.email, status, linkInfo, safeDiet, charName, charRole
+      ].join(",");
+    });
+    
+    const csvContent = "\uFEFF" + [headers, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `jc_lista.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const allDiets = guests.filter(g => g.dietary_restrictions).map(g => g.dietary_restrictions);
 
   return (
     <div>
       {/* STATS */}
-      <div className="jc-card medium mb-2" style={{ display: 'flex', gap: '2rem', justifyContent: 'center', alignItems:'center' }}>
-        <div><div className="small" style={{ color: 'var(--turquoise)' }}>VIERAAT</div><div style={{ fontSize: '2rem', fontWeight: '800' }}>{mainGuests}</div></div>
-        <div><div className="small" style={{ color: 'var(--magenta)' }}>AVECIT</div><div style={{ fontSize: '2rem', fontWeight: '800' }}>{spouses}</div></div>
-        <div style={{ borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '2rem' }}>
-          <div className="small" style={{ color: 'var(--plasma-gold)' }}>YHTEENSÄ</div><div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--plasma-gold)' }}>{totalHeadcount}</div>
+      <div className="jc-card medium mb-2 guest-stats-row">
+        <div className="stat-box">
+          <div className="stat-label text-turquoise">KORTIT (DB)</div>
+          <div className="stat-value">{stats.real}</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-label text-magenta">LINKITTÖMÄT AVECIT</div>
+          <div className="stat-value">{stats.ghosts}</div>
+        </div>
+        <div className="stat-box stat-divider">
+          <div className="stat-label text-gold">YHTEENSÄ (PÄÄLUKU)</div>
+          <div className="stat-value text-gold">{stats.total}</div>
         </div>
       </div>
 
       {/* CATERING */}
       {allDiets.length > 0 && (
-        <div className="jc-card small mb-2" style={{ borderColor: 'var(--plasma-gold)', background: 'rgba(255, 165, 0, 0.05)', textAlign:'left' }}>
-          <h3 className="small" style={{ color: 'var(--plasma-gold)', margin: 0 }}>⚠️ CATERING:</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-            {allDiets.map((diet, i) => <span key={i} style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.85rem' }}>{diet}</span>)}
+        <div className="jc-card small mb-2 catering-wrapper">
+          <h3 className="small text-gold" style={{ margin: 0 }}>⚠️ CATERING:</h3>
+          <div className="diet-tags-row">
+            {allDiets.map((diet, i) => <span key={i} className="diet-tag">{diet}</span>)}
           </div>
         </div>
       )}
@@ -97,43 +165,86 @@ function GuestList({ guests }) {
         <div className="jc-grid">
           {filteredGuests.map(guest => (
             <div key={guest.id} className="jc-col-4">
-              <div className="jc-card small" style={{height:'100%', display:'flex', flexDirection:'column'}}>
-                <h3 style={{color:'var(--turquoise)', margin:0}}>{guest.name}</h3>
-                <p className="small" style={{opacity:0.7, margin:'0 0 1rem 0'}}>{guest.email}</p>
-                {guest.brings_spouse && <div style={{ padding: '0.5rem', background: 'rgba(255,0,229,0.1)', borderRadius: '4px', marginBottom:'1rem' }}><span className="small" style={{ color: 'var(--magenta)' }}>+ AVEC:</span> <strong>{guest.spouse_name}</strong></div>}
-
-                {/* VAIN TIETOJA, EI MUOKKAUSTA */}
-                <div style={{marginTop:'auto', paddingTop:'0.5rem', borderTop:'1px solid rgba(255,255,255,0.1)'}}>
-                  {guest.mainCharacter ? (
-                    <div><span className="small" style={{color:'var(--turquoise)'}}>ROOLI:</span> <strong>{guest.mainCharacter.name}</strong></div>
-                  ) : <span className="small" style={{opacity:0.5}}>Ei pääroolia</span>}
+              <div className="jc-card small" style={{height:'100%'}}>
+                <div className="guest-card-content">
                   
-                  {guest.spouseCharacter && (
-                    <div style={{marginTop:'0.5rem'}}><span className="small" style={{color:'var(--magenta)'}}>AVEC:</span> <strong>{guest.spouseCharacter.name}</strong></div>
+                  {/* LAPSI-INDIKAATTORI */}
+                  {guest.isChild && (
+                    <div style={{fontSize:'0.75rem', color:'var(--magenta)', marginBottom:'5px', textTransform:'uppercase', fontWeight:'bold'}}>
+                      ↳ Kutsunut: {guest.parentName}
+                    </div>
                   )}
-                </div>
 
-                <div style={{marginTop:'1rem', fontSize:'0.7rem', opacity:0.5, wordBreak:'break-all'}}><a href={`/lippu/${guest.id}`} target="_blank" rel="noreferrer" style={{color:'inherit', textDecoration:'underline'}}>Linkki: /lippu/{guest.id}</a></div>
-                {guest.dietary_restrictions && <div style={{ marginTop: '1rem', color: 'var(--plasma-gold)', fontSize: '0.85rem' }}>⚠️ {guest.dietary_restrictions}</div>}
+                  <h3 className="text-turquoise" style={{margin:0}}>{guest.name}</h3>
+                  <p className="guest-card-email">{guest.email}</p>
+                  
+                  {/* AVEC TIEDOT */}
+                  {guest.brings_spouse && (
+                    <div className={`spouse-info-box ${guest.isParent ? 'split' : 'linked'}`}>
+                      {guest.isParent ? (
+                        <>
+                          <span className="small text-magenta">AVEC ERIYTETTY:</span> <strong>{guest.childName}</strong>
+                          <span className="split-badge">✔ Löytyy omana korttinaan</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="small text-magenta">+ AVEC:</span> <strong>{guest.spouse_name}</strong>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="guest-roles-section">
+                    {guest.mainCharacter ? (
+                      <div className="role-row">
+                        <span className="small text-turquoise">ROOLI:</span> <strong>{guest.mainCharacter.name}</strong>
+                      </div>
+                    ) : <span className="small" style={{opacity:0.5}}>Ei pääroolia</span>}
+                    
+                    {/* Näytä "Matin" kortissa avec-hahmo VAIN jos se on vielä Matilla */}
+                    {guest.spouseCharacter && (
+                      <div className="role-row" style={{marginTop:'0.5rem'}}>
+                        <span className="small text-magenta">AVEC ROOLI:</span> <strong>{guest.spouseCharacter.name}</strong>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="guest-link-row">
+                    <a href={`/lippu/${guest.id}`} target="_blank" rel="noreferrer" style={{color:'inherit', textDecoration:'underline'}}>
+                      Linkki: /lippu/{guest.id}
+                    </a>
+                  </div>
+                  
+                  {guest.dietary_restrictions && <div className="guest-alert-row">⚠️ {guest.dietary_restrictions}</div>}
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* TABLE VIEW */}
+      {/* TABLE VIEW (Vastaava logiikka) */}
       {viewMode === 'TABLE' && (
         <div className="jc-table-container">
           <table className="jc-table">
-            <thead><tr><th>Nimi</th><th>Sähköposti</th><th>Hahmo</th><th>Avec</th><th>Avec Hahmo</th><th>Allergiat</th></tr></thead>
+            <thead><tr><th>Nimi</th><th>Sähköposti</th><th>Hahmo</th><th>Avec</th><th>Linkki</th><th>Allergiat</th></tr></thead>
             <tbody>
               {filteredGuests.map(g => (
                 <tr key={g.id}>
-                  <td>{g.name}</td>
+                  <td>
+                    {g.isChild && <span style={{color:'var(--magenta)'}}>↳ </span>}
+                    {g.name}
+                  </td>
                   <td>{g.email}</td>
-                  <td>{g.mainCharacter ? `${g.mainCharacter.name}` : '-'}</td>
-                  <td>{g.brings_spouse ? g.spouse_name : '-'}</td>
-                  <td>{g.spouseCharacter ? `${g.spouseCharacter.name}` : '-'}</td>
+                  <td>{g.mainCharacter ? g.mainCharacter.name : '-'}</td>
+                  <td>
+                    {g.brings_spouse ? (
+                      g.isParent 
+                        ? <span style={{color:'#888'}}>{g.childName} (Eriytetty)</span>
+                        : g.spouse_name
+                    ) : '-'}
+                  </td>
+                  <td><a href={`/lippu/${g.id}`} target="_blank" rel="noreferrer">Avaa</a></td>
                   <td>{g.dietary_restrictions || '-'}</td>
                 </tr>
               ))}

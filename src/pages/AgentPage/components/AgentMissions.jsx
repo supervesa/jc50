@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import PersonalMissionCard from '../PersonalMissionCard'; // TARKISTA POLKU TARVITTAESSA
+import React, { useState } from 'react';
+import PersonalMissionCard from '../PersonalMissionCard'; 
 
 const MissionCard = ({ mission, submitCode }) => {
   const [code, setCode] = useState('');
@@ -31,22 +31,14 @@ const MissionCard = ({ mission, submitCode }) => {
 };
 
 const AgentMissions = ({ 
-  missions, completedIds, guestId, 
+  missions, // Tämä on nyt valmiiksi hookissa sekoitettu "visibleMissions"
+  completedIds, 
+  guestId, 
   submitCode, secretMission, personalMissionStatus, onPersonalReport 
 }) => {
   
-  const visibleMissions = useMemo(() => {
-    const todoMissions = missions.filter(m => !completedIds.includes(m.id));
-    if (todoMissions.length === 0) return [];
-    
-    const stringHash = (str) => {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-      return hash;
-    };
-    const shuffled = [...todoMissions].sort((a, b) => stringHash(guestId + a.id) - stringHash(guestId + b.id));
-    return shuffled.slice(0, 3);
-  }, [missions, completedIds, guestId]);
+  // LOGIIKKA POISTETTU TÄÄLTÄ: Ei enää useMemo tai shuffling.
+  // Komponentti on nyt "tyhmä" ja näyttää vain sen mitä propsina tulee.
 
   return (
     <div className="ap-mission-list">
@@ -61,11 +53,11 @@ const AgentMissions = ({
 
       <div className="mission-intro"><p>ETSINTÄKUULUTUKSET</p></div>
 
-      {visibleMissions.map(m => (
+      {missions.map(m => (
         <MissionCard key={m.id} mission={m} submitCode={submitCode} />
       ))}
       
-      {visibleMissions.length === 0 && !secretMission && (
+      {missions.length === 0 && !secretMission && (
         <div className="no-missions"><h3>KAIKKI SUORITETTU!</h3></div>
       )}
     </div>

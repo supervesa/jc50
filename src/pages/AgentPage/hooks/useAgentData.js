@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 
+// Apufunktio: Hash stringille (Pysyvä satunnaistaminen)
+const stringHash = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return hash;
+};
+
 export const useAgentData = (guestId) => {
   const [loading, setLoading] = useState(true);
   
@@ -25,7 +32,7 @@ export const useAgentData = (guestId) => {
     if (!guestId) { setLoading(false); return; }
 
     const init = async () => {
-      // 1. Sanakirja (Muiden nimet chatissa)
+      // 1. Sanakirja
       const { data: allChars } = await supabase.from('characters').select('assigned_guest_id, name, avatar_url');
       const charMap = {};
       if (allChars) allChars.forEach(c => {
@@ -159,9 +166,7 @@ export const useAgentData = (guestId) => {
     if (data) setFlashResponseSent(true); 
   };
 
-const nextMission = missions.find(m => !completedMissionIds.includes(m.id)) || null;
-
-  // ACTIONS (Nämäkin siirrettiin tänne selkeyden vuoksi)
+  // ACTIONS
   const handleVote = async (index) => { 
     if (!activePoll || hasVoted) return; 
     setHasVoted(true); 
@@ -174,17 +179,43 @@ const nextMission = missions.find(m => !completedMissionIds.includes(m.id)) || n
   };
 
   const submitPersonalReport = async (reportText, imageUrl) => {
-    const { error } = await supabase.from('mission_log').insert({
-      guest_id: guestId,
-      mission_id: 'personal-objective', 
-      xp_earned: 0,
-      approval_status: 'pending',
-      proof_data: JSON.stringify({ text: reportText, image: imageUrl })
-    });
-    if (error) { alert("Virhe lähetyksessä."); } 
-    else { 
-      setPersonalMissionStatus('pending'); 
-      alert("Raportti lähetetty päämajaan!"); 
+    try {
+      const { data: existingLog } = await supabase
+        .from('mission_log')
+        .select('id')
+        .eq('guest_id', guestId)
+        .eq('mission_id', 'personal-objective')
+        .maybeSingle();
+
+      const proofPayload = JSON.stringify({ text: reportText, image: imageUrl });
+
+      if (existingLog) {
+        const { error } = await supabase
+          .from('mission_log')
+          .update({
+            approval_status: 'pending',
+            proof_data: proofPayload,
+            created_at: new Date().toISOString()
+          })
+          .eq('id', existingLog.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('mission_log')
+          .insert({
+            guest_id: guestId,
+            mission_id: 'personal-objective',
+            xp_earned: 0,
+            approval_status: 'pending',
+            proof_data: proofPayload
+          });
+        if (error) throw error;
+      }
+      setPersonalMissionStatus('pending');
+      alert("Raportti lähetetty päämajaan!");
+    } catch (error) {
+      console.error("Raportointivirhe:", error);
+      alert("Virhe lähetyksessä. Yritä uudelleen.");
     }
   };
 
@@ -221,28 +252,40 @@ const nextMission = missions.find(m => !completedMissionIds.includes(m.id)) || n
     return true; 
   };
 
+  // --- NÄKYVÄT TEHTÄVÄT (LOGIIKKA) ---
+  const todoMissions = missions.filter(m => !completedMissionIds.includes(m.id));
+
+  const visibleMissions = [...todoMissions].sort((a, b) => {
+    if (!guestId) return 0; 
+    return stringHash(guestId + a.id) - stringHash(guestId + b.id);
+  }).slice(0, 3); 
+
+  const nextMission = visibleMissions.length > 0 ? visibleMissions[0] : null;
+
+  // --- RETURN (TÄMÄ ON NYT OIKEASSA PAIKASSA SULKUJEN SISÄLLÄ) ---
   return {
     loading,
     identity,
     characterMap,
     chatHistory,
-    missions,
+    missions, 
+    visibleMissions, 
     completedMissionIds,
     setCompletedMissionIds,
     activePoll,
     hasVoted,
     activeFlash,
     flashResponseSent,
-    setFlashResponseSent, // Tarvitaan overlaylle
+    setFlashResponseSent,
     personalMissionStatus,
     isVaultActive,
     rewardData,
     setRewardData,
+    nextMission, 
     // Actions
     handleVote,
     handleSendChat,
     submitPersonalReport,
-    submitCode,
-    nextMission
+    submitCode 
   };
-};
+}; // <--- TÄRKEÄ: Tämä sulkee useAgentData-funktion

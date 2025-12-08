@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
-import './TicketPage.css'; // Tyylit
+import './TicketPage.css';
 
 // Komponentit
 import TicketHeader from './TicketHeader';
@@ -22,9 +22,6 @@ function TicketPage() {
   const [uploading, setUploading] = useState(false); 
   
   const [activeTab, setActiveTab] = useState('IDENTITY'); 
-  const [isEditing, setIsEditing] = useState(false);
-  
-  const [formData, setFormData] = useState({ name: '', dietary_restrictions: '', brings_spouse: false, spouse_name: '' });
   const [photoMessage, setPhotoMessage] = useState(''); 
 
   // --- 1. DATAHAKU ---
@@ -46,14 +43,8 @@ function TicketPage() {
 
       if (guestError) throw guestError;
       setGuest(guestData);
-      
-      setFormData({
-        name: guestData.name,
-        dietary_restrictions: guestData.dietary_restrictions || '',
-        brings_spouse: guestData.brings_spouse,
-        spouse_name: guestData.spouse_name || ''
-      });
 
+      // Haetaan hahmot
       const { data: charData, error: charError } = await supabase
         .from('characters')
         .select('*')
@@ -86,7 +77,71 @@ function TicketPage() {
     fetchData();
   }, [id]);
 
-  // --- TOIMINNOT ---
+  // --- SPLIT TOIMINTO (LAAJENNETTU: Linkitys + Loki) ---
+  const handleActivateSpouse = async (spouseEmail) => {
+    if (!guest || !guest.spouse_name) return;
+
+    // 1. Etsi Avecin hahmo
+    const spouseChar = myCharacters.find(c => c.is_spouse_character);
+    if (!spouseChar) throw new Error("Avecin hahmoa ei löydy tai se on jo siirretty.");
+
+    // 2. Luo uusi vieras
+    const { data: newGuest, error: createError } = await supabase
+      .from('guests')
+      .insert({
+        name: guest.spouse_name,
+        email: spouseEmail || null,
+        brings_spouse: false,
+        dietary_restrictions: guest.dietary_restrictions
+      })
+      .select()
+      .single();
+
+    if (createError) throw createError;
+
+    // 3. Siirrä hahmo
+    const { error: moveError } = await supabase
+      .from('characters')
+      .update({ assigned_guest_id: newGuest.id })
+      .eq('id', spouseChar.id);
+
+    if (moveError) throw moveError;
+
+    // --- UUSI VAIHE 4: LUO LINKITYS (GUEST_SPLITS) ---
+    const { error: splitError } = await supabase
+      .from('guest_splits')
+      .insert({
+        parent_guest_id: guest.id,        // Matti
+        child_guest_id: newGuest.id,      // Teppo
+        transferred_character_id: spouseChar.id, // Reino
+        original_spouse_name: guest.spouse_name
+      });
+    
+    if (splitError) console.error("Virhe linkityksen luonnissa:", splitError);
+
+    // --- UUSI VAIHE 5: KIRJAA LOKI (SYSTEM_LOGS) ---
+    const { error: logError } = await supabase
+      .from('system_logs')
+      .insert({
+        event_type: 'GUEST_SPLIT',
+        target_id: guest.id,
+        description: `Vieras ${guest.name} aktivoi avecin ${guest.spouse_name} (Uusi ID: ${newGuest.id})`,
+        snapshot_data: { 
+          parent_name: guest.name,
+          child_name: newGuest.name,
+          character_moved: spouseChar.name 
+        }
+      });
+
+    if (logError) console.error("Virhe lokituksessa:", logError);
+
+    // 6. Päivitä paikallinen tila
+    setMyCharacters(prev => prev.filter(c => c.id !== spouseChar.id));
+
+    return newGuest.id;
+  };
+
+  // --- MUUT TOIMINNOT ---
   const uploadAvatar = async (event, charId) => {
     try {
       setUploading(true);
@@ -119,7 +174,7 @@ function TicketPage() {
       if (!event.target.files || event.target.files.length === 0) return;
 
       const file = event.target.files[0];
-      const fileName = `${guest.id}-${Date.now()}.${file.name.split('.').pop()}`;
+      const fileName = `${guest.id}-${Date.now()}.${file.name.split('.').pop()}`; // Kuvat juureen
 
       const { error: uploadError } = await supabase.storage.from('party-photos').upload(fileName, file);
       if (uploadError) throw uploadError;
@@ -151,24 +206,6 @@ function TicketPage() {
     fetchMyPhotos(guest.id);
   };
 
-  const handleSaveGuestInfo = async () => {
-    try {
-      const { error } = await supabase.from('guests').update({
-          name: formData.name,
-          dietary_restrictions: formData.dietary_restrictions,
-          brings_spouse: formData.brings_spouse,
-          spouse_name: formData.brings_spouse ? formData.spouse_name : null
-        }).eq('id', id);
-
-      if (error) throw error;
-      setGuest({ ...guest, ...formData });
-      setIsEditing(false);
-      alert("Tiedot päivitetty!");
-    } catch (err) {
-      alert("Virhe: " + err.message);
-    }
-  };
-
   if (loading) return <div className="ticket-wrapper ticket-loading">Ladataan...</div>;
   if (errorMsg) return <div className="ticket-wrapper ticket-error">{errorMsg}</div>;
 
@@ -185,8 +222,9 @@ function TicketPage() {
         <>
           {myCharacters.length === 0 ? (
             <section className="jc-card medium mb-2 ticket-loading" style={{ opacity: 0.7 }}>
-              <div style={{ fontSize: '3rem' }}>🔒</div>
-              <h3>Identiteettiä luodaan...</h3>
+              <div style={{ fontSize: '3rem' }}>🎭</div>
+              <h3>Hahmoa ei vielä roolitettu</h3>
+              <p>Odota hetki, Admin tekee taikojaan...</p>
             </section>
           ) : (
             myCharacters.map(char => (
@@ -201,11 +239,9 @@ function TicketPage() {
 
           <GuestInfo 
             guest={guest}
-            formData={formData}
-            setFormData={setFormData}
-            isEditing={isEditing}
-            setIsEditing={setIsEditing}
-            onSave={handleSaveGuestInfo}
+            myCharacters={myCharacters} // VÄLITETÄÄN HAHMOT
+            onActivateSpouse={handleActivateSpouse} // VÄLITETÄÄN FUNKTIO
+            onSave={() => alert("Ota yhteys järjestäjään muutoksissa.")}
           />
         </>
       )}
