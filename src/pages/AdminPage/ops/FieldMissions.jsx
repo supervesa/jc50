@@ -4,6 +4,9 @@ import { supabase } from '../../../lib/supabaseClient';
 const FieldMissions = ({ missions }) => {
   const [newMissionTitle, setNewMissionTitle] = useState('');
   const [newMissionTag, setNewMissionTag] = useState('');
+  
+  // UUSI TILA: Hallitsee listan näkyvyyttä
+  const [isListOpen, setIsListOpen] = useState(false);
 
   const createMission = async (e) => {
     e.preventDefault();
@@ -21,11 +24,9 @@ const FieldMissions = ({ missions }) => {
     if (!confirm("Luodaanko tehtävät kaikille jaetuille rooleille?")) return;
     
     try {
-      // Hae roolit, jotka on jaettu vieraille (ei null)
       const { data: chars } = await supabase.from('characters').select('role').not('assigned_guest_id', 'is', null);
       const uniqueRoles = [...new Set(chars.map(c => c.role).filter(r => r && r.length > 2))];
 
-      // Hae olemassa olevat
       const { data: existing } = await supabase.from('missions').select('target_tag');
       const existingTags = existing.map(m => m.target_tag);
 
@@ -58,6 +59,7 @@ const FieldMissions = ({ missions }) => {
     <div className="admin-panel">
       <h2>🕵️ LUO ETŠINTÄKUULUTUS</h2>
       
+      {/* AUTOMAATIO NAPPI */}
       <button 
         onClick={generateMissionsFromRoles} 
         className="btn-create" 
@@ -66,6 +68,7 @@ const FieldMissions = ({ missions }) => {
         🤖 AUTO-GENEROI ROOLEISTA
       </button>
 
+      {/* LOMAKE */}
       <form onSubmit={createMission}>
         <div className="form-group">
           <input value={newMissionTitle} onChange={e => setNewMissionTitle(e.target.value)} placeholder="Tehtävä: Etsi Lääkäri..." className="input-field"/>
@@ -76,13 +79,42 @@ const FieldMissions = ({ missions }) => {
         <button type="submit" className="btn-create">JULKAISE</button>
       </form>
 
-      <div className="mission-list" style={{marginTop:'20px'}}>
-        {missions.map(m => (
-          <div key={m.id} className="mission-row">
-            <span>{m.title}</span>
-            <button onClick={() => deleteMission(m.id)} style={{color:'red', background:'none', border:'none', cursor:'pointer'}}>🗑</button>
+      {/* --- AKKORDI LISTALLE --- */}
+      <div style={{marginTop: '30px', borderTop: '2px solid #333', paddingTop: '10px'}}>
+        
+        {/* KLIKATTAVA OTSJAKE */}
+        <div 
+          onClick={() => setIsListOpen(!isListOpen)}
+          style={{
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            cursor: 'pointer',
+            padding: '10px',
+            background: '#252525',
+            borderRadius: '6px'
+          }}
+        >
+          <h3 style={{margin: 0, fontSize: '1rem', color: '#ccc'}}>
+            📜 AKTIIVISET TEHTÄVÄT ({missions.length})
+          </h3>
+          <span style={{fontSize: '1.2rem'}}>{isListOpen ? '🔼' : '🔽'}</span>
+        </div>
+
+        {/* PIILOTETTAVA LISTA */}
+        {isListOpen && (
+          <div className="mission-list" style={{marginTop:'10px', maxHeight: '500px', overflowY: 'auto'}}>
+            {missions.length === 0 && <p style={{color:'#666', fontStyle:'italic', padding:'10px'}}>Ei tehtäviä.</p>}
+            
+            {missions.map(m => (
+              <div key={m.id} className="mission-row" style={{display:'flex', justifyContent:'space-between', padding:'8px', borderBottom:'1px solid #333'}}>
+                <span>{m.title}</span>
+                <button onClick={() => deleteMission(m.id)} style={{color:'#e74c3c', background:'none', border:'none', cursor:'pointer', fontSize:'1.1rem'}}>🗑</button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+
       </div>
     </div>
   );

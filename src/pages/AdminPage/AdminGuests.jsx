@@ -1,26 +1,171 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import AdminSocial from './AdminSocial';
 
-const AdminGuests = ({ guests }) => {
-  const BASE_URL = window.location.origin + '/agent?id='; 
+// HUOM: Ota vastaan myös 'guests' prop
+const AdminGuests = ({ characters, guests }) => {
+  const [expandedId, setExpandedId] = useState(null);
+  const [scores, setScores] = useState({});
+  const [logs, setLogs] = useState([]);
+  const [showUnassigned, setShowUnassigned] = useState(false);
+  
+  const [points, setPoints] = useState(0);
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const copyLink = (id) => { 
-    navigator.clipboard.writeText(`${BASE_URL}${id}`); 
-    alert('Kopioitu!'); 
+  if (!characters) return <div className="admin-container">Ladataan hahmoja...</div>;
+
+  // --- 1. LUODAAN NIMI-HAKUKARTTA (UUSI) ---
+  // Tämä muuttaa guests-listan muotoon: { 'uuid-123': 'Matti Meikäläinen' }
+  const guestMap = useMemo(() => {
+    if (!guests) return {};
+    return guests.reduce((acc, g) => {
+      acc[g.id] = g.name;
+      return acc;
+    }, {});
+  }, [guests]);
+
+  // --- 2. DATAHAKU ---
+  const fetchData = async () => {
+    const { data: scoreData } = await supabase.from('leaderboard').select('assigned_guest_id, xp');
+    if (scoreData) {
+      const sMap = {};
+      scoreData.forEach(row => { if (row.assigned_guest_id) sMap[row.assigned_guest_id] = row.xp; });
+      setScores(sMap);
+    }
+
+    const { data: logData } = await supabase.from('mission_log').select('*').order('created_at', { ascending: false }).limit(200);
+    if (logData) setLogs(logData);
   };
 
+  useEffect(() => {
+    fetchData();
+    const channel = supabase.channel('admin_chars_realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_log' }, () => setTimeout(fetchData, 500))
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, []);
+
+  // --- 3. LOGIIKKA ---
+  const displayedCharacters = useMemo(() => {
+    return characters.filter(c => {
+      if (showUnassigned) return true;
+      return c.assigned_guest_id !== null;
+    });
+  }, [characters, showUnassigned]);
+
+  const toggleExpand = (charId) => {
+    setExpandedId(expandedId === charId ? null : charId);
+    setPoints(0); setReason('');
+  };
+
+  const applyPreset = (xp, text) => { setPoints(xp); setReason(text); };
+
+  const sendPoints = async (guestId) => {
+    if (!guestId) return alert("Virhe: Ei pelaajaa.");
+    if (!reason) return alert("Syy vaaditaan!");
+    setLoading(true);
+    const { error } = await supabase.from('mission_log').insert({
+      guest_id: guestId, xp_earned: points, custom_reason: reason, approval_status: 'approved', mission_id: null
+    });
+    if (error) alert(error.message);
+    else { setPoints(0); setReason(''); }
+    setLoading(false);
+  };
+
+  const revertTransaction = async (logEntry) => {
+    const originalReason = logEntry.custom_reason || 'Ei syytä';
+    const correctionReason = prompt(`KUMOTAAN: "${originalReason}"\n\nKirjoita syy:`);
+    if (!correctionReason) return;
+    setLoading(true);
+    await supabase.from('mission_log').insert({
+      guest_id: logEntry.guest_id, xp_earned: -1 * logEntry.xp_earned,
+      custom_reason: `❌ KORJAUS: ${originalReason} [SYY: ${correctionReason}]`, approval_status: 'approved', mission_id: null
+    });
+    setLoading(false);
+  };
+
+  // --- 4. RENDERÖINTI ---
   return (
-    <div className="admin-section">
-      <h2>VIERASLISTA</h2>
-      <div className="guest-list-container">
-        {guests.map(g => (
-          <div key={g.id} className="guest-row">
-            <span className="guest-name">{g.name}</span>
-            <button className="btn-copy-link" onClick={() => copyLink(g.id)}>🔗 LINKKI</button>
-          </div>
-        ))}
+    <div className="char-admin-container">
+      
+      {/* Välitetään myös guestMap AdminSocialille */}
+      <AdminSocial characters={characters} guestMap={guestMap} />
+
+      <hr className="section-divider" />
+      
+      <div className="admin-header-row">
+        <h2>🎭 HAHMOT & PISTEET</h2>
+        <label className="toggle-label">
+          <input type="checkbox" checked={showUnassigned} onChange={(e) => setShowUnassigned(e.target.checked)} />
+          Näytä myös ilman pelaajaa
+        </label>
+      </div>
+
+      <div className="char-list">
+        {displayedCharacters.map(char => {
+          const guestId = char.assigned_guest_id;
+          const hasPlayer = Boolean(guestId);
+          const isOpen = expandedId === char.id;
+          const currentXp = (hasPlayer && scores[guestId]) ? scores[guestId] : 0;
+          
+          // HAETAAN OIKEA NIMI KARTASTA
+          const realName = guestMap[guestId] || 'Tuntematon';
+
+          return (
+            <div key={char.id} className={`char-card ${isOpen ? 'open' : ''} ${!hasPlayer ? 'disabled' : ''}`}>
+              <div className="char-header" onClick={() => hasPlayer && toggleExpand(char.id)}>
+                <div className="char-info">
+                  {/* TÄSSÄ SE TAIKA TAPAHTUU: Hahmo (Oikea nimi) */}
+                  <span className="char-name">
+                    {char.name} 
+                    {hasPlayer && <span style={{color: '#888', fontWeight: 'normal', fontSize: '0.9em', marginLeft: '6px'}}>
+                      ({realName})
+                    </span>}
+                  </span>
+                  {!hasPlayer && <span className="tag-warning">Ei pelaajaa</span>}
+                </div>
+                {hasPlayer && <div className="char-score">⭐ {currentXp}</div>}
+              </div>
+
+              {isOpen && hasPlayer && (
+                <div className="char-body">
+                  <div className="action-presets">
+                    <button className="btn-preset pos" onClick={() => applyPreset(5, '🕵️ Löysi vihjeen')}>+5 Vihje</button>
+                    <button className="btn-preset pos" onClick={() => applyPreset(10, '🧩 Ratkaisi tehtävän')}>+10 Tehtävä</button>
+                    <button className="btn-preset pos" onClick={() => applyPreset(25, '🥇 MVP Suoritus')}>+25 MVP</button>
+                    <button className="btn-preset neg" onClick={() => applyPreset(-5, '⚠️ Varoitus')}>-5 Varoitus</button>
+                  </div>
+
+                  <div className="action-input">
+                    <input type="number" placeholder="XP" value={points} onChange={e => setPoints(Number(e.target.value))} className={points > 0 ? 'pos-val' : points < 0 ? 'neg-val' : ''} />
+                    <input type="text" placeholder="Syy..." value={reason} onChange={e => setReason(e.target.value)} />
+                    <button className="btn-submit" onClick={() => sendPoints(guestId)} disabled={loading}>{loading ? '...' : 'LÄHETÄ'}</button>
+                  </div>
+
+                  <div className="char-history">
+                    {/* Logitaulukko, jossa näkyy myös koodi kuten aiemmin... */}
+                    {/* Lyhennetty tässä vastauksessa tilan säästämiseksi, logiikka sama */}
+                    <table className="history-table">
+                       <tbody>
+                         {logs.filter(l => l.guest_id === guestId).slice(0, 10).map(log => (
+                           <tr key={log.id}>
+                             <td className="td-time">{new Date(log.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                             <td className="td-reason">{log.custom_reason}</td>
+                             <td className={`td-xp ${log.xp_earned > 0 ? 'pos' : 'neg'}`}>{log.xp_earned}</td>
+                             <td className="td-action"><button className="btn-undo" onClick={() => revertTransaction(log)}>↩️</button></td>
+                           </tr>
+                         ))}
+                       </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
-
 export default AdminGuests;

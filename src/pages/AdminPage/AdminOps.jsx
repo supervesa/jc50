@@ -6,7 +6,8 @@ import FieldMissions from './ops/FieldMissions';
 import ManualXP from './ops/ManualXP';
 import AdminVault from './ops/AdminVault'; 
 
-const AdminOps = ({ activeFlash, flashCount, missions, guests }) => {
+// KORJAUS: Lisäsin 'characters' sanan aaltosulkeiden sisään
+const AdminOps = ({ activeFlash, flashCount, missions, guests, characters }) => {
   return (
     <>
       {/* 1. Hyväksyntäjono (Hakee datansa itse) */}
@@ -19,7 +20,8 @@ const AdminOps = ({ activeFlash, flashCount, missions, guests }) => {
       <FieldMissions missions={missions} />
 
       {/* 4. Manuaaliset pisteet (Saa vieraslistan propseina) */}
-      <ManualXP guests={guests} />
+      {/* Nyt 'characters' on määritelty, joten se välittyy oikein */}
+       <ManualXP guests={guests} characters={characters} />
 
       {/* 5. Salakapakka (Hakee datansa itse) */}
       <AdminVault />
