@@ -57,7 +57,7 @@ const AgentPage = () => {
   if (!guestId || !identity) return <div className="ap-error">VIRHEELLINEN ID</div>;
 
   return (
-    <div className="ap-container">
+    <div id="agent-page" className="ap-container">
       
       {/* 1. HEADER (Näkyy aina ylhäällä) */}
       <AgentHeader 
