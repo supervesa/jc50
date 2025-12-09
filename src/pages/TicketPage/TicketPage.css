@@ -1150,7 +1150,8 @@ html, body {
   padding: 4px;
 }
 
-/* --- TicketPage.css --- */
+
+/* --- STUDIO/TicketPage.css --- */
 
 :root {
   --studio-bg: #121212;
@@ -1172,6 +1173,8 @@ html, body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+  /* LISÄYS: Reilu tila alas, jotta sisältö ei jää piiloon mobiilissa */
+  padding-bottom: 120px; 
   animation: fadeIn 0.4s ease-out;
 }
 
@@ -1226,9 +1229,12 @@ html, body {
 .photo-msg { color: white; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
 .btn-icon-small { background:none; border:none; color: var(--studio-danger); cursor: pointer; }
 
-/* Studio Overlay */
+/* Studio Overlay - KORJATTU KORKEUS */
 .studio-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  position: fixed; top: 0; left: 0; width: 100vw;
+  /* Käytetään dvh (dynamic height) jotta osoitepalkki ei sotke */
+  height: 100vh;
+  height: 100dvh; 
   background-color: var(--studio-bg);
   z-index: 1000;
   display: flex; flex-direction: column;
@@ -1261,7 +1267,7 @@ html, body {
 .canvas-wrapper {
   position: relative;
   box-shadow: 0 0 30px rgba(0,0,0,0.5);
-  display: inline-block; /* Tärkeä napin sijoittelulle */
+  display: inline-block;
 }
 
 .studio-canvas {
@@ -1273,7 +1279,7 @@ html, body {
 /* POISTA-NAPPI CSS - KORJATTU */
 .delete-hint-overlay {
   position: absolute;
-  bottom: 20px; /* Alhaalla */
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(20, 20, 20, 0.9);
@@ -1284,19 +1290,22 @@ html, body {
   font-weight: bold;
   opacity: 0;
   transition: all 0.3s;
-  z-index: 50; /* Tarpeeksi korkea */
+  z-index: 50;
   display: flex; align-items: center; gap: 8px;
 }
 .delete-hint-overlay.visible {
   opacity: 1;
-  pointer-events: auto; /* Varmistus */
+  pointer-events: auto;
 }
 
-/* Controls */
+/* Controls - KORJATTU PADDING */
 .studio-controls {
   background: var(--studio-panel);
   border-top: 1px solid var(--studio-border);
-  padding-bottom: 20px;
+  
+  /* LISÄYS: Nosta sisältöä ylös osoitepalkin alta */
+  padding-bottom: 30px; /* Fallback */
+  padding-bottom: calc(20px + env(safe-area-inset-bottom)); /* iPhone Home Bar fix */
 }
 
 .caption-area { padding: 10px 15px; border-bottom: 1px solid var(--studio-border); }
@@ -1331,7 +1340,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--neon-blue, #00e7ff); /* Käytä neon-väriä */
+  color: var(--neon-blue, #00e7ff);
   text-decoration: none;
   font-size: 0.85rem;
   font-weight: bold;
