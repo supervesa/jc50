@@ -1,0 +1,54 @@
+/* src/mobile-universal.css */
+
+/* --- NÄMÄ SÄÄNNÖT KOSKEVAT VAIN MOBIILIA (alle 768px) --- */
+@media screen and (max-width: 768px) {
+
+  /* 1. Varmistetaan box-model mobiilissa */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  /* 2. Bodyn nollaus mobiilissa */
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    background-color: #121212; /* Tumma tausta ettei valkoinen vilku */
+    overflow-x: hidden; /* Estää sivuttaisheilunnan */
+    -webkit-text-size-adjust: 100%; /* Estää fontin skaalauksen käännössä */
+  }
+
+  /* 3. PÄÄKONTAINERIT (Lisää tähän kaikki sivujesi pää-ID:t) */
+  #ticket-page,
+  #photo-feed,
+  #photo-wall,
+  #live-wall,
+  #agent-page {
+    /* TÄRKEÄ: 100dvh huomioi mobiiliselaimen osoitepalkin liikkeet */
+    min-height: 100vh;
+    min-height: 100dvh; 
+    
+    width: 100%;
+    max-width: 100vw;
+    
+    background-color: #121212;
+    color: #fff;
+    
+    /* Flow-root estää margin-collapsen (valkoiset raot ylhäällä) */
+    display: flow-root; 
+    
+    /* Nollataan oletuspaddingit, komponentti hoitaa itse */
+    padding: 0;
+    
+    /* Varmistus asemointiin */
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* 4. Yleinen padding alas, jotta sisältö ei jää 'home barin' alle iPhonella */
+  /* Voit käyttää tätä luokkaa: <div className="mobile-safe-padding"> */
+  .mobile-safe-padding {
+    padding-bottom: 120px; 
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}

@@ -12,6 +12,7 @@ import AdminPage from './pages/AdminPage/AdminPage';
 import HeistLeaderboard from './components/leader/HeistLeaderboard';
 import HeistPersonalScoreboard from './pages/AgentPage/HeistPersonalScoreboard';
 import PhotoWall from './pages/PhotoWall';
+import './mobile-universal.css'
 function App() {
   return (
     <div className="App">

@@ -1,15 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
 
+/* --- 1. GLOBAALI NOLLAUS & ASETUKSET --- */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  /* Varmistaa että taustaväri on kaikkialla, myös jos sisältö on lyhyt */
+  background-color: #121212; 
+  /* Estää sivuttaisscrollauksen, jos joku elementti on liian leveä */
+  overflow-x: hidden; 
+}
+
+/* Varmistaa, että padding ei kasvata elementin leveyttä */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /* --- PÄÄCONTAINER --- */
 .wall-container {
+  /* Poistetaan min-height täältä, koska body hoitaa taustan. 
+     Mutta pidetään se, jotta sisältö venyy vähintään ruudun kokoiseksi */
   min-height: 100vh;
-  /* Moderni tapa huomioida mobiiliselaimen palkit */
   min-height: 100dvh; 
+  
+  /* Background on jo bodyssa, mutta voi olla tässäkin varmuuden vuoksi */
   background-color: #121212;
+  
   padding: 10px;
   color: #fff;
-  overflow-x: hidden;
-  /* Iso padding alas oletuksena */
+  
+  /* TÄRKEÄ: Estää margin-collapsen (yläpalkin raon) */
+  display: flow-root; 
+  /* TAI vaihtoehtoisesti: overflow: hidden; */
+
   padding-bottom: 100px;
 }
 

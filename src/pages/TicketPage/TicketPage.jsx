@@ -210,7 +210,7 @@ function TicketPage() {
   if (errorMsg) return <div className="ticket-wrapper ticket-error">{errorMsg}</div>;
 
   return (
-    <div className="jc-wrapper ticket-wrapper">
+    <div id="ticket-page" className="jc-wrapper ticket-wrapper">
       
       <TicketHeader 
         id={id} 

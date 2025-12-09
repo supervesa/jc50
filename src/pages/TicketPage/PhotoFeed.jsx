@@ -352,7 +352,7 @@ function PhotoFeed() {
   }
 
   return (
-    <div className="feed-container">
+   <div id="photo-feed" className="feed-container">
       <div className="upload-card">
         <h2 style={{margin:'0 0 10px 0', fontSize:'1.5rem'}}>
             {identityName ? `Moi, ${identityName}! 📸` : '📸 Juhlafeed'}

@@ -46,7 +46,7 @@ const PhotoWall = () => {
   }, []);
 
   return (
-    <div className="wall-container">
+  <div id="photo-wall" className="wall-container">
       <div className="wall-header">
         <h1 className="wall-title">Juhlafeed 📸</h1>
         <p style={{opacity: 0.6, fontSize: '0.9rem'}}>Jaa parhaat palat!</p>
