@@ -1229,15 +1229,24 @@ html, body {
 .photo-msg { color: white; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
 .btn-icon-small { background:none; border:none; color: var(--studio-danger); cursor: pointer; }
 
-/* Studio Overlay - KORJATTU KORKEUS */
 .studio-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw;
-  /* Käytetään dvh (dynamic height) jotta osoitepalkki ei sotke */
-  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  /* Käytä dvh (Dynamic Viewport Height) - tämä reagoi osoitepalkkiin */
+  height: 100vh; 
   height: 100dvh; 
+  
   background-color: var(--studio-bg);
   z-index: 1000;
-  display: flex; flex-direction: column;
+  
+  /* Flexbox pitää palikat järjestyksessä */
+  display: flex;
+  flex-direction: column;
+  
+  /* Estä sivun scrollaus editorin ollessa auki */
+  overflow: hidden; 
   color: var(--studio-text);
 }
 
@@ -1258,10 +1267,21 @@ html, body {
 
 /* Workspace */
 .studio-workspace {
-  flex: 1; position: relative;
-  display: flex; justify-content: center; align-items: center;
-  background-color: #0a0a0a; overflow: hidden;
-  padding: 20px;
+  /* Vie kaiken jäljelle jäävän tilan */
+  flex: 1; 
+  
+  /* TÄRKEÄ: Sallii alueen kutistua, jos työkalut vievät tilaa */
+  min-height: 0; 
+  
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #0a0a0a;
+  
+  /* Estää kankaan valumisen muiden päälle */
+  overflow: hidden; 
+  padding: 10px; /* Pienennetään hieman paddingia jotta kuva mahtuu paremmin */
 }
 
 .canvas-wrapper {
@@ -1303,9 +1323,19 @@ html, body {
   background: var(--studio-panel);
   border-top: 1px solid var(--studio-border);
   
-  /* LISÄYS: Nosta sisältöä ylös osoitepalkin alta */
-  padding-bottom: 30px; /* Fallback */
-  padding-bottom: calc(20px + env(safe-area-inset-bottom)); /* iPhone Home Bar fix */
+  /* Estetään paneelia kutistumasta */
+  flex-shrink: 0; 
+  
+  /* TURVAVARA ALAS: */
+  /* 1. Perus padding */
+  padding-bottom: 20px; 
+  
+  /* 2. Lisätään reilusti tilaa (n. 80px), jotta se nousee Safarin palkin yli */
+  /* env(safe-area...) hoitaa iPhone X:n kotipalkin */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom)); 
+  
+  /* Varmistetaan että tämä on muiden päällä jos tila loppuu */
+  z-index: 20; 
 }
 
 .caption-area { padding: 10px 15px; border-bottom: 1px solid var(--studio-border); }
