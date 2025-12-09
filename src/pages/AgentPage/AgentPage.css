@@ -1,103 +1,25 @@
 /* src/pages/AgentPage/AgentPage.css */
 
-/* --- 1. LAYOUT STRUCTURE (MOBILE APP FIX) --- */
-
-/* PÄÄKONTAINERI: Lukitsee koko ruudun */
-.ap-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  /* Käytä 100dvh, jotta osoitepalkki ei piilota alareunaa */
-  height: 100vh; 
-  height: 100dvh; 
-  
-  background-color: #050505;
-  color: #eee;
-  font-family: 'Courier New', monospace;
-  
-  /* Flexbox pystysuunnassa: Header -> Tabs -> Content */
-  display: flex;
-  flex-direction: column;
-  
-  /* Estää "body scrollin" ja iOS-pompinnan */
-  overflow: hidden; 
-  z-index: 1;
-}
-
-/* HEADER: Ei kutistu, aina näkyvissä */
+/* --- HEADER (PÄIVITETTY) --- */
 .ap-header {
-  flex-shrink: 0; /* TÄRKEÄ: Estää headerin litistymisen */
+  flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  
-  background: linear-gradient(180deg, #161616 0%, #0d0d0d 100%);
+  align-items: center; /* Keskittää pystysuunnassa */
+  background: linear-gradient(180deg, #161616 0%, #0d0d0d 100%); /* Hienovaraisempi liuku */
   padding: 12px 15px;
-  /* Lisää tilaa iPhonen "lovelle" ylhäällä tarvittaessa */
-  padding-top: max(12px, env(safe-area-inset-top)); 
-  
   border-bottom: 1px solid #333;
   z-index: 50;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-  gap: 15px;
+  justify-content: space-between;
+  gap: 15px; /* Tärkeä: luo tasaisen välin osioiden välille */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Syvyysvaikutelma */
 }
-
-/* TABS: Ei kutistu */
-.ap-tabs {
-  flex-shrink: 0; /* TÄRKEÄ */
-  display: flex;
-  background: #1a1a1a;
-  border-bottom: 1px solid #333;
-  z-index: 40;
-}
-
-.ap-tabs button {
-  flex: 1;
-  background: transparent;
-  color: #888;
-  border: none;
-  padding: 12px;
-  font-family: inherit;
-  font-weight: bold;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-  /* Estää tekstin valinnan */
-  user-select: none;
-}
-
-.ap-tabs button.active {
-  color: #00ff41;
-  background: #0f2b15;
-  border-bottom-color: #00ff41;
-}
-
-/* SISÄLTÖ: Tämä on ainoa osa joka skrollaa */
-.ap-content {
-  /* Ottaa kaiken jäljelle jäävän tilan */
-  flex-grow: 1; 
-  
-  /* Sallii sisäisen skrollauksen */
-  overflow-y: auto; 
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* Sulava scrollaus iOS */
-  
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  
-  /* TÄRKEÄ: Estää sisällön leikkautumisen alhaalta (iPhone Home Bar) */
-  padding-bottom: calc(20px + env(safe-area-inset-bottom));
-}
-
-/* --- HEADERIN SISÄLLÖN TYYLIT --- */
 
 /* 1. AVATAR (Vasen) */
 .ap-avatar { 
   width: 50px; 
   height: 50px; 
   border-radius: 50%; 
-  overflow: visible; 
+  overflow: visible; /* Sallii liekin (hot indicator) näkyä */
   position: relative;
   border: 2px solid #333; 
   background: #000; 
@@ -121,23 +43,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: pulse-green 2s infinite;
-}
-
-@keyframes pulse-green {
-  0% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 255, 65, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0); }
 }
 
 /* 2. KESKIOSA (Nimi ja statsit) */
 .ap-info { 
-  flex: 1; 
+  flex: 1; /* Täyttää tyhjän tilan */
   display: flex; 
   flex-direction: column; 
   justify-content: center;
-  overflow: hidden; 
-  min-width: 0; 
+  overflow: hidden; /* Estää tekstin leviämisen */
+  min-width: 0; /* Flexbox-taika, joka estää tekstin venytyksen */
 }
 
 .ap-label { font-size: 0.65rem; color: #666; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
@@ -158,15 +73,15 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  height: 18px; 
+  height: 18px; /* Pitää rivin korkeuden vakiona */
   margin: 3px 0;
 }
 .badge-icon { filter: drop-shadow(0 0 3px rgba(255,255,255,0.2)); }
-.badge-icon.gold { color: #ffd700; filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5)); }
-.badge-icon.blue { color: #00aaff; filter: drop-shadow(0 0 2px rgba(0, 170, 255, 0.5)); }
+.badge-icon.gold { color: #ffd700; }
+.badge-icon.blue { color: #00aaff; }
 
 /* XP ja Rank */
-.ap-stats { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; margin-top: 2px; }
+.ap-stats { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; }
 .xp-badge { 
   color: #ffd700; 
   font-family: monospace; 
@@ -179,25 +94,108 @@
 .rank-badge { color: #888; text-transform: uppercase; font-size: 0.7rem; }
 
 /* 3. OIKEA LAITA (Napit ja koodi) */
+/* --- OIKEA LAITA (Napit ja koodi) --- */
 .ap-actions {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px; 
+  /* Tämä varmistaa, että napin ja koodin välissä on ilmaa, etteivät ne mene päällekkäin */
+  gap: 15px; 
   flex-shrink: 0;
-  position: relative; 
+  position: relative; /* Tarvitaan z-indexin hallintaan */
 }
+
+/* ID-koodi laatikko */
+.ap-secret-code {
+  text-align: right;
+}
+.code-label { font-size: 0.6rem; color: #444; margin-bottom: 1px; }
+.code-val { 
+  font-size: 0.9rem; 
+  font-weight: bold; 
+  color: #666; 
+  font-family: monospace; 
+  letter-spacing: 1px; 
+}
+
+.ap-container {
+  height: 100dvh; 
+  width: 100%;
+  background-color: #050505;
+  color: #eee;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; 
+  position: fixed; top: 0; left: 0;
+}
+
+/* --- HEADER --- */
+.ap-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  background: #111;
+  padding: 10px 15px;
+  border-bottom: 1px solid #333;
+  z-index: 10;
+  justify-content: space-between;
+}
+
+.ap-avatar { width: 45px; height: 45px; border-radius: 50%; overflow: hidden; margin-right: 10px; border: 1px solid #555; background: #000; flex-shrink: 0; }
+.ap-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ap-initial { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #00ff41; background: #222; }
+
+.ap-info { flex: 1; overflow: hidden; margin-right: 10px; }
+.ap-label { font-size: 9px; color: #00ff41; letter-spacing: 1px; text-transform: uppercase; }
+.ap-name { margin: 0; font-size: 14px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+
+.ap-stats { display: flex; gap: 5px; margin-top: 2px; }
+.xp-badge { background: #004d00; color: #00ff41; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
+.rank-badge { color: #888; font-size: 10px; text-transform: uppercase; }
 
 /* OMA KOODI */
 .ap-secret-code {
-  text-align: right;
+  text-align: center;
   background: #222;
   padding: 4px 8px;
   border-radius: 4px;
   border: 1px solid #444;
 }
 .code-label { font-size: 8px; color: #666; }
-.code-val { font-size: 14px; font-weight: bold; color: #fff; letter-spacing: 1px; font-family: monospace; }
+.code-val { font-size: 16px; font-weight: bold; color: #fff; letter-spacing: 2px; }
+
+/* --- TABS --- */
+.ap-tabs {
+  display: flex;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+}
+.ap-tabs button {
+  flex: 1;
+  background: transparent;
+  color: #888;
+  border: none;
+  padding: 12px;
+  font-family: inherit;
+  font-weight: bold;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.ap-tabs button.active {
+  color: #00ff41;
+  background: #0f2b15;
+  border-bottom-color: #00ff41;
+}
+
+/* --- CONTENT AREA --- */
+.ap-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Sisältö hoitaa skrollauksen */
+  position: relative;
+}
 
 /* --- CHAT STYLES --- */
 .ap-chat-stream {
@@ -208,6 +206,7 @@
   flex-direction: column;
   gap: 12px;
   background: #000;
+  -webkit-overflow-scrolling: touch; 
 }
 .ap-chat-intro { text-align: center; color: #444; font-size: 0.75rem; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px dashed #222; }
 
@@ -241,11 +240,13 @@
   overflow-y: auto;
   padding: 15px;
   background: #0a0a0a;
+  /* Lisätty: väli elementtien välille */
   display: flex;
   flex-direction: column;
   gap: 20px; 
 }
 
+/* Päivitetty intro näyttämään viivalta tekstin takana */
 .mission-intro { 
   text-align: center; 
   color: #666; 
@@ -255,6 +256,7 @@
   border-bottom: 1px solid #333; 
   line-height: 0.1em;
 }
+/* Lisätty: peittää viivan tekstin kohdalta */
 .mission-intro p { 
   background: #0a0a0a; 
   padding: 0 10px; 
@@ -265,13 +267,14 @@
   background: #151515;
   border: 1px solid #333;
   border-radius: 8px;
+  /* Muutettu: enemmän tilaa ylhäällä badgen takia */
   padding: 25px 15px 15px 15px; 
   position: relative;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 .mission-card.done { border-color: #004d00; opacity: 0.6; }
-.mission-card.active { border: 2px solid #555; background: #111; }
 
+/* UUSI: Wanted-badge vasempaan yläkulmaan */
 .mission-badge {
   position: absolute;
   top: -10px;
@@ -289,6 +292,7 @@
 .mission-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
 .mission-title { font-weight: bold; color: #fff; font-size: 1rem; line-height: 1.2; margin-right: 10px; }
 
+/* Muokattu: XP kultaiseksi */
 .mission-xp { 
   background: #1a1a1a; 
   color: #ffd700; 
@@ -303,11 +307,14 @@
 .mission-action { margin-top: 10px; }
 .mission-desc { font-size: 0.9rem; color: #aaa; margin-bottom: 15px; }
 
+/* UUSI: Korostusväri tekstin sekaan */
 .tag-highlight { color: #ffd700; font-weight: bold; text-transform: uppercase; }
 
 .code-input-row { display: flex; gap: 10px; width: 100%; }
+
 .code-input-row input { 
   flex: 1; 
+  /* TÄRKEÄ: Estää inputtia venymästä ulos ruudusta mobiilissa */
   min-width: 0; 
   background: #000; 
   border: 1px solid #444; 
@@ -318,7 +325,9 @@
   font-size: 1rem; 
   border-radius: 4px; 
 }
+
 .code-input-row button { 
+  /* TÄRKEÄ: Estää nappia kutistumasta */
   flex-shrink: 0;
   background: #333; 
   color: #fff; 
@@ -332,15 +341,938 @@
 .mission-done-badge { color: #00ff41; font-weight: bold; text-align: center; padding: 10px; border: 1px dashed #004d00; background: rgba(0,77,0,0.1); }
 .no-missions { text-align: center; color: #444; margin-top: 30px; }
 
+/* --- POLL SECTION (Ei muutoksia) --- */
+.ap-poll-section { flex-shrink: 0; background: #2a0505; border-bottom: 2px solid red; padding: 10px 15px; }
+.ap-poll-badge { background: red; color: black; padding: 2px 6px; font-size: 10px; font-weight: bold; display: inline-block; margin-bottom: 5px; }
+.ap-poll-question { margin: 0 0 10px 0; font-size: 1.1rem; }
+.ap-poll-options { display: flex; flex-direction: column; gap: 6px; }
+.ap-poll-btn { background: rgba(0,0,0,0.3); border: 1px solid red; color: #fff; padding: 12px; text-transform: uppercase; font-weight: bold; border-radius: 4px; }
+.ap-voted-msg { color: #00ff41; border: 1px solid #00ff41; padding: 10px; text-align: center; font-weight: bold; background: rgba(0, 255, 65, 0.1); }
+
 /* --- FLASH OVERLAY --- */
 .ap-flash-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(40, 0, 0, 0.95);
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 20px;
+  backdrop-filter: blur(5px);
+  animation: flashFadeIn 0.3s ease-out;
+}
+@keyframes flashFadeIn { from { opacity: 0; transform: scale(1.1); } to { opacity: 1; transform: scale(1); } }
+
+.flash-content { border: 4px solid red; padding: 30px; background: #000; box-shadow: 0 0 50px red; width: 100%; max-width: 300px; }
+.flash-content h2 { color: red; font-size: 2rem; margin: 0; }
+.flash-content h3 { color: #fff; font-size: 1.5rem; margin: 20px 0; text-transform: uppercase; }
+.flash-btn-action { background: red; color: white; border: none; padding: 20px; font-size: 1.2rem; font-weight: bold; width: 100%; cursor: pointer; animation: pulse 1s infinite; margin-top: 20px; }
+.flash-instruct { color: yellow; font-size: 1.2rem; font-weight: bold; border: 2px dashed yellow; padding: 10px; margin-top: 20px; }
+.blink { animation: blinker 0.5s linear infinite; }
+@keyframes blinker { 50% { opacity: 0; } }
+
+/* --- REWARD OVERLAY (Palkintoruutu) --- */
+.ap-reward-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 200; /* Kaiken päällä */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: rewardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes rewardPopIn {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.reward-content {
+  background: #002200;
+  border: 3px solid gold;
+  padding: 40px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 0 50px gold;
+  width: 80%;
+}
+
+.reward-icon { font-size: 4rem; margin-bottom: 10px; animation: bounce 1s infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.reward-content h2 { color: gold; font-size: 2rem; margin: 0; text-transform: uppercase; }
+.reward-xp { color: #00ff41; font-size: 2.5rem; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px #00ff41; }
+.reward-reason { color: #fff; font-size: 1rem; font-style: italic; }
+
+/* --- MISSION CARD (WANTED STYLE) --- */
+.mission-card.active {
+  border: 2px solid #555;
+  background: #111;
+}
+
+.mission-badge {
+  background: #555;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 8px;
+  display: inline-block;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+/* Jos etsintäkuulutus */
+.tag-highlight {
+  color: yellow;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.ap-reward-overlay {
+  position: fixed; /* Muutetaan absolute -> fixed, jotta se on varmasti ruudulla */
+  top: 0; 
+  left: 0; 
+  width: 100vw; /* Varmistetaan koko ruudun leveys */
+  height: 100vh; /* Varmistetaan koko ruudun korkeus */
+  background: rgba(0, 0, 0, 0.9); /* Hieman tummempi tausta */
+  z-index: 9999; /* Nostetaan arvoa reilusti (oli 200) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: rewardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none; /* Päästää klikkaukset läpi, jos haluaa poistua */
+}
+
+/* Lisää AgentPage.css tiedostoon */
+
+.status-box {
+  padding: 15px;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.status-box.pending {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px dashed gold;
+  color: gold;
+}
+
+.status-box.success {
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid #00ff41;
+  color: #00ff41;
+  text-shadow: 0 0 5px #00ff41;
+}
+
+.spin {
+  display: inline-block;
+  animation: spin 2s infinite linear;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* --- VAULT TAB --- */
+.vault-container {
+  padding: 30px 20px;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.locked-mode .lock-icon { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
+.locked-mode h2 { color: #555; }
+.locked-mode p { color: #888; }
+
+.active-mode h2 { margin-bottom: 30px; letter-spacing: 2px; }
+
+.clue-card {
+  background: #1a1a00;
+  border: 1px solid gold;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  width: 100%;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.clue-label { color: gold; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; letter-spacing: 1px; }
+.clue-text { font-size: 1.2rem; font-style: italic; line-height: 1.5; color: #fff; }
+
+.code-input-area { width: 100%; display: flex; flex-direction: column; gap: 15px; }
+.vault-input { 
+  background: #000; border: 2px solid #333; color: gold; 
+  padding: 15px; font-size: 1.5rem; text-align: center; 
+  letter-spacing: 5px; border-radius: 8px; text-transform: uppercase;
+}
+.vault-input:focus { border-color: gold; outline: none; }
+
+.vault-btn {
+  background: gold; color: black; font-weight: bold; padding: 15px;
+  border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer;
+}
+
+/* Onnistuminen */
+.access-granted {
+  font-size: 2rem; color: #00ff41; border: 2px solid #00ff41;
+  padding: 10px 20px; margin-bottom: 30px; animation: blink 1s infinite;
+}
+
+.secret-content {
+  background: #0f2b15; border: 1px solid #00ff41; padding: 20px; border-radius: 8px;
+}
+.secret-content h3 { color: #00ff41; margin-top: 0; }
+.whisper { color: #00aa22; font-size: 0.8rem; margin-top: 20px; font-style: italic; }
+
+/* Shake animaatio virheelle */
+.shake { animation: shake 0.5s; }
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  50% { transform: translateX(10px); }
+  75% { transform: translateX(-10px); }
+  100% { transform: translateX(0); }
+}
+
+/* --- VAULT TAB STYLES --- */
+
+.vault-container {
+  padding: 30px 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #112211 0%, #000 100%);
+}
+
+/* Locked State */
+.locked-mode .vault-glitch-icon { font-size: 4rem; margin-bottom: 20px; filter: drop-shadow(0 0 10px red); }
+.blink-text { color: red; font-family: 'Courier New', monospace; animation: blink 1s infinite; letter-spacing: 2px; }
+.vault-terminal-text { color: #00ff41; font-family: 'Courier New', monospace; text-align: left; background: #000; padding: 15px; border: 1px solid #333; width: 100%; margin-top: 20px; font-size: 0.9rem; }
+
+/* Active State */
+.vault-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+.vault-header h2 { margin: 0; color: #fff; font-size: 1.2rem; letter-spacing: 2px; }
+.status-indicator { color: red; font-size: 0.7rem; animation: blink 0.5s infinite; border: 1px solid red; padding: 2px 6px; border-radius: 4px; }
+
+.clue-terminal {
+  width: 100%;
+  background: #001100;
+  border: 1px solid #00ff41;
+  margin-bottom: 30px;
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+  position: relative;
+}
+.terminal-header { background: #00ff41; color: #000; font-weight: bold; padding: 5px 10px; font-size: 0.8rem; }
+.terminal-body { padding: 20px; color: #00ff41; font-family: 'Courier New', monospace; font-size: 1.1rem; line-height: 1.5; }
+
+.code-input-area label { color: #aaa; font-size: 0.8rem; display: block; margin-bottom: 10px; text-align: left; width: 100%; }
+.vault-input {
+  background: #000; border: 2px solid #555; color: #fff;
+  padding: 15px; font-size: 1.5rem; text-align: center;
+  letter-spacing: 5px; border-radius: 4px; text-transform: uppercase;
+  width: 100%; box-sizing: border-box; margin-bottom: 15px;
+  font-family: 'Courier New', monospace;
+}
+.vault-input:focus { border-color: #00ff41; box-shadow: 0 0 10px rgba(0, 255, 65, 0.3); outline: none; }
+
+.vault-btn {
+  background: #00ff41; color: #000; font-weight: bold; padding: 15px;
+  border: none; border-radius: 4px; font-size: 1.1rem; cursor: pointer;
+  width: 100%; text-transform: uppercase; letter-spacing: 2px;
+  transition: all 0.2s;
+}
+.vault-btn:active { transform: scale(0.98); background: #fff; }
+
+/* Success State */
+.vault-success-badge { color: #00ff41; font-size: 1.5rem; border: 2px solid #00ff41; padding: 10px 20px; margin-bottom: 30px; font-weight: bold; }
+.secret-content { width: 100%; text-align: center; }
+.neon-text { color: #fff; text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41; font-size: 1.5rem; margin-bottom: 20px; }
+.secret-location-box { background: rgba(255,255,255,0.1); padding: 20px; border-left: 4px solid #00ff41; margin-bottom: 20px; text-align: left; }
+.secret-code-display { font-size: 1.2rem; border: 1px dashed #555; padding: 15px; display: inline-block; color: gold; letter-spacing: 3px; font-weight: bold; }
+
+.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+/* Lisää nämä olemassa olevan CSS:n sekaan */
+
+.ap-header {
+  position: relative; /* Jotta avatarin liekki voidaan sijoittaa */
+  /* ... vanhat tyylit ... */
+}
+
+.hot-indicator {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #000;
+  border-radius: 50%;
+  padding: 3px;
+  border: 1px solid #00ff41;
+  animation: pulse-green 2s infinite;
+}
+
+.ap-badges-row {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+  height: 16px; /* Varaa tilaa vaikka olisi tyhjä, ettei hypi */
+}
+
+.badge-icon.gold { color: #ffd700; filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5)); }
+.badge-icon.blue { color: #00aaff; filter: drop-shadow(0 0 2px rgba(0, 170, 255, 0.5)); }
+
+/* Oikean laidan asettelu */
+.ap-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* --- HOHTAVA TROPHY NAPPI --- */
+.trophy-btn {
+  /* Koko: Iso ja helppo osua */
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  
+  /* Asettelu */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Tyyli */
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(0, 0, 0, 0.4));
+  border: 2px solid #ffd700;
+  color: #ffd700;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  
+  /* Toiminnallisuus */
+  cursor: pointer;
+  transition: transform 0.1s;
+
+  /* --- KORJAUS KLIKKAUSONGELMAAN --- */
+  position: relative; 
+  z-index: 2000; /* Tämä varmistaa, ettei mikään mene napin päälle */
+  flex-shrink: 0; /* Estää nappia litistymästä */
+}
+
+.trophy-btn:active {
+  transform: scale(0.95);
+  background: #ffd700;
+  color: #000;
+}
+
+/* --- ID KOODI --- */
+.ap-secret-code {
+  position: relative;
+  z-index: 1; /* Pienempi kuin napilla */
+  text-align: center;
+  background: #222;
+  border: 1px solid #444;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* --- SCOREBOARD OVERLAY --- */
+.scoreboard-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.95);
+  z-index: 9999; /* Varmistetaan että on kaiken päällä */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  animation: slideUp 0.3s ease-out;
+  overflow-y: auto; /* Jos sisältö on pitkä */
+}
+
+.scoreboard-close-btn {
+  align-self: flex-end;
+  background: none; border: none;
+  color: #fff; font-size: 1rem;
+  margin-bottom: 20px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Lisää AgentPage.css loppuun varmistukseksi */
+a.trophy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none; /* Poistaa alleviivauksen */
+}
+
+/* --- PERSONAL SCOREBOARD (FULLSCREEN OVERLAY) --- */
+
+/* Tämä kontaineri peittää KOKO ruudun ja estää WebGL:n näkymisen */
+.ps-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh; /* Dynamic viewport height - toimii mobiilissa paremmin */
+  background-color: #050505; /* Täysin musta tausta */
+  z-index: 20000; /* Nousee varmasti kaiken päälle */
+  overflow-y: auto; /* Sallii pystyskrollauksen */
+  overflow-x: hidden; /* Estää sivuttaisheilumisen */
+  -webkit-overflow-scrolling: touch; /* Pehmeä skrollaus iOS:lla */
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: 'Courier New', monospace;
+  color: #eee;
+}
+
+/* Yläpalkki */
+.ps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.ps-back-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #aaa;
+  padding: 8px 16px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+/* --- HERO SECTION (Avatar & Rank) --- */
+.ps-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.ps-avatar-large {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 4px solid #333;
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: #000;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.ps-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ps-rank-huge {
+  font-size: 4rem; /* Todella iso numero */
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255,255,255,0.2);
+}
+
+.ps-rank-label {
+  font-size: 14px;
+  color: #888;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+/* --- DATA CARDS (Laatikot) --- */
+.ps-card {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.ps-card-title {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+}
+
+/* XP Bar Tyylit */
+.ps-xp-val {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #00ff41; /* Neon vihreä */
+  margin-bottom: 5px;
+}
+
+.ps-progress-bg {
+  width: 100%;
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+.ps-progress-fill {
+  height: 100%;
+  background: #00ff41;
+  width: 75%; /* Esimerkkiarvo, logiikka hoitaa tämän */
+}
+
+/* Kohde (Target) Tyylit */
+.ps-card.target {
+  border: 1px solid #552200;
+  background: linear-gradient(180deg, #1a0a00 0%, #050000 100%);
+}
+
+.ps-target-name {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.ps-target-gap {
+  color: #ff4400; /* Oranssi/Punainen */
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* --- BIG ACTION BUTTON --- */
+.ps-big-button {
+  display: block;
+  width: 100%;
+  background: #ffd700; /* Kulta */
+  color: #000;
+  font-size: 1.2rem;
+  font-weight: 900;
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  margin-top: 30px;
+  margin-bottom: 40px; /* Tilaa skrollauksen loppuun */
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.ps-big-button:active {
+  transform: scale(0.98);
+  background: #e6c200;
+}
+
+/* --- HISTORY STYLES (for History.jsx) --- */
+
+.history-container {
+  padding: 15px;
+  flex-grow: 1;
+  overflow-y: auto;
+  background: #000;
+  font-family: 'Courier New', monospace;
+}
+
+.history-container h2 {
+  color: #00ff41;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+
+.history-loading, .history-empty {
+  text-align: center;
+  color: #666;
+  margin-top: 30px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  padding: 12px 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+  color: #eee;
+  /* border-left tulee inline styleinä */
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+.item-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #00ff41;
+}
+
+.item-timestamp {
+  font-size: 0.65rem;
+  color: #666;
+}
+
+.item-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-reason {
+  font-size: 0.9rem;
+  font-weight: bold;
+  flex: 1;
+  margin-right: 10px;
+}
+
+.item-xp {
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
+  white-space: nowrap;
+}
+/* AgentPage.css */
+
+/* --- Loading & Error States --- */
+.ps-loading-container,
+.ps-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+}
+
+.ps-loading-text {
+  color: #00ff41;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+
+.ps-error-text {
+  color: #ff3333;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+/* --- Hero Section Avatar --- */
+.ps-avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 10px;
+}
+
+.ps-avatar-frame {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  border: 4px solid #333; /* Default border */
+}
+
+.ps-avatar-frame.leader {
+  border-color: #ffd700;
+}
+
+.ps-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ps-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: #fff;
+}
+
+/* --- Hot Streak Flame --- */
+.ps-flame-badge {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  background: #000;
+  border-radius: 50%;
+  border: 2px solid #00ff41;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px #00ff41;
+}
+
+/* --- Header & Secure File Text --- */
+.ps-header-meta {
+  font-size: 10px;
+  color: #444;
+  letter-spacing: 1px;
+}
+
+/* --- Rank & Name --- */
+.ps-rank-huge {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  margin: 5px 0;
+}
+
+.ps-agent-name {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-top: 5px;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+/* --- Accordion Styles (Historia) --- */
+.ps-accordion {
+  width: 100%;
+  margin-top: 15px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.ps-accordion-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #111;
+  border: none;
+  color: #eee;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ps-accordion-header:hover {
+  background: #1a1a1a;
+}
+
+.ps-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ps-accordion-content {
+  background: #000;
+  border-top: 1px solid #333;
+  padding: 0; /* History-komponentilla on omat paddingit */
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* --- History Component Styles (UUSI HILLITTY TYYLI) --- */
+
+.history-container {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.history-loading,
+.history-empty {
+  padding: 30px;
+  text-align: center;
+  color: #555;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Hieman enemmän ilmaa korttien väliin */
+}
+
+/* Yksittäinen lokimerkintä */
+.history-item {
+  position: relative;
+  background: #0f0f0f; /* Hyvin tumma tausta */
+  border: 1px solid #222; /* Hienovaraiset kehykset ympäriinsä */
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+  overflow: hidden; /* Varmistaa että glow pysyy sisällä */
+}
+
+/* Hover-efekti nostaa korttia hieman */
+.history-item:hover {
+  transform: translateY(-1px);
+  background: #141414;
+  border-color: #333;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* Ylärivi: Status ja Aika */
+.history-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.history-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.history-time {
+  font-size: 0.7rem;
+  color: #444;
+  font-family: 'Courier New', monospace; /* "Koodari/Agentti" fontti ajalle */
+  letter-spacing: -0.5px;
+}
+
+/* Alarivi: Syy ja XP */
+.history-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.history-reason {
+  font-size: 0.95rem;
+  color: #ccc;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.history-xp {
+  font-size: 0.95rem;
+  font-weight: 800;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.03); /* Todella himmeä tausta numerolle */
+}
+
+/* --- Status Variants (Hillityt Glow-efektit) --- */
+
+/* 
+  Idea: Käytämme box-shadow 'inset' ominaisuutta luomaan pehmeän 
+  hohteen vasemmalle reunalle ilman kovaa viivaa.
+*/
+
+/* APPROVED (Green) */
+.history-item.status-approved {
+  /* Pehmeä vihreä hohde vasemmassa reunassa */
+  box-shadow: inset 3px 0 0 0 rgba(0, 255, 65, 0.5), 
+              inset 20px 0 40px -10px rgba(0, 255, 65, 0.05);
+}
+.history-item.status-approved .history-badge,
+.history-item.status-approved .history-xp {
+  color: #00ff41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.3); /* Tekstille pieni neon-hohde */
+}
+
+/* PENDING (Gold) */
+.history-item.status-pending {
+  box-shadow: inset 3px 0 0 0 rgba(255, 215, 0, 0.5), 
+              inset 20px 0 40px -10px rgba(255, 215, 0, 0.05);
+}
+.history-item.status-pending .history-badge,
+.history-item.status-pending .history-xp {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+/* REJECTED (Red) */
+.history-item.status-rejected {
+  box-shadow: inset 3px 0 0 0 rgba(255, 51, 51, 0.5), 
+              inset 20px 0 40px -10px rgba(255, 51, 51, 0.05);
+}
+.history-item.status-rejected .history-badge,
+.history-item.status-rejected .history-xp {
+  color: #ff3333;
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
+}
+/* ... aiemmat tyylit ... */
+
+/* FLASH MISSION OVERLAY */
+.ap-flash-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(255, 0, 0, 0.9);
   z-index: 9999;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   animation: flashFadeIn 0.3s;
 }
-@keyframes flashFadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
 .flash-content {
   background: #000;
@@ -353,247 +1285,362 @@
   color: #fff;
   border-radius: 8px;
 }
-.flash-content h2 { color: red; font-size: 2rem; margin: 0; }
-.flash-content h3 { color: #fff; font-size: 1.5rem; margin: 20px 0; text-transform: uppercase; }
-.flash-btn-action { width: 100%; padding: 15px; font-size: 1.2rem; font-weight: bold; background: red; color: white; border: none; cursor: pointer; text-transform: uppercase; margin-top: 15px; border-radius: 4px; animation: pulse 1s infinite; }
-.flash-instruct { color: gold; font-size: 1.2rem; font-weight: bold; border: 2px dashed gold; padding: 10px; margin-top: 20px; }
-.blink { animation: blinker 1s linear infinite; color: red; font-size: 2rem; margin: 0; }
-@keyframes blinker { 50% { opacity: 0; } }
+
+.blink {
+  animation: blinker 1s linear infinite;
+  color: red;
+  font-size: 2rem;
+  margin: 0;
+}
+
+.flash-instruct {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 20px 0;
+  color: gold;
+  border: 1px dashed gold;
+  padding: 10px;
+}
 
 /* KAMERA TOIMINNOT */
-.flash-photo-section { margin: 20px 0; }
-.btn-camera { display: block; background: #333; border: 2px dashed gold; padding: 20px; border-radius: 10px; cursor: pointer; transition: background 0.2s; }
-.btn-camera:active { background: #444; }
-.camera-text { color: gold; font-weight: bold; }
-.photo-preview-box { text-align: center; }
-.success-text { margin-bottom: 10px; color: #0f0; font-weight: bold; font-size: 1.2rem; }
-.btn-retake { background: transparent; color: #aaa; border: 1px solid #555; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; }
-
-/* --- REWARD OVERLAY --- */
-.ap-reward-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0, 0, 0, 0.9);
-  z-index: 9999;
-  display: flex; align-items: center; justify-content: center;
-  animation: rewardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  pointer-events: none; 
+.flash-photo-section {
+  margin: 20px 0;
 }
-@keyframes rewardPopIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
 
-.reward-content {
-  background: #002200; border: 3px solid gold; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 0 50px gold; width: 80%; pointer-events: auto;
+.btn-camera {
+  display: block;
+  background: #333;
+  border: 2px dashed gold;
+  padding: 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
-.reward-icon { font-size: 4rem; margin-bottom: 10px; animation: bounce 1s infinite; }
-@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-.reward-content h2 { color: gold; font-size: 2rem; margin: 0; text-transform: uppercase; }
-.reward-xp { color: #00ff41; font-size: 2.5rem; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px #00ff41; }
-.reward-reason { color: #fff; font-size: 1rem; font-style: italic; }
 
-/* --- DASHBOARD STYLES --- */
-.dashboard-container {
+.btn-camera:active {
+  background: #444;
+}
+
+.camera-text {
+  color: gold;
+  font-weight: bold;
+}
+
+.photo-preview-box {
+  text-align: center;
+}
+
+.success-text {
+  margin-bottom: 10px;
+  color: #0f0;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.btn-retake {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #555;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.flash-btn-action {
+  width: 100%;
   padding: 15px;
-  display: flex; flex-direction: column; gap: 20px;
-  animation: fadeIn 0.4s ease-out;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-top: 15px;
+  border-radius: 4px;
 }
-.welcome-card { border-left: 4px solid gold; background: linear-gradient(90deg, #111 0%, #1a1a1a 100%); padding: 20px; border-radius: 8px; border: 1px solid #333; }
+
+@keyframes blinker {
+  50% { opacity: 0; }
+}
+
+@keyframes flashFadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* DASHBOARD STYLES */
+.dashboard-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.5s;
+}
+
+.dash-card {
+  background: #111;
+  border: 1px solid #333;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.welcome-card {
+  border-left: 4px solid gold;
+  background: linear-gradient(90deg, #111 0%, #1a1a1a 100%);
+}
+
 .welcome-card h3 { color: gold; margin: 0; font-size: 1.5rem; }
 .subtext { color: #666; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 10px; }
-.dash-role { background: #333; color: #fff; display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; }
+.dash-role { background: #333; color: #fff; display: inline-block; padding: 4px 8px; borderRadius: 4px; font-size: 0.9rem; }
 
-.section-title { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: -10px; margin-left: 5px; }
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.dash-stat { background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333; text-align: center; }
+.stat-label { display: block; color: #666; font-size: 0.8rem; margin-bottom: 5px; }
+.stat-value { font-size: 1.2rem; font-weight: bold; color: #fff; }
 
-/* HERO CARD */
+.vault-open .stat-value { color: #0f0; text-shadow: 0 0 5px #0f0; }
+.vault-closed .stat-value { color: #f00; }
+
+.poll-alert {
+  border: 1px solid #00ff41;
+  background: rgba(0, 255, 65, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+.blink-dot { width: 10px; height: 10px; background: #00ff41; border-radius: 50%; animation: blinker 1s infinite; margin-right: 10px; }
+.btn-dash-action { background: #00ff41; color: #000; border: none; padding: 8px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+
+.dash-actions { display: flex; flex-direction: column; gap: 15px; }
+.btn-big-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 20px;
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+}
+.btn-big-nav:active { transform: scale(0.98); background: #333; }
+.btn-big-nav .icon { font-size: 1.8rem; }
+.btn-big-nav.missions { border-bottom: 4px solid #b8860b; }
+.btn-big-nav.chat { border-bottom: 4px solid #0056b3; }
+
+/* --- DASHBOARD STYLES --- */
+
+.dashboard-container {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.section-title {
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: -10px;
+  margin-left: 5px;
+}
+
+/* HERO CARD (Stats & Target) */
 .hero-card {
   background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
-  border: 1px solid #333; border-radius: 12px; padding: 15px;
-  position: relative; overflow: hidden; cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.2s;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 15px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  transition: transform 0.2s;
 }
 .hero-card:active { transform: scale(0.98); }
-.hero-top { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
-.hero-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #555; overflow: hidden; background: #000; }
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.hero-avatar {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  border: 2px solid #555;
+  overflow: hidden;
+  background: #000;
+}
 .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.hero-avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; }
+.hero-avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justifyContent: center; font-size: 1.5rem; color: #fff; }
+
 .hero-avatar-area { position: relative; }
 .hero-flame { position: absolute; bottom: -5px; right: -5px; font-size: 1.2rem; filter: drop-shadow(0 0 5px orange); }
+
 .hero-rank { font-size: 1.8rem; font-weight: 900; line-height: 1; }
 .hero-xp { color: #888; font-size: 0.9rem; font-family: monospace; }
 
-.hero-target-section { background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.hero-target-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
 .hero-target-section.leader { color: gold; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+
 .target-label { font-size: 0.7rem; color: #aaa; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
 .target-row { display: flex; justify-content: space-between; align-items: center; }
 .target-name { color: #fff; font-weight: bold; }
 .target-gap { color: #ff4444; font-size: 0.9rem; font-weight: bold; }
+
 .hero-footer { font-size: 0.7rem; color: #666; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
 
-/* STICKY MISSION */
-.sticky-mission { background: #151515; border: 1px solid #b8860b; border-radius: 12px; padding: 15px; cursor: pointer; position: relative; box-shadow: 0 0 10px rgba(184, 134, 11, 0.1); }
+/* STICKY MISSION CARD */
+.sticky-mission {
+  background: #151515;
+  border: 1px solid #b8860b; /* Kulta */
+  border-radius: 12px;
+  padding: 15px;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 0 10px rgba(184, 134, 11, 0.1);
+}
+
 .sticky-header { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #fff; margin-bottom: 5px; font-size: 1.1rem; }
 .sticky-reward { position: absolute; top: 15px; right: 15px; background: #b8860b; color: #000; font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
 .sticky-desc { color: #888; font-size: 0.9rem; margin-bottom: 15px; }
 .btn-sticky-action { width: 100%; background: #b8860b; color: #000; border: none; padding: 10px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+
 .all-done { padding: 20px; text-align: center; border: 1px dashed #444; color: #fff; }
 
-/* DASH GRID ALERTS */
+/* GRID ALERTS */
 .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.dash-stat { padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 0.9rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80px; }
+.dash-stat {
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
 .dash-stat.poll { background: #222; border: 1px solid #444; color: #fff; }
 .dash-stat.poll.active { border-color: #00ff41; color: #00ff41; background: rgba(0, 255, 65, 0.1); }
 .blink-dot { width: 8px; height: 8px; background: #00ff41; border-radius: 50%; animation: blinker 1s infinite; margin-bottom: 5px; }
+
 .dash-stat.vault { background: #111; border: 1px solid #333; }
 .dash-stat.vault.open { border-color: gold; color: gold; box-shadow: 0 0 5px rgba(255,215,0,0.2); }
 .dash-stat.vault.closed { color: #ff4444; }
 
-.btn-big-chat { width: 100%; padding: 15px; background: #222; color: #fff; border: 1px solid #444; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
-
-/* POLL STYLES */
-.poll-active-card { border: 1px solid #00ff41; background: radial-gradient(circle at top right, rgba(0, 255, 65, 0.05), #111); animation: pulseBorder 3s infinite; }
-.poll-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.8rem; color: #00ff41; font-weight: bold; letter-spacing: 1px; }
-.live-indicator { display: flex; align-items: center; gap: 6px; background: rgba(0, 255, 65, 0.1); padding: 2px 8px; border-radius: 10px; }
-.poll-question { margin: 0 0 20px 0; color: #fff; font-size: 1.2rem; line-height: 1.3; }
-.poll-options-grid { display: grid; gap: 10px; }
-.btn-poll-option { background: #222; border: 1px solid #444; color: #fff; padding: 15px; font-size: 1rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
-.btn-poll-option:active { background: #00ff41; color: #000; transform: scale(0.98); }
-.poll-voted-card { border: 1px dashed #444; background: #151515; opacity: 0.8; }
-.poll-voted-content { display: flex; align-items: center; justify-content: center; gap: 15px; padding: 10px; }
-@keyframes pulseBorder { 0% { box-shadow: 0 0 0 rgba(0,255,65,0); } 50% { box-shadow: 0 0 10px rgba(0,255,65,0.2); } 100% { box-shadow: 0 0 0 rgba(0,255,65,0); } }
-
-/* --- VAULT TAB STYLES --- */
-.vault-container { padding: 30px 20px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, #112211 0%, #000 100%); }
-.locked-mode .vault-glitch-icon { font-size: 4rem; margin-bottom: 20px; filter: drop-shadow(0 0 10px red); }
-.blink-text { color: red; font-family: 'Courier New', monospace; animation: blink 1s infinite; letter-spacing: 2px; }
-.vault-terminal-text { color: #00ff41; font-family: 'Courier New', monospace; text-align: left; background: #000; padding: 15px; border: 1px solid #333; width: 100%; margin-top: 20px; font-size: 0.9rem; }
-
-.vault-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-.vault-header h2 { margin: 0; color: #fff; font-size: 1.2rem; letter-spacing: 2px; }
-.status-indicator { color: red; font-size: 0.7rem; animation: blink 0.5s infinite; border: 1px solid red; padding: 2px 6px; border-radius: 4px; }
-
-.clue-terminal { width: 100%; background: #001100; border: 1px solid #00ff41; margin-bottom: 30px; box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); position: relative; }
-.terminal-header { background: #00ff41; color: #000; font-weight: bold; padding: 5px 10px; font-size: 0.8rem; }
-.terminal-body { padding: 20px; color: #00ff41; font-family: 'Courier New', monospace; font-size: 1.1rem; line-height: 1.5; }
-
-.code-input-area { width: 100%; display: flex; flex-direction: column; gap: 15px; }
-.code-input-area label { color: #aaa; font-size: 0.8rem; display: block; margin-bottom: 10px; text-align: left; width: 100%; }
-.vault-input { background: #000; border: 2px solid #555; color: #fff; padding: 15px; font-size: 1.5rem; text-align: center; letter-spacing: 5px; border-radius: 4px; text-transform: uppercase; width: 100%; box-sizing: border-box; margin-bottom: 15px; font-family: 'Courier New', monospace; }
-.vault-input:focus { border-color: #00ff41; box-shadow: 0 0 10px rgba(0, 255, 65, 0.3); outline: none; }
-.vault-btn { background: #00ff41; color: #000; font-weight: bold; padding: 15px; border: none; border-radius: 4px; font-size: 1.1rem; cursor: pointer; width: 100%; text-transform: uppercase; letter-spacing: 2px; transition: all 0.2s; }
-.vault-btn:active { transform: scale(0.98); background: #fff; }
-
-.vault-success-badge { color: #00ff41; font-size: 1.5rem; border: 2px solid #00ff41; padding: 10px 20px; margin-bottom: 30px; font-weight: bold; }
-.secret-content { width: 100%; text-align: center; }
-.neon-text { color: #fff; text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41; font-size: 1.5rem; margin-bottom: 20px; }
-.secret-location-box { background: rgba(255,255,255,0.1); padding: 20px; border-left: 4px solid #00ff41; margin-bottom: 20px; text-align: left; }
-.secret-code-display { font-size: 1.2rem; border: 1px dashed #555; padding: 15px; display: inline-block; color: gold; letter-spacing: 3px; font-weight: bold; }
-.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-/* --- OTHER UTILS --- */
-.status-box { padding: 15px; border-radius: 4px; text-align: center; font-weight: bold; font-size: 0.9rem; margin-top: 10px; }
-.status-box.pending { background: rgba(255, 215, 0, 0.1); border: 1px dashed gold; color: gold; }
-.status-box.success { background: rgba(0, 255, 65, 0.1); border: 1px solid #00ff41; color: #00ff41; text-shadow: 0 0 5px #00ff41; }
-.spin { display: inline-block; animation: spin 2s infinite linear; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
-/* --- LOADING & ERROR (Full Screen) --- */
-.ap-loading, .ap-error {
-  height: 100dvh;
+.btn-big-chat {
+  width: 100%;
+  padding: 15px;
+  background: #222;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
-  color: #00ff41;
-  font-family: 'Courier New', monospace;
+  gap: 10px;
+  font-size: 1rem;
   font-weight: bold;
-  letter-spacing: 2px;
+  cursor: pointer;
 }
 
-/* --- TROPHY BTN --- */
-.trophy-btn {
-  width: 50px; height: 50px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(0, 0, 0, 0.4));
-  border: 2px solid #ffd700; color: #ffd700; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-  cursor: pointer; transition: transform 0.1s;
-  position: relative; z-index: 2000; flex-shrink: 0;
+/* --- DASHBOARD POLL STYLES --- */
+
+.poll-active-card {
+  border: 1px solid #00ff41;
+  background: radial-gradient(circle at top right, rgba(0, 255, 65, 0.05), #111);
+  animation: pulseBorder 3s infinite;
 }
-.trophy-btn:active { transform: scale(0.95); background: #ffd700; color: #000; }
-a.trophy-btn { display: flex; align-items: center; justify-content: center; text-decoration: none; }
 
-/* --- SCOREBOARD OVERLAY --- */
-.scoreboard-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.95); z-index: 9999;
-  display: flex; flex-direction: column; padding: 20px;
-  animation: slideUp 0.3s ease-out; overflow-y: auto;
+.poll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 0.8rem;
+  color: #00ff41;
+  font-weight: bold;
+  letter-spacing: 1px;
 }
-.scoreboard-close-btn { align-self: flex-end; background: none; border: none; color: #fff; font-size: 1rem; margin-bottom: 20px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* --- PERSONAL SCOREBOARD (FULLSCREEN OVERLAY) --- */
-.ps-container {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
-  background-color: #050505; z-index: 20000;
-  overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
-  padding: 20px; box-sizing: border-box; font-family: 'Courier New', monospace; color: #eee;
-  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 255, 65, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
-.ps-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.ps-back-btn { background: none; border: 1px solid #444; color: #aaa; padding: 8px 16px; border-radius: 30px; display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; text-transform: uppercase; }
 
-.ps-hero { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; text-align: center; }
-.ps-avatar-large { width: 110px; height: 110px; border-radius: 50%; border: 4px solid #333; overflow: hidden; margin-bottom: 10px; background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; }
-.ps-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
-.ps-rank-huge { font-size: 4rem; font-weight: 900; line-height: 1; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
-.ps-rank-label { font-size: 14px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
+.poll-question {
+  margin: 0 0 20px 0;
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
 
-.ps-card { background: #111; border: 1px solid #222; border-radius: 12px; padding: 20px; margin-bottom: 15px; position: relative; }
-.ps-card-title { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-.ps-xp-val { font-size: 2rem; font-weight: bold; color: #00ff41; margin-bottom: 5px; }
-.ps-progress-bg { width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden; margin-top: 10px; }
-.ps-progress-fill { height: 100%; background: #00ff41; width: 75%; }
+.poll-options-grid {
+  display: grid;
+  gap: 10px;
+  /* Jos vaihtoehtoja on paljon, ne menevät automaattisesti allekkain */
+}
 
-.ps-card.target { border: 1px solid #552200; background: linear-gradient(180deg, #1a0a00 0%, #050000 100%); }
-.ps-target-name { font-size: 1.4rem; font-weight: bold; color: #fff; margin-bottom: 5px; text-transform: uppercase; }
-.ps-target-gap { color: #ff4400; font-weight: bold; font-size: 1.1rem; }
+.btn-poll-option {
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+  padding: 15px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
 
-.ps-big-button { display: block; width: 100%; background: #ffd700; color: #000; font-size: 1.2rem; font-weight: 900; text-align: center; padding: 20px; border-radius: 12px; border: none; cursor: pointer; margin-top: 30px; margin-bottom: 40px; text-transform: uppercase; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); }
-.ps-big-button:active { transform: scale(0.98); background: #e6c200; }
+.btn-poll-option:active {
+  background: #00ff41;
+  color: #000;
+  transform: scale(0.98);
+}
 
-.ps-avatar-wrapper { position: relative; width: 120px; height: 120px; margin-bottom: 10px; }
-.ps-avatar-frame { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: #000; box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); box-sizing: border-box; border: 4px solid #333; }
-.ps-avatar-frame.leader { border-color: #ffd700; }
-.ps-avatar-img { width: 100%; height: 100%; object-fit: cover; }
-.ps-avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #fff; }
-.ps-flame-badge { position: absolute; bottom: 0px; right: 0px; background: #000; border-radius: 50%; border: 2px solid #00ff41; z-index: 10; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px #00ff41; }
-.ps-header-meta { font-size: 10px; color: #444; letter-spacing: 1px; }
-.ps-agent-name { font-size: 1.4rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; color: #fff; letter-spacing: 1px; }
+/* VOTED STATE */
+.poll-voted-card {
+  border: 1px dashed #444;
+  background: #151515;
+  opacity: 0.8;
+}
 
-/* ACCORDION */
-.ps-accordion { width: 100%; margin-top: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-.ps-accordion-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #111; border: none; color: #eee; font-family: inherit; font-size: 0.95rem; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
-.ps-accordion-header:hover { background: #1a1a1a; }
-.ps-accordion-title { display: flex; align-items: center; gap: 10px; }
-.ps-accordion-content { background: #000; border-top: 1px solid #333; padding: 0; animation: slideDown 0.3s ease-out; }
-@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.poll-voted-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 10px;
+}
 
-/* HISTORY (HILLITTY) */
-.history-container { width: 100%; padding: 10px; box-sizing: border-box; }
-.history-loading, .history-empty { padding: 30px; text-align: center; color: #555; font-size: 0.9rem; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.history-list { display: flex; flex-direction: column; gap: 10px; }
-.history-item { position: relative; background: #0f0f0f; border: 1px solid #222; border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s ease; overflow: hidden; }
-.history-item:hover { transform: translateY(-1px); background: #141414; border-color: #333; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-.history-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-.history-badge { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.history-time { font-size: 0.7rem; color: #444; font-family: 'Courier New', monospace; letter-spacing: -0.5px; }
-.history-item-content { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
-.history-reason { font-size: 0.95rem; color: #ccc; font-weight: 400; line-height: 1.3; }
-.history-xp { font-size: 0.95rem; font-weight: 800; white-space: nowrap; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.03); }
-
-.history-item.status-approved { box-shadow: inset 3px 0 0 0 rgba(0, 255, 65, 0.5), inset 20px 0 40px -10px rgba(0, 255, 65, 0.05); }
-.history-item.status-approved .history-badge, .history-item.status-approved .history-xp { color: #00ff41; text-shadow: 0 0 10px rgba(0, 255, 65, 0.3); }
-.history-item.status-pending { box-shadow: inset 3px 0 0 0 rgba(255, 215, 0, 0.5), inset 20px 0 40px -10px rgba(255, 215, 0, 0.05); }
-.history-item.status-pending .history-badge, .history-item.status-pending .history-xp { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-.history-item.status-rejected { box-shadow: inset 3px 0 0 0 rgba(255, 51, 51, 0.5), inset 20px 0 40px -10px rgba(255, 51, 51, 0.05); }
-.history-item.status-rejected .history-badge, .history-item.status-rejected .history-xp { color: #ff3333; text-shadow: 0 0 10px rgba(255, 51, 51, 0.3); }
+@keyframes pulseBorder {
+  0% { box-shadow: 0 0 0 rgba(0,255,65,0); }
+  50% { box-shadow: 0 0 10px rgba(0,255,65,0.2); }
+  100% { box-shadow: 0 0 0 rgba(0,255,65,0); }
+}
