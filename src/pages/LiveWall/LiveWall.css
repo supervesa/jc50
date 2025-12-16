@@ -1,59 +1,52 @@
-/* LiveWall.css - Layout */
+/* LiveWall.css - The Master Stylesheet */
+
+:root {
+  --magenta: #FF00E5;
+  --turquoise: #00E7FF;
+  --alert-red: #ff3333;
+  --plasma-gold: #D4AF37;
+  --bg-deep: #0b0b10;
+  --font-heading: 'Josefin Sans', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+}
 
 .jc-live-wall {
-  position: fixed;
-  inset: 0;
-  width: 100vw; height: 100vh;
-  overflow: hidden;
+  position: fixed; inset: 0; width: 100vw; height: 100vh;
+  overflow: hidden; background: #000;
   font-family: var(--font-body);
-  /* Tausta tulee WebGL komponentista */
 }
 
-/* --- LOGO --- */
+/* LOGO */
 .jc-live-logo {
-  position: absolute;
-  top: 40px; left: 60px;
-  z-index: 50;
-  pointer-events: none;
+  position: absolute; top: 40px; left: 60px; z-index: 50; pointer-events: none;
 }
-
 .jc-live-logo h1 {
-  margin: 0; line-height: 0.8;
-  font-family: var(--font-heading);
-  font-size: 5rem;
-  color: rgba(255, 255, 255, 0.05);
-  text-shadow: 
-    -1px -1px 0 rgba(255,255,255,0.5),
-     1px  1px 0 rgba(255,255,255,0.5),
-    0 0 20px rgba(255, 0, 229, 0.5);
+  margin: 0; line-height: 0.8; font-family: var(--font-heading); font-size: 5rem;
+  color: rgba(255,255,255,0.05);
+  text-shadow: -1px -1px 0 rgba(255,255,255,0.5), 1px 1px 0 rgba(255,255,255,0.5), 0 0 20px rgba(255,0,229,0.5);
 }
-
 .jc-live-logo span {
-  display: block; margin-left: 5px;
-  font-size: 1.2rem; letter-spacing: 0.5em;
-  font-weight: 700; color: var(--turquoise);
-  text-shadow: 0 0 10px var(--turquoise);
+  display: block; margin-left: 5px; font-size: 1.2rem; letter-spacing: 0.5em;
+  font-weight: 700; color: var(--turquoise); text-shadow: 0 0 10px var(--turquoise);
 }
 
-/* --- LAYOUT ALUEET --- */
-.jc-stage-center {
-  position: absolute; inset: 0;
-  pointer-events: none; /* Klikkaukset läpi, ellei kortti nappaa */
+/* LAYERS */
+.jc-layer-blackout {
+  position: fixed; inset: 0; background: #000; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
 }
+.jc-layer-blackout img { width: 150px; opacity: 0.5; }
 
-.jc-stage-history {
-  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+/* Broadcast Ticker */
+.jc-broadcast-ticker {
+  position: fixed; top: 15%; left: 0; width: 100%;
+  background: rgba(0,0,0,0.8); border-top: 2px solid var(--turquoise); border-bottom: 2px solid var(--turquoise);
+  padding: 1rem 0; z-index: 4000; text-align: center;
+  box-shadow: 0 0 30px var(--turquoise);
+  animation: slideDown 0.5s ease-out;
 }
-
-/* Historia-korttien sijainnit */
-.jc-history-card {
-  position: absolute; width: 300px; height: 400px;
-  opacity: 0.3; filter: grayscale(100%) blur(1px);
-  border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden;
-  transition: all 0.5s ease;
+.jc-broadcast-text {
+  font-family: var(--font-heading); font-size: 3rem; color: #fff; text-transform: uppercase; letter-spacing: 0.1em;
+  text-shadow: 0 0 10px #fff;
 }
-.jc-history-card img { width: 100%; height: 100%; object-fit: cover; }
-
-.pos-0 { top: 10%; left: 5%; transform: rotate(-8deg); }
-.pos-1 { bottom: 15%; right: 5%; transform: rotate(6deg) scale(0.9); }
-.pos-2 { top: 15%; right: 15%; transform: rotate(3deg) scale(0.7); }
+@keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }

@@ -9,7 +9,8 @@ function Header() {
     //    jolla on samanlainen reuna kuin footerissa.
     <header style={{ 
       padding: '1rem 0', 
-      borderBottom: '1px solid rgba(255, 255, 255, 0.03)' 
+      borderBottom: '1px solid rgba(255, 255, 255, 0.03)', 
+      display:'none'
     }}>
       
       {/* 3. Käytetään .jc-wrapperia sisällön keskittämiseen

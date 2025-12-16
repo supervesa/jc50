@@ -4,66 +4,35 @@ import { supabase } from '../../lib/supabaseClient';
 // --- KOMPONENTIT ---
 import ElectricWave from './ElectricWave';
 import PhotoCard from './PhotoCard'; 
-import TimelineStrip from './Timeline'; // Uusi aikajana-komponentti
-import ConstellationHistory from './ConstellationHistory'; // <--- UUSI
+import ConstellationHistory from './ConstellationHistory'; 
 import Kaleidoscope from '../../components/WebGLBackground/Kaleidoscope';
 import ChatOverlay from './ChatOverlay';
 import PollTakeover from './PollTakeover';
 import StatsTakeoverLogic from './components/StatsTakeover/StatsTakeoverLogic'; 
+import FlashMissionOverlay from './FlashMissionOverlay'; 
 
 // --- TYYLIT ---
-import './LiveWall.css';       // Sivun asettelu
+import './LiveWall.css';
 
 function LiveWall() {
   // --- TILA (STATE) ---
   const [queue, setQueue] = useState([]);       
   const [currentPost, setCurrentPost] = useState(null); 
   const [history, setHistory] = useState([]);   
-  
-  // Stats-tila ja data
   const [allCharacters, setAllCharacters] = useState([]); 
-  const [showStats, setShowStats] = useState(false); 
+  
+  // OHJAUSTILAT
+  const [liveState, setLiveState] = useState({ mode: 'FEED', broadcast_message: '' });
+  const [activeFlash, setActiveFlash] = useState(null);
 
-  // Referenssit ajastimille ja animaatiolle
   const timerRef = useRef(null);
   const isTransitioning = useRef(false);
 
-  // --- 1. PIKANÄPPÄIN 'S' (STATS) ---
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      // Estetään, jos ollaan kirjoittamassa input-kenttään
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-      if (e.key.toLowerCase() === 's') {
-        console.log("S-painettu: Vaihdetaan Stats-tilaa");
-        setShowStats(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
-
-  // --- 2. HAE KAIKKI HAHMOT (Leaderboardia & Avatareja varten) ---
-  useEffect(() => {
-    const fetchAllCharacters = async () => {
-      const { data, error } = await supabase
-        .from('characters')
-        .select('id, name, avatar_url, xp, role');
-      
-      if (data) {
-        setAllCharacters(data);
-      } else if (error) {
-        console.error("Virhe hahmojen haussa:", error);
-      }
-    };
-    fetchAllCharacters();
-  }, []);
-
-  // --- 3. DATAN RIKASTAMINEN (ENRICH POSTS) ---
-  // Hakee postausten kirjoittajien tiedot (Avatarit, Nimet)
+  // --- APUFUNKTIO: ENRICH POSTS ---
+  // Tämä funktio hakee nimet ja avatarit. On tärkeää että tämä on tässä.
   const enrichPosts = async (posts) => {
     const enriched = await Promise.all(posts.map(async (post) => {
-      // Jos ei guest_id:tä (anonyymi upload)
+      // 1. Jos ei guest_id:tä (anonyymi)
       if (!post.guest_id) {
         return { 
           ...post, 
@@ -73,14 +42,13 @@ function LiveWall() {
       }
 
       try {
-        // Haetaan hahmot, jotka on kytketty tähän vieraaseen (guest_id)
+        // 2. Haetaan hahmot
         const { data: characters } = await supabase
           .from('characters')
           .select('name, role, avatar_url')
           .eq('assigned_guest_id', post.guest_id);
 
         if (characters && characters.length > 0) {
-          // Luodaan authors-array uutta PhotoCardia varten
           const authors = characters.map(c => ({
             name: c.name,
             image: c.avatar_url,
@@ -95,7 +63,7 @@ function LiveWall() {
           };
         }
 
-        // Fallback: Jos hahmoa ei löydy, haetaan vieraan nimi
+        // 3. Fallback: Guests-taulu
         const { data: guestData } = await supabase
             .from('guests')
             .select('name')
@@ -109,191 +77,139 @@ function LiveWall() {
         };
 
       } catch (err) {
-        console.error("Virhe postauksen rikastamisessa:", err);
+        console.error("Enrich error:", err);
         return post;
       }
     }));
     return enriched;
   };
 
-  // --- 4. ALUSTUS (INITIAL FETCH) ---
+  // --- 1. ALUSTUS ---
   useEffect(() => {
-    const fetchInitial = async () => {
-      // Haetaan enemmän kuvia (20), jotta aikajana näyttää heti täydeltä
-      const { data } = await supabase
-        .from('live_posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
+    const fetchInitialData = async () => {
+      // Hahmot
+      const { data: chars } = await supabase.from('characters').select('id, name, avatar_url, xp, role');
+      if (chars) setAllCharacters(chars);
 
-      if (data && data.length > 0) {
-        const enriched = await enrichPosts(data);
+      // Kuvat (Historiaan 20 kuvaa)
+      const { data: posts } = await supabase.from('live_posts').select('*').order('created_at', { ascending: false }).limit(20);
+      if (posts && posts.length > 0) {
+        const enriched = await enrichPosts(posts);
         setCurrentPost(enriched[0]);
-        // Otetaan talteen 12 kuvaa historiaan aikajanaa varten
-        setHistory(enriched.slice(1, 13)); 
+        setHistory(enriched.slice(1, 16)); 
       }
+
+      // Live State
+      const { data: state } = await supabase.from('live_state').select('*').eq('id', 1).maybeSingle();
+      if (state) setLiveState(state);
+
+      // Flash Mission
+      const { data: flash } = await supabase.from('flash_missions').select('*').eq('status', 'active').maybeSingle();
+      if (flash) setActiveFlash(flash);
     };
-    fetchInitial();
+    fetchInitialData();
   }, []);
 
-  // --- 5. REALTIME SUBSCRIPTION ---
+  // --- 2. SUBSCRIPTIONS ---
   useEffect(() => {
-    const channel = supabase.channel('live-wall')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'live_posts' }, 
-        async (payload) => {
-          console.log("Uusi kuva saapui:", payload.new);
-          const [enrichedPost] = await enrichPosts([payload.new]);
-          
-          setQueue((prev) => {
-            // Estetään duplikaatit
-            if (prev.some(p => p.id === enrichedPost.id)) return prev;
-            return [...prev, enrichedPost];
-          });
-        }
-      )
-      .subscribe();
+    // A. Kuvat
+    const postSub = supabase.channel('lw-posts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_posts' }, async (payload) => {
+        const [enriched] = await enrichPosts([payload.new]);
+        setQueue(prev => prev.some(p => p.id === enriched.id) ? prev : [...prev, enriched]);
+      }).subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // B. Live State
+    const stateSub = supabase.channel('lw-state')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'live_state', filter: 'id=eq.1' }, (payload) => {
+        setLiveState(payload.new);
+      }).subscribe();
+
+    // C. Flash Missions
+    const flashSub = supabase.channel('lw-flash')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flash_missions' }, (payload) => {
+        if (payload.new.status === 'active') setActiveFlash(payload.new);
+        else setActiveFlash(null);
+      }).subscribe();
+
+    return () => { 
+      supabase.removeChannel(postSub); 
+      supabase.removeChannel(stateSub); 
+      supabase.removeChannel(flashSub); 
+    };
   }, []);
 
-  // --- 6. KARUSELLI-LOOPPI ---
+  // --- 3. KARUSELLI ---
   useEffect(() => {
-    // Jos Stats on päällä, pysäytetään kuvien vaihtuminen
-    if (showStats) return;
+    if (liveState.mode !== 'FEED' || activeFlash) return;
 
     const nextSlide = () => {
       if (isTransitioning.current) return;
-
       let nextPost = null;
       let isFromQueue = false;
 
-      // 1. Prioriteetti: Jono (uudet kuvat)
       if (queue.length > 0) {
         nextPost = queue[0];
         isFromQueue = true;
-      } 
-      // 2. Prioriteetti: Historia (vanhat kuvat satunnaisesti)
-      else if (history.length > 0) {
+      } else if (history.length > 0) {
         const candidates = history.filter(h => h.id !== currentPost?.id);
-        if (candidates.length > 0) {
-          nextPost = candidates[Math.floor(Math.random() * candidates.length)];
-        }
+        if (candidates.length > 0) nextPost = candidates[Math.floor(Math.random() * candidates.length)];
       }
 
       if (nextPost) {
         isTransitioning.current = true;
-
-        // Päivitetään historia ja nykyinen kuva
         if (currentPost) {
           setHistory(prev => {
-            // Lisätään nykyinen kuva historian alkuun
             const cleanPrev = prev.filter(p => p.id !== nextPost.id && p.id !== currentPost.id);
-            // Pidetään lista 12 kuvan mittaisena Timelinea varten
-            return [currentPost, ...cleanPrev].slice(0, 12);
+            return [currentPost, ...cleanPrev].slice(0, 15);
           });
         }
-
-        if (isFromQueue) {
-          setQueue(prev => prev.slice(1));
-        }
-
+        if (isFromQueue) setQueue(prev => prev.slice(1));
         setCurrentPost(nextPost);
-
-        // Animaation kesto
-        setTimeout(() => { isTransitioning.current = false; }, 1000); 
+        setTimeout(() => isTransitioning.current = false, 1000); 
       }
     };
-
-    // Jos jonossa on tavaraa, vaihdetaan nopeammin (5s), muuten hitaammin (10s)
-    const intervalTime = queue.length > 0 ? 5000 : 10000;
-    
-    timerRef.current = setInterval(nextSlide, intervalTime);
-
+    const interval = queue.length > 0 ? 5000 : 10000;
+    timerRef.current = setInterval(nextSlide, interval);
     return () => clearInterval(timerRef.current);
-  }, [queue, history, currentPost, showStats]);
+  }, [queue, history, currentPost, liveState, activeFlash]);
 
   // --- RENDERÖINTI ---
   return (
     <div className="jc-live-wall">
-      
-      {/* 1. TAUSTAKERROS */}
-      <div className="jc-gl-background" style={{ zIndex: 0 }}>
-        <Kaleidoscope />
-      </div>
-      
-      {/* Visuaalinen efekti */}
+      <div className="jc-gl-background" style={{ zIndex: 0 }}><Kaleidoscope /></div>
       <ElectricWave />
       
-      {/* 2. OVERLAYS (Chat & Poll) */}
-      <div style={{ position: 'relative', zIndex: 60 }}>
-        <ChatOverlay />
+      {/* 1. FEED + KAAOS (Vain FEED-tilassa) */}
+      <div style={{opacity: (liveState.mode === 'FEED' && !activeFlash) ? 1 : 0, transition: 'opacity 0.5s', pointerEvents: 'none'}}>
+         <ConstellationHistory history={history} />
+         <div className="jc-stage-center">
+            {currentPost && <PhotoCard post={currentPost} />}
+         </div>
       </div>
+
+      <div className="jc-live-logo"><h1>JC 50</h1><span>LIVE FEED</span></div>
+
+      {/* 2. CHAT */}
+      <div style={{position:'relative', zIndex:60}}><ChatOverlay /></div>
+
+      {/* 3. OVERLAYS */}
+      <StatsTakeoverLogic isActive={liveState.mode === 'STATS'} characters={allCharacters} />
       <PollTakeover />
+      
+      {liveState.broadcast_message && (
+        <div className="jc-broadcast-ticker">
+           <div className="jc-broadcast-text">{liveState.broadcast_message}</div>
+        </div>
+      )}
 
-      {/* 3. STATS TAKEOVER (Punainen Overlay) */}
-      {/* Tämä on kaiken päällä (z-index korkea CSS:ssä) */}
-      <StatsTakeoverLogic 
-        isActive={showStats} 
-        characters={allCharacters} 
-      />
+      <FlashMissionOverlay mission={activeFlash} />
 
-      {/* 4. LOGO */}
-      <div className="jc-live-logo">
-        <h1 className="jc-h1">JC 50</h1>
-        <span className="neon">LIVE FEED</span>
-      </div>
-
-      {/* 5. PÄÄKUVA (Active Card) */}
-      <div 
-        className="jc-stage-center" 
-        style={{ 
-          opacity: showStats ? 0 : 1, 
-          transition: 'opacity 0.5s ease-in-out', 
-          pointerEvents: showStats ? 'none' : 'auto',
-          zIndex: 10 
-        }}
-      >
-        {currentPost && (
-          <PhotoCard 
-            key={currentPost.id} 
-            post={currentPost} 
-          />
-        )}
-      </div>
-
-  {/* --- NEON CONSTELLATIONS (HISTORIA) --- */}
-{/* Korvaa TimelineStripin tällä */}
-<div 
-  style={{ 
-    opacity: showStats ? 0 : 1, 
-    transition: 'opacity 0.5s ease-in-out' 
-  }}
->
-  <ConstellationHistory history={history} />
-</div>
-
-      {/* 7. DEV CONTROL BUTTON (Piilotettu/Huomaamaton) */}
-      <button 
-        onClick={() => setShowStats(!showStats)} 
-        style={{ 
-          position: 'fixed', 
-          bottom: '20px', 
-          right: '20px', 
-          zIndex: 999999, 
-          background: 'transparent',
-          border: '1px solid rgba(255,255,255,0.2)',
-          color: 'rgba(255,255,255,0.5)', 
-          padding: '5px 10px', 
-          cursor: 'pointer', 
-          borderRadius: '5px',
-          fontFamily: 'sans-serif',
-          fontSize: '0.8rem'
-        }}
-      >
-        {showStats ? 'Close Intel' : 'Intel'}
-      </button>
-
+      {liveState.mode === 'BLACKOUT' && (
+        <div className="jc-layer-blackout">
+           <div className="jc-live-logo" style={{position:'static', transform:'scale(1.5)'}}><h1>JC 50</h1><span>PAUSED</span></div>
+        </div>
+      )}
     </div>
   );
 }

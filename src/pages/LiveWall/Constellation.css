@@ -1,77 +1,17 @@
-/* src/pages/LiveWall/Constellation.css */
-
 .jc-constellation-container {
-  position: fixed;
-  inset: 0;
-  width: 100vw; height: 100vh;
-  z-index: 5; /* Taustan päällä, mutta pääkuvan alla */
-  pointer-events: none;
-  overflow: hidden;
+  position: fixed; inset: 0; width: 100vw; height: 100vh;
+  z-index: 1; pointer-events: none; overflow: hidden;
 }
-
-/* SVG-taso viivoille */
-.jc-constellation-lines {
-  position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-}
-
-.jc-constellation-path {
-  fill: none;
-  stroke: var(--turquoise);
-  stroke-width: 1px;
-  stroke-dasharray: 5, 10; /* Katkoviiva */
-  opacity: 0.3;
-  animation: dashMove 60s linear infinite;
+.jc-constellation-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.jc-line {
+  stroke: var(--turquoise); stroke-width: 1px; stroke-dasharray: 5, 10; opacity: 0.3;
   filter: drop-shadow(0 0 5px var(--turquoise));
 }
-
-/* Yksittäinen tähti/kuva */
 .jc-star-node {
-  position: absolute;
-  /* Koko vaihtelee Reactissa, tässä base */
-  width: 100px; 
-  height: 100px;
-  
-  /* Pyöreä tai timantti */
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 0 15px var(--magenta);
-  
-  overflow: hidden;
-  transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
-  
-  /* Alkuasetelma ilmestymiselle */
-  transform: scale(0);
-  opacity: 0;
-  
+  position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4);
+  box-shadow: 0 0 15px var(--magenta); overflow: hidden; opacity: 0;
   animation: starAppear 1s forwards, starFloat 8s ease-in-out infinite alternate;
 }
-
-/* Kuva sisällä */
-.jc-star-img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  filter: contrast(1.2) brightness(1.1);
-}
-
-/* Uusin kuva (lähin) on kirkkain */
-.jc-star-node.latest {
-  border-color: var(--plasma-gold);
-  box-shadow: 0 0 30px var(--plasma-gold);
-  z-index: 10;
-}
-
-@keyframes starAppear {
-  0% { transform: scale(0) rotate(45deg); opacity: 0; }
-  100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
-}
-
-@keyframes starFloat {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(10px, -15px); }
-}
-
-@keyframes dashMove {
-  to { stroke-dashoffset: -1000; }
-}
+.jc-star-node img { width: 100%; height: 100%; object-fit: cover; filter: contrast(1.2); }
+@keyframes starAppear { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 0.7; } }
+@keyframes starFloat { 0% { transform: translate(0,0); } 100% { transform: translate(10px, -15px); } }

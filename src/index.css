@@ -443,7 +443,7 @@ p {
 /* -------------------------
    FOOTER / NAV
    ------------------------- */
-.jc-footer{ padding:2rem 0; border-top:1px solid rgba(255,255,255,0.03); color:var(--muted); }
+.jc-footer{ padding:2rem 0; border-top:1px solid rgba(255,255,255,0.03); color:var(--muted); display: none; }
 
 /* -------------------------
    UTILITIES
@@ -563,6 +563,7 @@ p {
   font-size: clamp(1.8rem, 5vw, 4rem);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  border: none;
   
   /* Gradientti */
   background: linear-gradient(90deg, var(--plasma-gold) 0%, var(--magenta) 100%);
