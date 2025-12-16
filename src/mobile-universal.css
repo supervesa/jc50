@@ -31,8 +31,7 @@
     width: 100%;
     max-width: 100vw;
     
-    background-color: #121212;
-    color: #fff;
+
     
     /* Flow-root estää margin-collapsen (valkoiset raot ylhäällä) */
     display: flow-root; 

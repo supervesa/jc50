@@ -22,9 +22,7 @@ function TicketHeader({ id, activeTab, setActiveTab }) {
             <Images size={16} /> <span>LIVE WALL</span>
           </Link>
 
-          <div className="ticket-id-display">
-            ID: {id ? id.slice(0, 8).toUpperCase() : '........'}
-          </div>
+       
         </div>
       </div>
 

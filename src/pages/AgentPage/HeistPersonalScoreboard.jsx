@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom'; // Poistettu useNavigate
 import { supabase } from '../../lib/supabaseClient'; 
 import { useHeistData } from '../../components/leader/useHeistData'; 
 import { Zap, Target, ArrowLeft, Trophy, Diamond, Wine, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import History from './components/History';
 import './AgentPage.css'; 
 
-const HeistPersonalScoreboard = () => {
+const HeistPersonalScoreboard = ({ onClose }) => {
   const [searchParams] = useSearchParams();
   const guestId = searchParams.get('id');
-  const navigate = useNavigate();
   
+  // Huom: useNavigate poistettu, koska tämä on nyt modaali/overlay
+
   const [profile, setProfile] = useState({ avatar: null, name: '' });
-  const [historyOpen, setHistoryOpen] = useState(false); // Haitarin tila
+  const [historyOpen, setHistoryOpen] = useState(false);
   
   const { myStats, loading } = useHeistData(guestId);
 
@@ -48,7 +49,15 @@ const HeistPersonalScoreboard = () => {
     fetchProfile();
   }, [guestId]);
 
-  const goBack = () => navigate(-1);
+  // YHTENÄINEN FUNKTIO MOLEMMILLE NAPEILLE
+  const goBack = () => {
+    if (onClose) {
+      onClose(); // Kutsuu AgentPage:n funktiota joka piilottaa tämän näkymän
+    } else {
+      console.warn("onClose prop puuttuu HeistPersonalScoreboardista");
+    }
+  };
+
   const toggleHistory = () => setHistoryOpen(!historyOpen);
 
   if (loading) {
@@ -76,8 +85,9 @@ const HeistPersonalScoreboard = () => {
   return (
     <div className="ps-container">
       
-      {/* 1. HEADER */}
+      {/* 1. HEADER - YLÄNAPPI */}
       <div className="ps-header">
+        {/* Sama goBack-funktio tässä */}
         <button className="ps-back-btn" onClick={goBack}>
           <ArrowLeft size={18} /> Takaisin
         </button>
@@ -86,8 +96,6 @@ const HeistPersonalScoreboard = () => {
 
       {/* 2. HERO: AVATAR JA SIJOITUS */}
       <div className="ps-hero">
-        
-        {/* AVATAR WRAPPER */}
         <div className="ps-avatar-wrapper">
           <div className={`ps-avatar-frame ${isLeader ? 'leader' : ''}`}>
             {displayAvatar ? (
@@ -99,7 +107,6 @@ const HeistPersonalScoreboard = () => {
             )}
           </div>
           
-          {/* LIEKKI-INDIKAATTORI */}
           {myStats.isHot && (
             <div className="ps-flame-badge">
               <Zap size={18} color="#00ff41" fill="#00ff41"/>
@@ -189,7 +196,7 @@ const HeistPersonalScoreboard = () => {
         </div>
       )}
 
-      {/* --- UUSI OSIO: HISTORIA ACCORDION --- */}
+      {/* HISTORIA */}
       <div className="ps-accordion">
         <button className="ps-accordion-header" onClick={toggleHistory}>
           <div className="ps-accordion-title">
@@ -206,7 +213,8 @@ const HeistPersonalScoreboard = () => {
         )}
       </div>
 
-      {/* 6. POISTUMISNAPPI */}
+      {/* 6. POISTUMISNAPPI - ALANAPPI */}
+      {/* Sama goBack-funktio tässä */}
       <button className="ps-big-button" onClick={goBack}>
         PALAA TEHTÄVIIN
       </button>

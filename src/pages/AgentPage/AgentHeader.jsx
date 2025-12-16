@@ -42,7 +42,8 @@ const AgentHeader = ({ identity }) => {
         textDecoration: 'none',
         transform: 'translateZ(0)', 
         cursor: 'pointer',
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        display: 'none'
       }}
     >
       <Trophy size={28} strokeWidth={1.5} />
