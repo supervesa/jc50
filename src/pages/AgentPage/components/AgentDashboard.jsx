@@ -1,10 +1,9 @@
 import React from 'react';
-import { useHeistData } from '../../../components/leader/useHeistData'; // Varmista polku!
+import { useHeistData } from '../../../components/leader/useHeistData'; 
 import { Trophy, Target, ArrowRight, MapPin, MessageCircle } from 'lucide-react';
 import DashboardPoll from './DashboardPoll'; 
 import '../AgentPage.css';
 
-// KORJAUS TEHTY TÄHÄN RIVIIN (hasVoted lisätty, onVote korjattu pieneksi):
 const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNavigate, onOpenScoreboard, hasVoted, onVote }) => {
   
   // Haetaan livetilasto (Sijoitus, XP, Seuraava kohde)
@@ -16,7 +15,11 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
   const rank = loading ? '-' : `#${myStats?.rank || '-'}`;
 
   return (
-    <div className="dashboard-container">
+    <div 
+      className="dashboard-container" 
+      // KORJAUS: Lisätään reilu padding alas, jotta sisältöä voi rullata osoitepalkin "yli"
+      style={{ paddingBottom: '140px', minHeight: '100vh' }}
+    >
       
       {/* 1. HERO KORTTI (Sijoitus & Seuraava kohde) */}
       <div className="dash-card hero-card" onClick={onOpenScoreboard}>
@@ -61,7 +64,6 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
       </div>
 
       {/* 2. UUSI: LIVE POLL */}
-      {/* Nyt hasVoted ja onVote löytyvät, joten tämä ei kaada sovellusta */}
       {activePoll && (
         <DashboardPoll 
           poll={activePoll} 
@@ -110,9 +112,17 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
       </div>
 
       {/* 5. CHAT NAVIGAATIO */}
-      <button className="btn-big-chat" onClick={() => onNavigate('CHAT')}>
+      {/* Lisätty margin-bottom varmistamaan ettei nappi ole ihan kiinni reunassa */}
+      <button 
+        className="btn-big-chat" 
+        onClick={() => onNavigate('CHAT')}
+        style={{ marginBottom: '20px' }}
+      >
         <MessageCircle size={20} /> AVAA SALAINEN CHAT
       </button>
+
+      {/* 6. TURVA-ALUE (Spacer) */}
+      <div style={{ height: '40px' }}></div>
 
     </div>
   );

@@ -30,7 +30,7 @@ const AdminPage = () => {
   if (loading) return <div className="admin-container">Ladataan Mission Control...</div>;
 
   return (
-    <div className="admin-container">
+   <div id="admin-page" className="admin-container">
       <h1>MISSION CONTROL</h1>
 
       <div className="admin-tabs">

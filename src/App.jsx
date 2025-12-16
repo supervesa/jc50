@@ -14,6 +14,7 @@ import HeistPersonalScoreboard from './pages/AgentPage/HeistPersonalScoreboard';
 import PhotoWall from './pages/PhotoWall';
 import './mobile-universal.css'
 import AntheroPage from './pages/AntheroPage';
+import ScotlandYardGame from './game/scotlandyard';
 function App() {
   return (
     <div className="App">
@@ -35,6 +36,7 @@ function App() {
           <Route path="/personal-stats" element={<HeistPersonalScoreboard />} />
    <Route path="/wall/:guestId?" element={<PhotoWall />} />
    <Route path="/anthero" element={<AntheroPage />} />
+        <Route path="/game" element={<ScotlandYardGame />} />
         </Routes>
       </main>
       <Footer />

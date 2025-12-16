@@ -1,0 +1,41 @@
+{
+  "nodes": {
+    "akvaario": { "x": 470, "y": 480, "label": "Akvaariohuone", "floor": 1 },
+    "keittio": { "x": 470, "y": 800, "label": "Keittiö", "floor": 1 },
+    "lounge": { "x": 1200, "y": 1100, "label": "Lounge", "floor": 1 },
+    "eteinen": { "x": 1400, "y": 600, "label": "Eteinen", "floor": 1 },
+    "ruokailutila": { "x": 400, "y": 1600, "label": "Ruokailutila", "floor": 1 },
+    
+    "portaikko": { "x": 1800, "y": 300, "label": "Portaikko", "floor": "both" },
+
+    "olohuone": { "x": 2000, "y": 1400, "label": "Olohuone", "floor": 2 },
+    "kylpyhuone": { "x": 2300, "y": 300, "label": "Kylpyhuone", "floor": 2 },
+    "parveke": { "x": 2000, "y": 2000, "label": "Parveke", "floor": 2 },
+    "varasto": { "x": 2900, "y": 300, "label": "Varasto", "floor": 2 },
+    "makuuhuone": { "x": 2900, "y": 1200, "label": "Makuuhuone", "floor": 2 },
+    "vaatehuone": { "x": 3200, "y": 600, "label": "Vaatehuone", "floor": 2 }
+  },
+  "edges": [
+    ["eteinen", "akvaario"],
+    ["eteinen", "portaikko"], 
+    ["eteinen", "keittio"],
+    ["eteinen", "kylpyhuone"], 
+    ["eteinen", "lounge"], 
+
+    ["keittio", "ruokailutila"],
+    
+    ["portaikko", "kylpyhuone"], 
+
+    ["kylpyhuone", "varasto"],
+    ["varasto", "makuuhuone"],
+    
+    ["makuuhuone", "vaatehuone"],
+    ["makuuhuone", "olohuone"],
+    
+    ["olohuone", "parveke"],
+    ["olohuone", "lounge"],
+    
+    ["lounge", "ruokailutila"],
+    ["lounge", "eteinen"]
+  ]
+}

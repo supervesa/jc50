@@ -23,7 +23,8 @@
   #photo-feed,
   #photo-wall,
   #live-wall,
-  #agent-page {
+  #agent-page,
+  #admin-page {
     /* TÄRKEÄ: 100dvh huomioi mobiiliselaimen osoitepalkin liikkeet */
     min-height: 100vh;
     min-height: 100dvh; 

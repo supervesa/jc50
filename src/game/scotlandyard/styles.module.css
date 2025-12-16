@@ -1,0 +1,64 @@
+/* Yleiset asetukset */
+.mapContainer {
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  background-color: #f9f9f9;
+}
+
+.gameSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Huoneiden perustyylit */
+.roomGroup {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.roomRect {
+  stroke: #333;
+  stroke-width: 2px;
+  fill-opacity: 0.9;
+  transition: fill 0.3s, stroke 0.3s, stroke-width 0.3s;
+}
+
+.roomLabel {
+  font-family: 'Arial', sans-serif;
+  font-size: 80px;
+  font-weight: bold;
+  fill: black;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none; /* Teksti ei estä klikkausta */
+}
+
+/* --- INTERAKTIOT --- */
+
+/* Hover-efekti (hiiri päällä) */
+.roomGroup:hover .roomRect {
+  stroke: #ffd700; /* Kulta */
+  stroke-width: 20px;
+  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+  z-index: 10; /* Nostaa visuaalisesti */
+}
+
+/* Aktiivinen klikkaus */
+.roomGroup:active .roomRect {
+  fill-opacity: 1;
+  transform: scale(0.99); /* Pieni painallus-efekti */
+}
+
+/* --- HUONEIDEN VÄRIT (Määritellään luokkina) --- */
+.colorBlue   { fill: rgb(0, 115, 255); }
+.colorRed    { fill: rgb(188, 82, 82); }
+.colorPink   { fill: rgb(255, 0, 159); }
+.colorYellow { fill: rgb(255, 195, 0); }
+.colorBrown  { fill: rgb(121, 91, 91); }
+.colorDarkRed{ fill: rgb(220, 26, 26); }
+.colorPaleRed{ fill: rgb(204, 127, 127); }
+.colorGrey   { fill: rgb(206, 181, 181); }
+.colorDeepRed{ fill: rgb(160, 51, 51); }
+.colorMetal  { fill: rgb(150, 150, 150); }
