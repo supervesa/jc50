@@ -23,7 +23,7 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
       // 1. KUVAN LATAUS (Jos kyseessä photo-tehtävä)
       if (activeFlash.type === 'photo' && flashFile) {
         const fileExt = flashFile.name.split('.').pop();
-        const fileName = `flash-proof/${activeFlash.id}/${guestId}-${Date.now()}.${fileExt}`;
+        const fileName = `${activeFlash.id}/${guestId}-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('party-photos')
