@@ -13,6 +13,7 @@ import HeistLeaderboard from './components/leader/HeistLeaderboard';
 import HeistPersonalScoreboard from './pages/AgentPage/HeistPersonalScoreboard';
 import PhotoWall from './pages/PhotoWall';
 import './mobile-universal.css'
+import AntheroPage from './pages/AntheroPage';
 function App() {
   return (
     <div className="App">
@@ -33,6 +34,7 @@ function App() {
           <Route path="/leaderboard" element={<HeistLeaderboard />} />
           <Route path="/personal-stats" element={<HeistPersonalScoreboard />} />
    <Route path="/wall/:guestId?" element={<PhotoWall />} />
+   <Route path="/anthero" element={<AntheroPage />} />
         </Routes>
       </main>
       <Footer />

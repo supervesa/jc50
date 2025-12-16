@@ -1,0 +1,630 @@
+ /* --- LAYOUT --- */
+.jc-live-wall {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: #000;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+  z-index: 9999; /* Kaiken päälle */
+}
+
+/* Logo */
+.jc-live-logo {
+  position: absolute;
+  top: 40px; left: 60px;
+  z-index: 10;
+}
+.jc-live-logo h1 {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 4rem;
+  margin: 0;
+  line-height: 0.8;
+  color: transparent;
+  -webkit-text-stroke: 2px #fff;
+  text-shadow: 0 0 20px var(--magenta);
+}
+.jc-live-logo span {
+  font-size: 1.2rem;
+  letter-spacing: 0.5em;
+  color: var(--turquoise);
+  text-transform: uppercase;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+/* --- PHOTO CARD (THE COMPONENT) --- */
+.jc-photo-card {
+  position: relative;
+  width: 600px;
+  height: 700px; /* Korkea kortti */
+  perspective: 1000px;
+  /* Keskitys */
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  
+  /* Sisääntuloanimaatio */
+  animation: cardEnter 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Kerros 1: Kehys ja Kuva */
+.jc-photo-frame {
+  width: 100%;
+  height: 80%; /* Kuva ei täytä koko korkeutta, tilaa nimelle */
+  background: #111;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  z-index: 1;
+}
+
+.jc-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.1) saturate(1.2);
+}
+
+.jc-scanlines {
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0),
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0.1) 3px,
+    rgba(0,0,0,0.1) 4px
+  );
+  z-index: 10;
+  opacity: 0.5;
+}
+
+/* Kerros 2: Nimilaatta (Chrome Badge) */
+.jc-chrome-badge {
+  position: absolute;
+  bottom: 12%; /* Limittäin kuvan kanssa */
+  right: -20px; /* Menee reunan yli */
+  width: 80%;
+  background: linear-gradient(135deg, #eee 0%, #999 30%, #fff 50%, #777 100%);
+  transform: skewX(-10deg) rotate(-2deg);
+  padding: 1.5rem;
+  border: 2px solid #fff;
+  box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.jc-badge-role {
+  font-size: 0.9rem;
+  color: var(--magenta);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 800;
+}
+
+.jc-badge-name {
+  margin: 0;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 2.2rem;
+  color: #111;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Kerros 3: Avatar (The Orb) */
+.jc-avatar-orb {
+  position: absolute;
+  bottom: 10%;
+  left: -30px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid var(--turquoise);
+  background: #000;
+  overflow: hidden;
+  box-shadow: 0 0 20px var(--turquoise);
+  z-index: 3;
+  animation: float 4s ease-in-out infinite;
+}
+
+.jc-avatar-orb img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+/* Viesti */
+.jc-live-message {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 1.8rem;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  font-weight: 300;
+  font-style: italic;
+  z-index: 0; /* Alimmaisena */
+  padding-top: 1rem;
+}
+
+/* --- HISTORIA (Taustakuvat) --- */
+.jc-stage-history {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+}
+
+.jc-history-card {
+  position: absolute;
+  width: 300px;
+  height: 400px;
+  opacity: 0.2;
+  filter: grayscale(100%) blur(2px);
+  transition: all 1s ease;
+}
+
+.jc-history-card img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+
+/* Asetellaan historiakuvat eri kohtiin */
+.pos-0 { top: 10%; left: 10%; transform: rotate(-10deg); }
+.pos-1 { bottom: 10%; right: 10%; transform: rotate(5deg) scale(0.8); }
+.pos-2 { top: 10%; right: 20%; transform: rotate(15deg) scale(0.6); }
+
+/* --- ANIMAATIOT --- */
+@keyframes cardEnter {
+  0% { opacity: 0; transform: translate(-50%, 50%) scale(0.5) rotateX(45deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotateX(0deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* --- TUPLA-AVATARIT --- */
+
+.jc-avatar-orb {
+  /* Varmista että orb on relative, jotta sisällön positiointi toimii */
+  position: absolute;
+  /* (Aiemmat tyylit säilyvät, esim bottom: -40px, right: 20px...) */
+  overflow: hidden; /* Leikkaa ylimenevät osat pois että pysyy pyöreänä */
+  border: 3px solid var(--neon-pink); /* Tai neon-blue */
+  background: #000;
+  box-shadow: 0 0 20px var(--neon-pink);
+}
+
+/* Yksittäinen kuva täyttää koko pallon */
+.jc-avatar-single {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Container kahdelle kuvalle */
+.jc-double-avatar {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Yhteiset tyylit molemmille pikkukuville */
+.jc-double-avatar img {
+  width: 65%;   /* Ei täytä koko palloa, jotta mahtuvat */
+  height: 65%;
+  border-radius: 50%; /* Ovat myös pyöreitä */
+  position: absolute;
+  object-fit: cover;
+  border: 2px solid #000; /* Musta reuna erottamaan kuvat toisistaan */
+}
+
+/* Taempi kuva (vasen yläkulma) */
+.jc-avatar-back {
+  top: 5%;
+  left: 5%;
+  z-index: 1;
+  filter: brightness(0.7); /* Hieman tummempi kun on taustalla */
+}
+
+/* Etummainen kuva (oikea alakulma) */
+.jc-avatar-front {
+  bottom: 5%;
+  right: 5%;
+  z-index: 2;
+  border-color: var(--neon-blue) !important; /* Korostusväri */
+}
+
+/* Jos ei kuvaa -pallukka */
+.jc-avatar-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--turquoise);
+  background: linear-gradient(135deg, #444, #111);
+}
+
+/* --- KORJAUS: LÄPINÄKYVYYS POIS PÄÄKUVASTA --- */
+
+/* 1. Varmistetaan, että aktiivinen kortti on täysin näkyvä */
+.jc-photo-card.active {
+  opacity: 1 !important;
+  mix-blend-mode: normal !important; /* Estää värien sekoittumisen taustaan */
+  z-index: 100; /* Varmasti päällimmäisenä */
+}
+
+/* 2. Laitetaan kuvan taakse musta levy, jotta taustagrafiikka ei paista läpi */
+.jc-photo-card.active .jc-photo-frame {
+  background-color: #000; 
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8); /* Tumma varjo korostamaan irtonaisuutta */
+}
+
+/* 3. Itse kuva täysin solidiksi */
+.jc-photo-card.active .jc-photo-img {
+  opacity: 1 !important;
+  filter: none !important; /* Poistetaan mahdolliset haamu-filtterit */
+}
+
+/* --- HISTORIA-KORTIT SAA JÄÄDÄ "HAAMUIKSI" --- */
+/* Nämä näyttävät tyylikkäiltä jos ovat vähän läpinäkyviä */
+.jc-photo-card.history {
+  opacity: 0.6;
+  mix-blend-mode: screen; /* Tai luminosity */
+}
+/* =========================================
+   4. STATS TAKEOVER (CNN STYLE - RED EDITION)
+   ========================================= */
+
+/* Koko ruudun peittävä overlay */
+.st-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 2000; /* Tickerin päällä */
+    
+    /* Dramaattinen tumma punainen tausta ja sumennus */
+    background: linear-gradient(180deg, rgba(20, 0, 0, 0.9) 0%, rgba(50, 0, 0, 0.95) 100%);
+    backdrop-filter: blur(20px) contrast(1.2);
+    
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    font-family: 'Outfit', sans-serif; /* Käytetään pääfonttia */
+    overflow: hidden;
+    animation: stFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* --- YLÄPALKKI: BREAKING NEWS BANNER --- */
+.st-top-banner {
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(90deg, #cc0000 0%, #ff0000 50%, #cc0000 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4vw;
+    box-shadow: 0 5px 30px rgba(255, 0, 0, 0.5);
+    border-bottom: 4px solid #fff;
+    position: relative;
+    z-index: 10;
+}
+
+/* Vilkkuva "LIVE" indikaattori */
+.st-live-indicator {
+    display: flex;
+    align-items: center;
+    font-weight: 900;
+    font-size: 1.2rem;
+    letter-spacing: 0.1em;
+    color: #fff;
+    text-transform: uppercase;
+}
+.st-live-dot {
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    margin-right: 10px;
+    animation: stPulseWhite 1s infinite;
+}
+
+/* Keskellä oleva pääotsikko */
+.st-main-title {
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 0.9;
+}
+.st-main-title span {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Oikean reunan infolaatikko (Hälytystaso & Holvi) */
+.st-top-info-box {
+    display: flex;
+    gap: 30px;
+    text-align: right;
+}
+.st-info-item {
+    display: flex;
+    flex-direction: column;
+}
+.st-info-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.st-info-value {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+.st-info-value.critical { color: #fff; animation: stPulseWhite 0.8s infinite; } /* Kriittinen vilkkuu */
+
+/* --- PÄÄGRID: KOLME SARAKETTA --- */
+.st-main-content {
+    flex: 1; /* Täyttää loput tilasta */
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr; /* Vasen, Iso keski, Oikea */
+    gap: 2vw;
+    padding: 3vh 4vw 10vh 4vw; /* Tilaa alhaalla tickerille */
+    position: relative;
+}
+
+/* Sarakkeiden yhteiset tyylit */
+.st-panel {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #ff0000;
+    border-radius: 4px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.2) inset;
+    backdrop-filter: blur(10px);
+}
+
+/* Paneelin otsikko */
+.st-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.6rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #fff;
+    border-bottom: 3px solid #ff0000;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+}
+.st-panel-header svg { color: #ff0000; filter: drop-shadow(0 0 5px #ff0000); }
+
+/* --- VASEN: JOHTAJAT --- */
+.st-leaders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.st-leader-row {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 0, 0, 0.1);
+    padding: 15px;
+    border-radius: 4px;
+    border-left: 4px solid #ff0000;
+}
+.st-rank {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #ff0000;
+    width: 50px;
+    text-align: center;
+    text-shadow: 0 0 10px #ff0000;
+}
+.st-leader-avatar {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: #000;
+    border: 2px solid #ff0000;
+    overflow: hidden;
+    margin: 0 20px;
+    display: flex; align-items: center; justifyContent: center;
+    font-size: 2rem; font-weight: bold; color: #ff0000;
+}
+.st-leader-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.st-leader-details { flex: 1; }
+.st-leader-name { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; }
+.st-leader-xp { font-size: 1.1rem; color: #ff0000; font-weight: 700; }
+
+/* --- KESKI: KIREÄ TAISTELU (VS) --- */
+.st-rivals-arena {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: radial-gradient(circle at center, rgba(255,0,0,0.2) 0%, transparent 70%);
+}
+.st-rival-card {
+    text-align: center;
+    z-index: 2;
+}
+.st-rival-avatar {
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: #000;
+    border: 6px solid #fff;
+    box-shadow: 0 0 40px rgba(255, 0, 0, 0.8);
+    overflow: hidden;
+    margin: 0 auto 20px;
+    display: flex; align-items: center; justifyContent: center;
+    font-size: 5rem; font-weight: 900; color: #ff0000;
+}
+.st-rival-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.st-rival-name { font-size: 2.2rem; font-weight: 900; text-transform: uppercase; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+.st-rival-xp { font-size: 1.5rem; color: #ff0000; font-weight: 700; }
+
+.st-vs-badge {
+    font-size: 6rem;
+    font-weight: 900;
+    color: #ff0000;
+    text-shadow: 0 0 30px #ff0000, 0 0 10px #fff;
+    margin: 20px 0;
+    line-height: 0.8;
+    position: relative;
+    z-index: 3;
+    font-style: italic;
+}
+.st-gap-info {
+    background: #ff0000;
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 800;
+    padding: 5px 20px;
+    border-radius: 4px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-5deg);
+    white-space: nowrap;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    border: 2px solid #fff;
+}
+
+/* --- OIKEA: SALAKAPAKKA & NOUSIJAT --- */
+.st-intel-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+}
+.st-intel-box {
+    background: rgba(255, 0, 0, 0.15);
+    border: 2px solid #ff0000;
+    padding: 25px;
+    border-radius: 4px;
+    text-align: center;
+    flex: 1; /* Täyttävät tilan tasan */
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.st-intel-header {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.3rem; font-weight: 800; color: #fff; text-transform: uppercase; margin-bottom: 15px;
+}
+.st-intel-header svg { color: #ff0000; }
+.st-intel-big-num {
+    font-size: 5rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 20px #ff0000;
+    line-height: 1;
+}
+.st-intel-label-small { font-size: 1rem; font-weight: 700; color: #ff0000; text-transform: uppercase; margin-top: 5px; }
+
+.st-rising-list {
+    width: 100%;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.st-rising-row {
+    display: flex; justify-content: space-between;
+    border-bottom: 2px solid rgba(255, 0, 0, 0.3);
+    padding: 5px 0; font-size: 1.1rem;
+}
+.st-rising-name { font-weight: 700; }
+.st-rising-gain { color: #ff0000; font-weight: 800; }
+
+/* --- PLACEHOLDER --- */
+.st-placeholder { color: rgba(255, 255, 255, 0.5); font-style: italic; text-align: center; margin-top: 30px; font-size: 1.2rem; }
+
+/* --- ANIMAATIOT --- */
+@keyframes stFadeIn { from { opacity: 0; transform: scale(1.05); } to { opacity: 1; transform: scale(1); } }
+@keyframes stPulseWhite { 0% { opacity: 1; box-shadow: 0 0 10px #fff; } 50% { opacity: 0.5; box-shadow: 0 0 20px #fff; } 100% { opacity: 1; box-shadow: 0 0 10px #fff; } }
+/* =========================================
+   5. MULTI-SCREEN LAYOUTS
+   ========================================= */
+
+.st-clock {
+    font-size: 1.5rem; font-weight: bold; color: #fff;
+}
+
+/* Animaatio sivuille */
+.fadeIn { animation: stFadeIn 0.5s ease-out forwards; width: 100%; height: 100%; }
+
+/* --- SCREEN 0: STRATEGIC --- */
+.st-grid-screen-0 {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    gap: 2rem;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+}
+.st-label-xl { font-size: 1.2rem; color: #888; letter-spacing: 2px; margin-bottom: 10px; font-weight: bold; }
+.st-heat-display { font-size: 3rem; font-weight: 900; }
+.st-big-number { font-size: 5rem; font-weight: 900; color: #fff; line-height: 1; }
+.st-sub-text { font-size: 1rem; color: #ff0000; font-weight: bold; }
+
+.st-loot-circle {
+    border: 4px solid #fff;
+    border-radius: 50%;
+    width: 400px; height: 400px;
+    margin: 0 auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.4);
+    box-shadow: 0 0 50px rgba(255,255,255,0.1);
+}
+.st-loot-number { font-size: 4.5rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px #fff; }
+.st-label-center { font-size: 1.2rem; letter-spacing: 4px; color: #ccc; margin-bottom: 10px; }
+
+.st-kingpin-card {
+    background: rgba(255,215,0,0.1);
+    border: 2px solid #ffd700;
+    padding: 20px; border-radius: 12px;
+}
+.st-kingpin-avatar { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #ffd700; margin: 0 auto 15px; overflow: hidden; }
+.st-kingpin-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.st-kingpin-name { font-size: 1.5rem; font-weight: bold; color: #fff; }
+.st-kingpin-xp { font-size: 1.2rem; color: #ffd700; font-weight: bold; }
+
+/* --- SCREEN 1: MOST WANTED --- */
+.st-grid-screen-1 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; height: 100%;
+}
+.st-leader-avatar-small { width: 50px; height: 50px; border-radius: 50%; overflow: hidden; margin: 0 15px; border: 2px solid #ff0000; }
+.st-leader-avatar-small img { width: 100%; height: 100%; object-fit: cover; }
+
+/* --- SCREEN 2: INTEL --- */
+.st-grid-screen-2 {
+    display: flex; flex-direction: column; gap: 2rem; height: 100%;
+}
+.st-vault-section {
+    background: rgba(0,0,0,0.5); border: 2px solid #fff; padding: 30px; border-radius: 8px;
+    text-align: center;
+}
+.st-vault-status { font-size: 2.5rem; font-weight: 900; color: #fff; margin-bottom: 15px; }
+.st-vault-bar-bg { width: 100%; height: 20px; background: #333; border-radius: 10px; overflow: hidden; }
+.st-vault-bar-fill { height: 100%; background: #00ff41; box-shadow: 0 0 20px #00ff41; transition: width 1s; }
+.st-vault-percent { font-size: 1.5rem; font-weight: bold; margin-top: 10px; color: #00ff41; }
+
+.st-bottom-split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; flex: 1;
+}
+
+/* Helpers */
+.blink { animation: stPulseWhite 0.5s infinite; }

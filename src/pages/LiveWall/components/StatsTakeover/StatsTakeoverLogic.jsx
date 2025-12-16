@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useHeistData } from '../../../../components/leader/useHeistData'; 
 import StatsTakeoverView from './StatsTakeoverView';
+import './StatsTakeover.css'; // <--- MUUTA TÄMÄ
 
 // 1. Lisätty 'characters' propseihin
 const StatsTakeoverLogic = ({ isActive, characters }) => {

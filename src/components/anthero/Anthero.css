@@ -1,0 +1,60 @@
+/* Container */
+.anthero-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 300px;
+  margin: 0 auto;
+}
+
+/* Puhekupla */
+.anthero-bubble-container {
+  margin-bottom: 20px;
+  min-height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.anthero-bubble {
+  background-color: #222;
+  color: #0f0; /* Neon vihreä */
+  font-family: 'Courier New', Courier, monospace;
+  padding: 15px;
+  border-radius: 12px;
+  border: 2px solid #0f0;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  max-width: 100%;
+  text-align: center;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Animaatiot */
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Puhuva suu -animaatio */
+.anthero-mouth-speaking {
+  animation: talk 0.2s infinite alternate;
+  transform-origin: center;
+}
+
+@keyframes talk {
+  from { ry: 2px; }
+  to { ry: 10px; }
+}
+
+/* Koko hahmon pieni kellunta (idle) */
+.anthero-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}

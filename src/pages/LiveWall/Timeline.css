@@ -1,0 +1,94 @@
+/* src/pages/LiveWall/Timeline.css */
+
+/* Koko alareunan kontti */
+.jc-timeline-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 180px; /* Riittävä korkeus kuville */
+  z-index: 20; /* Pääkuvan alla (joka on z-100), mutta taustan päällä */
+  
+  /* Luksus-lasi tausta: Tumma, mutta läpinäkyvä */
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+  backdrop-filter: blur(8px); /* Pehmentää taustan sähköaallot */
+  
+  display: flex;
+  align-items: center;
+  padding: 0 4vw; /* Tilaa reunoille */
+  
+  /* Häivytetään reunat tyylikkäästi */
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* Ohut kultainen linja, joka sitoo aikajanan yhteen */
+.jc-timeline-track-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--plasma-gold) 20%, 
+    var(--turquoise) 80%, 
+    transparent 100%
+  );
+  opacity: 0.3;
+  z-index: 0;
+}
+
+/* Itse kuvalista */
+.jc-timeline-track {
+  display: flex;
+  gap: 1.5rem; /* Ilmava väli kuvien välillä */
+  align-items: center;
+  justify-content: center; /* Keskitetään jos vähän kuvia */
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* Yksittäinen kortti aikajanalla */
+.jc-timeline-item {
+  position: relative;
+  width: 140px; 
+  height: 100px;
+  flex-shrink: 0; /* Ei kutistu */
+  
+  border-radius: 8px;
+  overflow: hidden;
+  
+  /* Hiljainen luksus: Ohut reunus, ei paksua raamia */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  
+  transition: all 0.5s ease;
+  transform-origin: center bottom;
+  opacity: 0.7; /* Vanhemmat kuvat hieman himmeämpiä */
+}
+
+/* UUSIN KUVA (Vasemmalla) - "The Golden Child" */
+.jc-timeline-item.latest {
+  width: 180px; /* Hieman isompi */
+  height: 120px;
+  opacity: 1;
+  border-color: var(--plasma-gold); /* Kultainen reunus */
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); /* Pehmeä kultainen hehku */
+  transform: translateY(-5px); /* Nousee hieman ylös */
+}
+
+/* Kuva elementti */
+.jc-timeline-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+/* Hover-efekti (jos hiirellä menee päälle) */
+.jc-timeline-item:hover {
+  opacity: 1;
+  transform: translateY(-5px) scale(1.05);
+  border-color: #fff;
+}
