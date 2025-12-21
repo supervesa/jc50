@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-const SAFE_MODE_EMAILS = ['vesa.nessling@gmail.com', 'saikkonen.jukka@outlook.com'];
+const SAFE_MODE_EMAILS = [
+  import.meta.env.VITE_ADMIN_EMAIL_1,
+  import.meta.env.VITE_ADMIN_EMAIL_2
+];
 
 export default function EmailComposer() {
   const [activeTab, setActiveTab] = useState('recipients');
