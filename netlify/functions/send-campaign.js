@@ -52,10 +52,10 @@ export const handler = async (event) => {
         finalGuestName = guestData.spouse_name;
       }
 
-      const ticketLink = `http://jclub50.netlify.app/lippu/${char.assigned_guest_id}`;
+      const ticketLink = `https://jclub50.netlify.app/lippu/${char.assigned_guest_id}`;
       
       // --- SELAINLINKKI ---
-      const baseUrl = "http://jclub50.netlify.app/viesti";
+      const baseUrl = "https://jclub50.netlify.app/viesti";
       const browserLink = `${baseUrl}?t=${templateId}&n=${encodeURIComponent(finalGuestName)}&c=${encodeURIComponent(char.name || '')}&l=${encodeURIComponent(ticketLink)}`;
 
       const pSubject = subject.replace(/{{character}}/g, char.name || '').replace(/{{name}}/g, finalGuestName);
