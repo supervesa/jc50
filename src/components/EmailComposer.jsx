@@ -1,29 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import RecipientSelector from './RecipientSelector';
+import VisualEditor from './VisualEditor';
 
+// Haetaan sallitut osoitteet ympäristömuuttujista
 const SAFE_MODE_EMAILS = [
-  import.meta.env.VITE_ADMIN_EMAIL_1,
-  import.meta.env.VITE_ADMIN_EMAIL_2
-];
+  import.meta.env.VITE_ADMIN_EMAIL_1?.toLowerCase().trim(),
+  import.meta.env.VITE_ADMIN_EMAIL_2?.toLowerCase().trim()
+].filter(Boolean);
 
 export default function EmailComposer() {
   const [activeTab, setActiveTab] = useState('recipients');
+  const [editorMode, setEditorMode] = useState('code'); // 'code' tai 'visual'
   const [loading, setLoading] = useState(true);
   
+  // DATA TILAT
   const [recipients, setRecipients] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [templates, setTemplates] = useState([]);
   
-  const [currentTemplateId, setCurrentTemplateId] = useState(null);
-  const [templateName, setTemplateName] = useState('Uusi viestipohja');
+  // VIESTIN TILAT
   const [subject, setSubject] = useState('');
+  const [senderName, setSenderName] = useState('Vesa / J:CLUB');
   const [htmlContent, setHtmlContent] = useState('');
   const [textContent, setTextContent] = useState('');
+  const [templateName, setTemplateName] = useState('');
+  const [currentTemplateId, setCurrentTemplateId] = useState(null);
+  
+  // UI TILAT
   const [autoSync, setAutoSync] = useState(true);
   const [showOnlyAssigned, setShowOnlyAssigned] = useState(true);
-  
+
   const editorRef = useRef(null);
-  const [previewId, setPreviewId] = useState(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -32,35 +40,40 @@ export default function EmailComposer() {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
+      // 1. Haetaan hahmot ja vieraat
       const { data: chars } = await supabase
         .from('characters')
-        .select('id, name, pre_assigned_email, assigned_guest_id, guests:assigned_guest_id(name, email, spouse_name)')
+        .select('id, name, pre_assigned_email, assigned_guest_id, guests:assigned_guest_id(name, email)')
         .order('name');
 
-      const { data: tmpls } = await supabase.from('email_templates').select('*').order('name');
+      // 2. Haetaan viestipohjat
+      const { data: tmpls } = await supabase
+        .from('email_templates')
+        .select('*')
+        .order('name');
 
+      // Käsitellään vastaanottajat ja tarkistetaan Safe Mode
       const processed = chars?.map(char => {
         const guestData = Array.isArray(char.guests) ? char.guests[0] : char.guests;
-        const email = char.pre_assigned_email || guestData?.email;
+        const email = (char.pre_assigned_email || guestData?.email)?.toLowerCase().trim();
         return {
           id: char.id,
           characterName: char.name || 'Nimetön',
           guestName: guestData?.name || 'Ei nimeä',
           email: email,
-          isAllowed: email && SAFE_MODE_EMAILS.includes(email.toLowerCase().trim())
+          isAllowed: email && SAFE_MODE_EMAILS.includes(email)
         };
       }) || [];
 
       setRecipients(processed);
       setTemplates(tmpls || []);
       
-      if (tmpls?.length > 0 && !currentTemplateId) {
+      // Valitaan ensimmäinen pohja oletukseksi jos niitä on
+      if (tmpls?.length > 0) {
         applyTemplate(tmpls[0]);
       }
-      
-      if (processed.length > 0) setPreviewId(processed[0].id);
     } catch (err) {
-      console.error("Datahaku epäonnistui:", err);
+      console.error("Datan haku epäonnistui:", err);
     } finally {
       setLoading(false);
     }
@@ -72,29 +85,26 @@ export default function EmailComposer() {
     setTemplateName(tmpl.name);
     setSubject(tmpl.subject);
     setHtmlContent(tmpl.body_html);
-    setTextContent(tmpl.body_text);
-    setAutoSync(false);
+    setTextContent(tmpl.body_text || '');
+    setAutoSync(false); // Estetään automaattinen ylikirjoitus ladattaessa valmista pohjaa
   };
 
+  // HTML-muutosten käsittely (käytetään sekä koodi- että visuaalisessa editorissa)
   const handleHtmlChange = (val) => {
     setHtmlContent(val);
     if (autoSync) {
-      let text = val
-        .replace(/<p[^>]*>/g, '\n')
-        .replace(/<\/p>/g, '')
-        .replace(/<br[^>]*>/g, '\n')
-        .replace(/<a href="([^"]+)">([^<]+)<\/a>/g, '$2 ($1)')
-        .replace(/<[^>]*>/g, '');
-      setTextContent(text.trim());
+      const plainText = val
+        .replace(/<[^>]*>/g, '') // Poistetaan HTML-tagit
+        .replace(/&nbsp;/g, ' ')
+        .trim();
+      setTextContent(plainText);
     }
   };
 
   const handleSend = async () => {
     const targets = Array.from(selectedIds);
-    if (targets.length === 0) return alert('Valitse vastaanottajat.');
-    if (!currentTemplateId) return alert('Valitse tai tallenna viestipohja ensin.');
-    
-    if (!confirm(`Lähetetään ${targets.length} viestiä?`)) return;
+    if (targets.length === 0) return alert('Valitse vastaanottajat ensin.');
+    if (!confirm(`LÄHETYS: ${targets.length} viestiä. Oletko täysin varma?`)) return;
 
     setLoading(true);
     try {
@@ -103,122 +113,209 @@ export default function EmailComposer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           characterIds: targets, 
+          senderName, 
           subject, 
           htmlTemplate: htmlContent, 
           textTemplate: textContent,
-          templateId: currentTemplateId 
+          templateId: currentTemplateId
         })
       });
 
-      const result = await response.json();
       if (response.ok) {
-        alert('Lähetys suoritettu! Tarkista lokit.');
+        alert('Viestit lähetetty onnistuneesti!');
       } else {
-        alert('Virhe: ' + result.error);
+        alert('Lähetys epäonnistui palvelimella.');
       }
     } catch (err) {
-      alert('Lähetys epäonnistui. Onko Netlify dev päällä?');
+      console.error(err);
+      alert('Yhteysvirhe lähetettäessä.');
     } finally {
       setLoading(false);
     }
   };
 
-  const insertTag = (tag) => {
-    const t = editorRef.current;
-    if (!t) return;
-    const start = t.selectionStart;
-    const end = t.selectionEnd;
-    const newText = htmlContent.substring(0, start) + tag + htmlContent.substring(end);
-    handleHtmlChange(newText);
-  };
-
-  if (loading && recipients.length === 0) return <div className="jc-spinner">Ladataan järjestelmää...</div>;
+  if (loading && recipients.length === 0) {
+    return <div className="jc-spinner">Ladataan J:CLUB Järjestelmää...</div>;
+  }
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '100px' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px' }}>
+      
+      {/* PÄÄNAVIGAATIO */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <button className={`jc-btn ${activeTab === 'recipients' ? '' : 'outline'}`} onClick={() => setActiveTab('recipients')}>👥 1. Vastaanottajat</button>
-        <button className={`jc-btn ${activeTab === 'editor' ? '' : 'outline'}`} onClick={() => setActiveTab('editor')}>✏️ 2. Viesti</button>
-        <button className={`jc-btn ${activeTab === 'preview' ? '' : 'outline'}`} onClick={() => setActiveTab('preview')}>👁️ 3. Esikatselu</button>
+        <button 
+          className={`jc-btn ${activeTab === 'recipients' ? '' : 'outline'}`} 
+          onClick={() => setActiveTab('recipients')}
+        >
+          👥 VASTAANOTTAJAT
+        </button>
+        <button 
+          className={`jc-btn ${activeTab === 'editor' ? '' : 'outline'}`} 
+          onClick={() => setActiveTab('editor')}
+        >
+          ✏️ VIESTI
+        </button>
+        <button 
+          className={`jc-btn ${activeTab === 'preview' ? '' : 'outline'}`} 
+          onClick={() => setActiveTab('preview')}
+        >
+          👁️ ESIKATSELU
+        </button>
       </div>
 
+      {/* TAB 1: VASTAANOTTAJIEN VALINTA */}
       {activeTab === 'recipients' && (
-        <div className="jc-card fade-in">
-           <div style={{marginBottom:'15px'}}>
-             <label style={{color:'var(--cream)', cursor:'pointer'}}><input type="checkbox" checked={showOnlyAssigned} onChange={e => setShowOnlyAssigned(e.target.checked)} /> Näytä vain roolitetut</label>
-           </div>
-           <table style={{width:'100%', color:'#fff', borderCollapse:'collapse'}}>
-             <thead>
-               <tr style={{textAlign:'left', color:'var(--muted)', fontSize:'0.8rem', borderBottom:'1px solid #333'}}>
-                 <th style={{padding:'10px'}}>VALITSE</th>
-                 <th>HAHMO / VIERAS</th>
-                 <th>OSOITE</th>
-               </tr>
-             </thead>
-             <tbody>
-               {recipients.filter(r => showOnlyAssigned ? !!r.guestName : true).map(r => (
-                 <tr key={r.id} style={{opacity: r.isAllowed ? 1 : 0.4, borderBottom:'1px solid #222'}}>
-                   <td style={{padding:'10px'}}>
-                     {r.isAllowed ? <input type="checkbox" checked={selectedIds.has(r.id)} onChange={() => {
-                       const n = new Set(selectedIds);
-                       if (n.has(r.id)) n.delete(r.id); else n.add(r.id);
-                       setSelectedIds(n);
-                     }} /> : '🚫'}
-                   </td>
-                   <td><strong>{r.characterName}</strong><br/><small>{r.guestName}</small></td>
-                   <td>{r.email || 'Puuttuu'}</td>
-                 </tr>
-               ))}
-             </tbody>
-           </table>
-        </div>
+        <RecipientSelector 
+          recipients={recipients} 
+          selectedIds={selectedIds} 
+          setSelectedIds={setSelectedIds}
+          showOnlyAssigned={showOnlyAssigned}
+          setShowOnlyAssigned={setShowOnlyAssigned}
+        />
       )}
 
+      {/* TAB 2: EDITORI (KOODI TAI VISUAALINEN) */}
       {activeTab === 'editor' && (
         <div className="jc-card fade-in">
-          <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:'20px', marginBottom:'20px'}}>
-            <select className="jc-select" value={currentTemplateId || ''} onChange={(e) => applyTemplate(templates.find(t => t.id === e.target.value))}>
+          
+          {/* TEMPLATE VALINTA */}
+          <div style={{ marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
+            <label style={{ fontSize: '0.7rem', color: 'var(--turquoise)', display: 'block', marginBottom: '5px' }}>
+              VALITSE VIESTIPOHJA JÄRJESTELMÄSTÄ:
+            </label>
+            <select 
+              className="jc-select" 
+              value={currentTemplateId || ''} 
+              onChange={(e) => applyTemplate(templates.find(t => t.id === e.target.value))}
+            >
+              <option value="">-- Valitse pohja --</option>
               {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
-            <button onClick={() => {
-              const name = prompt("Pohjan nimi?", templateName);
-              if (name) supabase.from('email_templates').insert({ name, subject, body_html: htmlContent, body_text: textContent }).then(() => fetchInitialData());
-            }} className="jc-btn outline">Tallenna uutena</button>
           </div>
 
-          <label style={{fontSize:'0.7rem', color:'var(--muted)'}}>AIHE:</label>
-          <input type="text" value={subject} onChange={e => setSubject(e.target.value)} style={{width:'100%', padding:'10px', background:'#000', color:'#fff', border:'1px solid #333', marginBottom:'15px'}} />
-
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
+          {/* LÄHETTÄJÄ JA AIHE */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
-              <div style={{display:'flex', gap:'5px', marginBottom:'5px'}}>
-                <button onClick={() => insertTag('{{name}}')} className="jc-btn small outline">Nimi</button>
-                <button onClick={() => insertTag('{{character}}')} className="jc-btn small outline">Hahmo</button>
-                <button onClick={() => insertTag('{{ticket_link}}')} className="jc-btn small outline">Lippu</button>
-                <button onClick={() => insertTag('{{browser_link}}')} className="jc-btn small outline" style={{borderColor:'var(--turquoise)'}}>Selainlinkki</button>
+              <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>LÄHETTÄJÄN NIMI (SENDER):</label>
+              <input 
+                type="text" 
+                value={senderName} 
+                onChange={e => setSenderName(e.target.value)} 
+                className="jc-input" 
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>VIESTIN AIHE (SUBJECT):</label>
+              <input 
+                type="text" 
+                value={subject} 
+                onChange={e => setSubject(e.target.value)} 
+                className="jc-input" 
+              />
+            </div>
+          </div>
+
+          {/* EDITORITILAN VAIHTO */}
+          <div style={{ marginBottom: '20px' }}>
+            <button 
+              onClick={() => setEditorMode('code')} 
+              className={editorMode === 'code' ? 'jc-btn small' : 'jc-btn small outline'}
+            >
+              HTML-KOODI
+            </button>
+            <button 
+              onClick={() => setEditorMode('visual')} 
+              className={editorMode === 'visual' ? 'jc-btn small' : 'jc-btn small outline'} 
+              style={{ marginLeft: '10px' }}
+            >
+              VISUAALINEN MUOKKAUS
+            </button>
+          </div>
+
+          {editorMode === 'code' ? (
+            /* RAW HTML EDITOR */
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }} className="fade-in">
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--turquoise)' }}>HTML SISÄLTÖ:</label>
+                <textarea 
+                  value={htmlContent} 
+                  onChange={(e) => handleHtmlChange(e.target.value)}
+                  style={{ 
+                    width: '100%', 
+                    height: '600px', 
+                    background: '#050508', 
+                    color: 'var(--lime)', 
+                    padding: '15px', 
+                    fontFamily: 'monospace',
+                    fontSize: '13px',
+                    border: '1px solid #333'
+                  }}
+                />
               </div>
-              <textarea ref={editorRef} value={htmlContent} onChange={e => handleHtmlChange(e.target.value)} style={{width:'100%', height:'400px', background:'#050508', color:'var(--lime)', padding:'10px', fontFamily:'monospace'}} />
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={autoSync} 
+                    onChange={e => setAutoSync(e.target.checked)} 
+                  /> AUTOMAATTINEN TEKSTIVERSIO (SYNC)
+                </label>
+                <textarea 
+                  value={textContent} 
+                  onChange={(e) => { setTextContent(e.target.value); setAutoSync(false); }}
+                  style={{ 
+                    width: '100%', 
+                    height: '600px', 
+                    background: '#0a0a0c', 
+                    color: '#888', 
+                    padding: '15px',
+                    fontSize: '13px',
+                    border: '1px solid #222'
+                  }}
+                  placeholder="Viestin tekstiversio..."
+                />
+              </div>
             </div>
-            <div>
-               <div style={{marginBottom:'5px', fontSize:'0.8rem', color:'var(--muted)'}}>
-                 <input type="checkbox" checked={autoSync} onChange={e => setAutoSync(e.target.checked)} /> Auto-sync teksti
-               </div>
-               <textarea value={textContent} onChange={e => { setTextContent(e.target.value); setAutoSync(false); }} style={{width:'100%', height:'400px', background:'#0a0a0c', color:'#aaa', padding:'10px'}} />
-            </div>
-          </div>
+          ) : (
+            /* VISUAL BLOCK EDITOR */
+            <VisualEditor 
+              html={htmlContent} 
+              onChange={handleHtmlChange} 
+              templateId={currentTemplateId}
+              templateName={templateName}
+              subject={subject}
+            />
+          )}
         </div>
       )}
 
+      {/* TAB 3: ESIKATSELU JA LÄHETYS */}
       {activeTab === 'preview' && (
         <div className="jc-card fade-in">
-          <div style={{background:'#fff', padding:'25px', color:'#000', borderRadius:'8px', minHeight:'300px'}}>
-             <div dangerouslySetInnerHTML={{ __html: htmlContent.replace(/{{name}}/g, 'Esimerkki Vieras').replace(/{{character}}/g, 'Esimerkki Hahmo').replace(/{{ticket_link}}/g, '#').replace(/{{browser_link}}/g, '#') }} />
+          <div style={{ background: '#fff', padding: '0', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>
+            <div 
+              style={{ padding: '20px', color: '#000' }} 
+              dangerouslySetInnerHTML={{ __html: htmlContent }} 
+            />
           </div>
-          <button className="jc-btn primary" style={{width:'100%', marginTop:'20px', padding:'25px'}} onClick={handleSend} disabled={loading}>
-            {loading ? 'LÄHETETÄÄN...' : `🚀 LÄHETÄ ${selectedIds.size} VIESTIÄ`}
-          </button>
+          
+          <div style={{ marginTop: '30px', padding: '20px', border: '1px solid var(--magenta)', borderRadius: '12px', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--magenta)', margin: '0 0 10px 0' }}>VALMIS LÄHETETTÄVÄKSI?</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '20px' }}>
+              Viesti lähetetään {selectedIds.size} valitulle ja sallitulle vastaanottajalle.
+            </p>
+            <button 
+              className="jc-btn primary" 
+              style={{ width: '100%', padding: '20px', fontSize: '1.1rem' }} 
+              onClick={handleSend} 
+              disabled={loading}
+            >
+              {loading ? 'KÄSITTELLÄÄN...' : `🚀 LÄHETÄ ${selectedIds.size} VIESTIÄ NYT`}
+            </button>
+          </div>
         </div>
       )}
+
     </div>
   );
 }

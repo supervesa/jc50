@@ -937,3 +937,139 @@ p {
   cursor: pointer;
   margin-top: -6px;
 }
+
+/*sähköpostieditori*/
+
+/* --- YLEISET TYYLIT --- */
+.fade-in {
+  animation: jcFadeIn 0.5s ease-out;
+}
+
+@keyframes jcFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- KORTIT (CARDS) --- */
+.jc-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  margin-bottom: 20px;
+}
+
+/* --- PAINIKKEET (BUTTONS) --- */
+.jc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.jc-btn.primary {
+  background: linear-gradient(135deg, #b000e6 0%, var(--magenta) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 0, 229, 0.3);
+}
+
+.jc-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 0, 229, 0.5);
+  filter: brightness(1.1);
+}
+
+.jc-btn.outline {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--cream);
+}
+
+.jc-btn.outline:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--turquoise);
+  color: var(--turquoise);
+}
+
+.jc-btn.small {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+}
+
+.jc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- INPUTS & SELECTS --- */
+.jc-select, .jc-input {
+  width: 100%;
+  background: #000;
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.jc-select:focus, .jc-input:focus {
+  border-color: var(--turquoise);
+}
+
+/* --- LATAUSANIMAATIO (SPINNER) --- */
+.jc-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: var(--turquoise);
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  animation: jcPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes jcPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* --- TAULUKOT (TABLES) --- */
+table td {
+  padding: 12px 8px;
+}
+
+table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* --- GALLERIAN RULLAUSPALKKI --- */
+.jc-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.jc-card::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.jc-card::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 10px;
+}
+
+.jc-card::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
