@@ -15,29 +15,33 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
   // 1. Hae käyttäjän henkilöllisyys URL:n perusteella
   useEffect(() => {
     const identifyUser = async () => {
-      // Etsitään UUID url-osoitteesta (esim. /lippu/UUID)
+      // Etsitään UUID url-osoitteesta
       const urlPath = window.location.pathname;
-      const uuidMatch = urlPath.match(/([0-9a-fA-F-]{36})/); // Etsii UUID-muotoisen pätkän
+      const uuidMatch = urlPath.match(/([0-9a-fA-F-]{36})/); 
       
       if (uuidMatch) {
         const guestId = uuidMatch[0];
         
-        // Haetaan hahmon nimi characters-taulusta
+        // KORJAUS TÄSSÄ:
+        // Poistettu .single(), jotta haku tukee useampaa hahmoa samalla ID:llä (avec-parit)
         const { data, error } = await supabase
           .from('characters')
           .select('name')
-          .eq('assigned_guest_id', guestId)
-          .single();
+          .eq('assigned_guest_id', guestId);
 
-        if (data && data.name) {
-          setIdentityName(data.name);
-          // Tallennetaan myös localstorageen varalta
-          localStorage.setItem('jc_username', data.name);
+        if (data && data.length > 0) {
+          // Jos hahmoja on useita, yhdistetään nimet "Matti & Maija"
+          // Jos vain yksi, map ja join toimivat silti oikein ("Matti")
+          const combinedName = data.map(c => c.name).join(' & ');
+
+          setIdentityName(combinedName);
+          setManualName(combinedName); // Pidetään manuaalikenttä synkassa
+          localStorage.setItem('jc_username', combinedName);
         }
       }
     };
     identifyUser();
-  }, []);
+  }, [window.location.pathname]); // Tärkeä: ajaa uudelleen jos hahmo vaihtuu URLissa
 
   // 2. Hae kommentit
   useEffect(() => {
@@ -57,11 +61,9 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
   const handleSendComment = async () => {
     if (!newComment.trim()) return;
 
-    // Jos identiteetti löytyi URL:sta, käytä sitä. Muuten käytä manuaalista/tallennettua.
     let finalName = identityName || manualName;
     if (!finalName) finalName = 'Tuntematon';
 
-    // Jos käytettiin manuaalista nimeä, tallennetaan se
     if (!identityName && manualName) {
       localStorage.setItem('jc_username', manualName);
     }
@@ -77,7 +79,6 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
     setComments([...comments, optimistic]);
     setNewComment('');
 
-    // Lähetys kantaan
     const { error } = await supabase.from('comments').insert(commentPayload);
     if (error) console.error("Kommentin lähetysvirhe:", error);
   };
@@ -91,12 +92,11 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
     if (error) console.error("Hype virhe:", error);
   };
 
-  // --- APU: Määritetään placeholder-teksti pituuden mukaan ---
+  // --- APU: Placeholder-teksti ---
   const getPlaceholderText = () => {
     if (!identityName) return "Kommentoi...";
-    // Jos nimi on hyvin pitkä (esim. pari), käytetään lyhyttä tekstiä
+    // Jos nimi on pitkä (esim. pari), käytä lyhyttä tekstiä
     if (identityName.length > 20) return "Kirjoita kommentti...";
-    // Jos nimi on lyhyt, näytetään se kokonaan
     return `Kommentoi hahmona ${identityName}...`;
   };
 
