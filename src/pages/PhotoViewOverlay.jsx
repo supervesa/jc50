@@ -91,6 +91,15 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
     if (error) console.error("Hype virhe:", error);
   };
 
+  // --- APU: Määritetään placeholder-teksti pituuden mukaan ---
+  const getPlaceholderText = () => {
+    if (!identityName) return "Kommentoi...";
+    // Jos nimi on hyvin pitkä (esim. pari), käytetään lyhyttä tekstiä
+    if (identityName.length > 20) return "Kirjoita kommentti...";
+    // Jos nimi on lyhyt, näytetään se kokonaan
+    return `Kommentoi hahmona ${identityName}...`;
+  };
+
   return (
     <div className="overlay-backdrop">
       <div className="overlay-header">
@@ -144,7 +153,7 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
         
         <input 
           type="text" 
-          placeholder={identityName ? `Kommentoi hahmona ${identityName}...` : "Kommentoi..."} 
+          placeholder={getPlaceholderText()} 
           className="comment-input"
           style={{flex: 1}}
           value={newComment}

@@ -1309,3 +1309,27 @@ html, body {
   box-shadow: 0 0 8px rgba(0, 231, 255, 0.4);
   transform: translateY(-1px);
 }
+
+/* --- FIX MOBILE ZOOM & INPUTS --- */
+
+/* 1. Estä automaattinen zoomaus asettamalla fonttikoko 16px:iin */
+.caption-input,
+.text-input-modern,
+.avec-input,
+.avec-link-input,
+input[type="text"],
+input[type="email"] {
+  font-size: 16px !important; /* TÄRKEÄ: 16px on maaginen raja */
+}
+
+/* 2. Varmista, että tekstikentät eivät riko flexbox-asettelua */
+.caption-area, 
+.text-tool-row {
+  /* Estää kenttää kutistumasta liikaa */
+  flex-shrink: 0; 
+}
+
+/* 3. Estä "double-tap to zoom" koko sovelluksessa, jos ei vielä ole */
+html {
+  touch-action: manipulation;
+}

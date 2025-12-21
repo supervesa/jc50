@@ -40,10 +40,20 @@ export default function EmailComposer() {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // 1. Haetaan hahmot ja vieraat
+      // 1. Haetaan hahmot ja vieraat - LAAJENNETTU haku AI-kontekstia varten
       const { data: chars } = await supabase
         .from('characters')
-        .select('id, name, pre_assigned_email, assigned_guest_id, guests:assigned_guest_id(name, email)')
+        .select(`
+          id, 
+          name, 
+          role, 
+          backstory, 
+          secret_mission, 
+          is_spouse_character, 
+          pre_assigned_email, 
+          assigned_guest_id, 
+          guests:assigned_guest_id(name, email)
+        `)
         .order('name');
 
       // 2. Haetaan viestipohjat
@@ -58,7 +68,11 @@ export default function EmailComposer() {
         const email = (char.pre_assigned_email || guestData?.email)?.toLowerCase().trim();
         return {
           id: char.id,
-          characterName: char.name || 'Nimetön',
+          characterName: char.name || char.role || 'Nimetön',
+          role: char.role,
+          backstory: char.backstory,
+          secret_mission: char.secret_mission,
+          is_avec: char.is_spouse_character,
           guestName: guestData?.name || 'Ei nimeä',
           email: email,
           isAllowed: email && SAFE_MODE_EMAILS.includes(email)
@@ -89,12 +103,12 @@ export default function EmailComposer() {
     setAutoSync(false); // Estetään automaattinen ylikirjoitus ladattaessa valmista pohjaa
   };
 
-  // HTML-muutosten käsittely (käytetään sekä koodi- että visuaalisessa editorissa)
+  // HTML-muutosten käsittely
   const handleHtmlChange = (val) => {
     setHtmlContent(val);
     if (autoSync) {
       const plainText = val
-        .replace(/<[^>]*>/g, '') // Poistetaan HTML-tagit
+        .replace(/<[^>]*>/g, '') 
         .replace(/&nbsp;/g, ' ')
         .trim();
       setTextContent(plainText);
@@ -133,6 +147,10 @@ export default function EmailComposer() {
       setLoading(false);
     }
   };
+
+  // AI-KONTEKSTIN VALINTA (Valitaan ensimmäinen valittu hahmo avustajalle)
+  const firstSelectedId = Array.from(selectedIds)[0];
+  const selectedCharContext = recipients.find(r => r.id === firstSelectedId);
 
   if (loading && recipients.length === 0) {
     return <div className="jc-spinner">Ladataan J:CLUB Järjestelmää...</div>;
@@ -174,7 +192,7 @@ export default function EmailComposer() {
         />
       )}
 
-      {/* TAB 2: EDITORI (KOODI TAI VISUAALINEN) */}
+      {/* TAB 2: EDITORI */}
       {activeTab === 'editor' && (
         <div className="jc-card fade-in">
           
@@ -277,19 +295,20 @@ export default function EmailComposer() {
               </div>
             </div>
           ) : (
-            /* VISUAL BLOCK EDITOR */
+            /* VISUAL BLOCK EDITOR - LISÄTTY selectedCharacter */
             <VisualEditor 
               html={htmlContent} 
               onChange={handleHtmlChange} 
               templateId={currentTemplateId}
               templateName={templateName}
               subject={subject}
+              selectedCharacter={selectedCharContext}
             />
           )}
         </div>
       )}
 
-      {/* TAB 3: ESIKATSELU JA LÄHETYS */}
+      {/* TAB 3: ESIKATSELU */}
       {activeTab === 'preview' && (
         <div className="jc-card fade-in">
           <div style={{ background: '#fff', padding: '0', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>

@@ -93,6 +93,14 @@ export const renderBlockToHtml = (block) => {
       const listItems = content.items.split('\n').filter(i => i.trim()).map(item => `<li style="padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: #F7F5E6;"><span style="color:var(--magenta); margin-right: 10px;">●</span> ${item}</li>`).join('');
       return wrap(`<div class="jc-card"><h2 class="jc-h2">${content.title}</h2><ul style="list-style: none; padding: 0; margin: 0;">${listItems}</ul></div>`);
 
+    case 'contact':
+      return wrap(`
+        <div class="jc-card small" style="background: linear-gradient(180deg, rgba(0, 231, 255, 0.05) 0%, rgba(0,0,0,0) 100%); border-color: var(--turquoise);">
+          <h2 class="jc-h2" style="font-size: 1.2rem; color: var(--turquoise); -webkit-text-fill-color: var(--turquoise); text-shadow: none;">${content.title}</h2>
+          <p class="small" style="margin-bottom: 0.5rem;">Lippuongelmat & lisätiedot:</p>
+          <a href="mailto:${content.email}" style="color: #fff; text-decoration: underline; font-weight: 600;">${content.email}</a>
+        </div>`);
+
     case 'image':
       return wrap(`<div style="text-align:center; padding: 1rem 0;"><img src="${content.url}" style="max-width:100%; border-radius:14px; border: 1px solid var(--turquoise);" /></div>`);
 
@@ -122,5 +130,19 @@ export const assembleFullHtml = (content) => `
         .small { font-size: 0.75rem; color: var(--turquoise); text-transform: uppercase; letter-spacing: 0.1em; }
     </style>
 </head>
-<body><div class="email-container"><div class="jc-wrapper">${content}</div></div></body>
+<body>
+    <div class="email-container">
+        <div style="text-align: center; padding: 15px 0; font-size: 10px; color: #444; font-family: sans-serif;">
+            Eikö viesti näy oikein? <a href="{{browser_link}}" style="color: var(--turquoise); text-decoration: underline;">Avaa selainversio tästä.</a>
+        </div>
+        
+        <div class="jc-wrapper">
+            ${content}
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem; color: #333; font-size: 10px; font-family: sans-serif;">
+            © 2025 J:CLUB Event Systems. All protocols secure.
+        </div>
+    </div>
+</body>
 </html>`;

@@ -32,7 +32,7 @@ export const PBlock = ({ content, onUpdate }) => (
 export const AgentBlock = () => (
   <div className="agent-hero-container">
     <div className="agent-hero-btn" style={{ display: 'flex', alignItems: 'center', background: 'rgba(0, 231, 255, 0.05)', border: '1px solid var(--turquoise)', padding: '15px', borderRadius: '12px' }}>
-      <div className="agent-icon-box" style={{ width: '50px', height: '50px', background: 'var(--turquoise)', borderRadius: '10px', display: 'flex', alignInterms: 'center', justifyContent: 'center', marginRight: '15px', position: 'relative', flexShrink: 0 }}>
+      <div className="agent-icon-box" style={{ width: '50px', height: '50px', background: 'var(--turquoise)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '15px', position: 'relative', flexShrink: 0 }}>
         <span style={{ fontSize: '24px' }}>📱</span>
         <div className="ping-ring" style={{ position: 'absolute', inset: 0, borderRadius: '10px', border: '2px solid var(--turquoise)', animation: 'ping 2s infinite' }}></div>
       </div>
@@ -75,9 +75,6 @@ export const TicketBlock = ({ content, onUpdate }) => (
       />
       <div style={{ color: 'white', fontSize: '1.5rem', fontFamily: 'Josefin Sans', textShadow: '0 0 10px var(--magenta)' }}>{"{{character}}"}</div>
     </div>
-    <div style={{ marginTop: '30px', background: 'var(--magenta)', padding: '12px', borderRadius: '10px', textAlign: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.8rem' }}>
-      AVAA LIPPU & LIVEWALL
-    </div>
   </div>
 );
 
@@ -101,12 +98,17 @@ export const PrivacyBlock = ({ content, onUpdate }) => (
   </div>
 );
 
-// --- MUUT STANDARDILOHKOT ---
-export const HeroBlock = ({ content, onUpdate }) => (
-  <div style={{ textAlign: 'center', padding: '20px' }}>
-    <input style={{ background: 'transparent', border: 'none', color: 'var(--turquoise)', textAlign: 'center', width: '100%', fontSize: '0.8rem', letterSpacing: '0.3em' }} value={content.date} onChange={e => onUpdate({ date: e.target.value })} />
-    <input style={{ background: 'transparent', border: 'none', color: 'white', textAlign: 'center', width: '100%', fontSize: '2.5rem', fontWeight: 'bold' }} value={content.title} onChange={e => onUpdate({ title: e.target.value })} />
-    <input style={{ background: 'transparent', border: 'none', color: 'var(--magenta)', textAlign: 'center', width: '100%', fontSize: '1rem' }} value={content.theme} onChange={e => onUpdate({ theme: e.target.value })} />
+// --- TÄMÄ PUUTTUI (CORRECTED) ---
+export const ContactBlock = ({ content, onUpdate }) => (
+  <div className="jc-card" style={{ margin: 0, border: '1px solid var(--turquoise)' }}>
+    <input 
+      style={{ background: 'transparent', border: 'none', color: 'var(--turquoise)', fontSize: '1.1rem', width: '100%', fontWeight: 'bold' }}
+      value={content.title} onChange={e => onUpdate({ title: e.target.value })} 
+    />
+    <input 
+      style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '0.8rem', width: '100%', marginTop: '5px' }}
+      value={content.email} onChange={e => onUpdate({ email: e.target.value })} 
+    />
   </div>
 );
 
@@ -122,6 +124,14 @@ export const ListBlock = ({ content, onUpdate }) => (
   <div className="jc-card" style={{ margin: 0 }}>
     <input style={{ background: 'transparent', border: 'none', color: 'var(--turquoise)', fontSize: '1.2rem', width: '100%' }} value={content.title} onChange={e => onUpdate({ title: e.target.value })} />
     <textarea style={{ background: 'transparent', border: 'none', color: 'var(--cream)', width: '100%', marginTop: '10px' }} rows="4" value={content.items} onChange={e => onUpdate({ items: e.target.value })} />
+  </div>
+);
+
+export const HeroBlock = ({ content, onUpdate }) => (
+  <div style={{ textAlign: 'center', padding: '20px' }}>
+    <input style={{ background: 'transparent', border: 'none', color: 'var(--turquoise)', textAlign: 'center', width: '100%', fontSize: '0.8rem', letterSpacing: '0.3em' }} value={content.date} onChange={e => onUpdate({ date: e.target.value })} />
+    <input style={{ background: 'transparent', border: 'none', color: 'white', textAlign: 'center', width: '100%', fontSize: '2.5rem', fontWeight: 'bold' }} value={content.title} onChange={e => onUpdate({ title: e.target.value })} />
+    <input style={{ background: 'transparent', border: 'none', color: 'var(--magenta)', textAlign: 'center', width: '100%', fontSize: '1rem' }} value={content.theme} onChange={e => onUpdate({ theme: e.target.value })} />
   </div>
 );
 
