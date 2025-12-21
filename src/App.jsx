@@ -15,6 +15,7 @@ import PhotoWall from './pages/PhotoWall';
 import './mobile-universal.css'
 import AntheroPage from './pages/AntheroPage';
 import ScotlandYardGame from './game/scotlandyard';
+import EmailViewer from './components/EmailViewer';
 function App() {
   return (
     <div className="App">
@@ -37,6 +38,7 @@ function App() {
    <Route path="/wall/:guestId?" element={<PhotoWall />} />
    <Route path="/anthero" element={<AntheroPage />} />
         <Route path="/game" element={<ScotlandYardGame />} />
+        <Route path="/viesti" element={<EmailViewer />} />
         </Routes>
       </main>
       <Footer />
