@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 
 const FieldMissions = ({ missions }) => {
@@ -7,14 +7,34 @@ const FieldMissions = ({ missions }) => {
   
   // UUSI TILA: Hallitsee listan näkyvyyttä
   const [isListOpen, setIsListOpen] = useState(false);
+  
+  // UUSI TILA: Tallentaa dynaamiset säännöt
+  const [xpConfig, setXpConfig] = useState(null);
+
+  // Haetaan säännöt komponentin latautuessa
+  useEffect(() => {
+    const fetchRules = async () => {
+      const { data } = await supabase
+        .from('game_rules')
+        .select('value')
+        .eq('rule_key', 'xp_config')
+        .single();
+      if (data) setXpConfig(data.value);
+    };
+    fetchRules();
+  }, []);
 
   const createMission = async (e) => {
     e.preventDefault();
     if (!newMissionTitle) return;
+    
+    // Käytetään dynaamista arvoa 'find_role' tai oletusta 100
+    const reward = xpConfig?.find_role || 100;
+
     await supabase.from('missions').insert({
       title: newMissionTitle,
       target_tag: newMissionTag, 
-      xp_reward: 100
+      xp_reward: reward
     });
     setNewMissionTitle(''); 
     setNewMissionTag('');
@@ -30,19 +50,22 @@ const FieldMissions = ({ missions }) => {
       const { data: existing } = await supabase.from('missions').select('target_tag');
       const existingTags = existing.map(m => m.target_tag);
 
+      // Käytetään dynaamista arvoa 'find_role' tai oletusta 150
+      const reward = xpConfig?.find_role || 150;
+
       const newMissions = uniqueRoles
         .filter(role => !existingTags.includes(role))
         .map(role => ({
           title: `Etsi ${role}`,
           description: `Etsi henkilö, jonka rooli on ${role}`,
           target_tag: role,
-          xp_reward: 150,
+          xp_reward: reward,
           is_active: true
         }));
 
       if (newMissions.length > 0) {
         await supabase.from('missions').insert(newMissions);
-        alert(`Luotu ${newMissions.length} tehtävää!`);
+        alert(`Luotu ${newMissions.length} tehtävää (arvo: ${reward} XP/kpl)!`);
       } else {
         alert("Ei uusia rooleja.");
       }

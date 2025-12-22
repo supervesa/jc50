@@ -6,8 +6,6 @@ const VettingQueue = () => {
 
   // Hae jono
   const fetchPending = async () => {
-    // KORJAUS: Poistettu "missions(title)" hausta, koska FK-linkki on poistettu
-    // Hae vain rivit ja vieraan nimi.
     const { data, error } = await supabase
       .from('mission_log')
       .select('*, guests(name)')
@@ -32,15 +30,76 @@ const VettingQueue = () => {
 
   // Hyväksy / Hylkää
   const handleAction = async (log, status) => {
-    let updates = { approval_status: status };
-    
-    // Jos hyväksytään henkilökohtainen tehtävä (jolla oli 0 XP), annetaan 500 XP
-    if (status === 'approved' && log.xp_earned === 0) {
-       updates.xp_earned = 500; 
-    }
+    try {
+      if (status === 'rejected') {
+        await supabase.from('mission_log').update({ approval_status: 'rejected' }).eq('id', log.id);
+        return;
+      }
 
-    await supabase.from('mission_log').update(updates).eq('id', log.id);
-    // fetchPending hoitaa päivityksen (Realtime hoitaa)
+      // 1. Haetaan voimassa olevat säännöt game_rules-taulusta
+      const { data: rulesData } = await supabase
+        .from('game_rules')
+        .select('value')
+        .eq('rule_key', 'xp_config')
+        .single();
+      
+      const xpConfig = rulesData?.value;
+      let updates = { approval_status: 'approved' };
+      
+      // 2. Määritetään annettava XP dynaamisesti sääntöjen perusteella
+      if (log.mission_id === 'personal-objective') {
+        // Päätehtävä: haetaan personal_objective arvo
+        updates.xp_earned = xpConfig?.personal_objective || 500; 
+      } else if (log.mission_id && (log.xp_earned === 0 || !log.xp_earned)) {
+        // Jos tavallinen tehtävä ja pisteet ovat 0, haetaan find_role
+        updates.xp_earned = xpConfig?.find_role || 50;
+      } else {
+        // Käytetään tehtävän mukana tullutta pistemäärää
+        updates.xp_earned = log.xp_earned;
+      }
+
+      // 3. Päivitetään alkuperäinen suoritus hyväksytyksi
+      await supabase.from('mission_log').update(updates).eq('id', log.id);
+
+      // 4. Milestone-tarkistus (Vain roolien etsintätehtäville)
+      if (log.mission_id && log.mission_id !== 'personal-objective' && xpConfig?.milestones) {
+        
+        // Lasketaan agentin kaikki hyväksytyt etsintätehtävät
+        const { count } = await supabase
+          .from('mission_log')
+          .select('*', { count: 'exact', head: true })
+          .eq('guest_id', log.guest_id)
+          .eq('approval_status', 'approved')
+          .not('mission_id', 'is', null)
+          .neq('mission_id', 'personal-objective');
+
+        // Tarkistetaan, täyttyykö jokin milestone-raja
+        const milestone = xpConfig.milestones.find(m => m.count === count);
+
+        if (milestone) {
+          // Tarkistetaan duplikaatit (onko tämä bonus jo myönnetty)
+          const { data: existingBonus } = await supabase
+            .from('mission_log')
+            .select('id')
+            .eq('guest_id', log.guest_id)
+            .ilike('custom_reason', `%${milestone.label}%`)
+            .single();
+
+          if (!existingBonus) {
+            // Myönnetään milestone-bonus
+            await supabase.from('mission_log').insert({
+              guest_id: log.guest_id,
+              xp_earned: milestone.bonus,
+              custom_reason: `🏆 Milestone: ${milestone.label}! (${milestone.count} agenttia löydetty)`,
+              approval_status: 'approved',
+              mission_id: null 
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Virhe hyväksynnässä:", err);
+    }
   };
 
   if (pendingLogs.length === 0) return null;
@@ -50,13 +109,10 @@ const VettingQueue = () => {
       <h2 style={{color:'gold', borderBottomColor:'gold'}}>🚨 HYVÄKSYNTÄJONO ({pendingLogs.length})</h2>
       <div className="mission-list">
         {pendingLogs.map(log => {
-          
-          // Päätellään otsikko ilman tietokantaliitosta
           const missionTitle = log.mission_id === 'personal-objective' 
             ? 'HENKILÖKOHTAINEN TEHTÄVÄ' 
             : 'MUU TEHTÄVÄ';
 
-          // Parsitaan todiste (JSON tai teksti)
           let proofText = "";
           let proofImage = null;
           try {
@@ -75,7 +131,6 @@ const VettingQueue = () => {
                   TEHTÄVÄ: {missionTitle}
                 </p>
                 
-                {/* TODISTEET */}
                 <div style={{background:'#333', padding:'10px', marginTop:'5px', borderRadius:'4px'}}>
                    <p className="small" style={{color:'#fff', fontStyle:'italic', margin:0}}>
                      "{proofText || 'Ei tekstiä'}"

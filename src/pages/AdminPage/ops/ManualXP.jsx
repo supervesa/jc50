@@ -1,32 +1,46 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 
 const ManualXP = ({ guests = [], characters = [] }) => {
   const [bonusPoints, setBonusPoints] = useState(100);
   const [bonusReason, setBonusReason] = useState('');
   const [selectedGuestId, setSelectedGuestId] = useState('');
+  const [xpConfig, setXpConfig] = useState(null);
+
+  // Haetaan oletuspisteytys konfiguraatiosta
+  useEffect(() => {
+    const fetchRules = async () => {
+      const { data } = await supabase
+        .from('game_rules')
+        .select('value')
+        .eq('rule_key', 'xp_config')
+        .single();
+      if (data && data.value) {
+        setXpConfig(data.value);
+        // Voit asettaa oletusarvoksi esim. 100 tai muun määritellyn arvon
+        setBonusPoints(data.value.manual_default || 100);
+      }
+    };
+    fetchRules();
+  }, []);
 
   // Luodaan lista dropdownia varten
   const dropdownOptions = useMemo(() => {
     if (!guests || guests.length === 0) return [];
 
-    // 1. Sanakirja nimille
     const guestMap = guests.reduce((acc, g) => { 
       acc[g.id] = g.name; 
       return acc; 
     }, {});
 
-    // 2. Yhdistetään Hahmo + Oikea nimi
     const mappedChars = characters
       .filter(c => c.assigned_guest_id && guestMap[c.assigned_guest_id])
       .map(c => ({
-        // TÄRKEÄ KORJAUS TÄSSÄ:
-        uniqueKey: c.id,            // Käytetään Reactin avaimena hahmon ID:tä (uniikki)
-        value: c.assigned_guest_id, // Käytetään arvona vieraan ID:tä (pisteitä varten)
+        uniqueKey: c.id,
+        value: c.assigned_guest_id,
         label: `🎭 ${c.name} (${guestMap[c.assigned_guest_id]})`
       }));
 
-    // 3. Fallback: Jos hahmoja ei ole, näytetään vieraat
     if (mappedChars.length === 0) {
       return guests.map(g => ({
         uniqueKey: g.id,
@@ -35,7 +49,6 @@ const ManualXP = ({ guests = [], characters = [] }) => {
       }));
     }
 
-    // Järjestetään
     return mappedChars.sort((a, b) => a.label.localeCompare(b.label));
   }, [guests, characters]);
 
@@ -73,7 +86,6 @@ const ManualXP = ({ guests = [], characters = [] }) => {
         >
           <option value="">-- Valitse listasta ({dropdownOptions.length}) --</option>
           {dropdownOptions.map(opt => (
-            // KORJAUS: key on nyt uniqueKey (hahmon id), mutta value on yhä guest_id
             <option key={opt.uniqueKey} value={opt.value}>
               {opt.label}
             </option>
@@ -95,7 +107,7 @@ const ManualXP = ({ guests = [], characters = [] }) => {
         <input 
           type="number" 
           value={bonusPoints} 
-          onChange={e => setBonusPoints(e.target.value)} 
+          onChange={e => setBonusPoints(parseInt(e.target.value) || 0)} 
           className="input-field"
           style={{width: '100px', padding: '10px'}}
         />

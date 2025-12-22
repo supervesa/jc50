@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 
 const FlashMissions = ({ activeFlash, flashCount }) => {
+  const [xpConfig, setXpConfig] = useState(null);
+
+  // Haetaan keskitetyt pisteytyssäännöt
+  useEffect(() => {
+    const fetchRules = async () => {
+      const { data } = await supabase
+        .from('game_rules')
+        .select('value')
+        .eq('rule_key', 'xp_config')
+        .single();
+      if (data) setXpConfig(data.value);
+    };
+    fetchRules();
+  }, []);
   
   const startFlash = async (type, title, xp) => {
     // 1. VAROTOIMI: Suljetaan ensin KAIKKI vanhat aktiiviset tehtävät (poistaa haamut)
@@ -34,14 +48,26 @@ const FlashMissions = ({ activeFlash, flashCount }) => {
         </div>
       ) : (
         <div className="flash-buttons">
-          <button className="btn-flash mob" onClick={() => startFlash('mob', 'KAIKKI TANSSILATTIALLE!', 100)}>
-            💃 MOB
+          {/* Käytetään dynaamisia XP-arvoja tietokannasta tai oletuksia */}
+          <button 
+            className="btn-flash mob" 
+            onClick={() => startFlash('mob', 'KAIKKI TANSSILATTIALLE!', xpConfig?.flash_mob || 100)}
+          >
+            💃 MOB ({xpConfig?.flash_mob || 100} XP)
           </button>
-          <button className="btn-flash race" onClick={() => startFlash('race', 'NOPEUSKISA!', 500)}>
-            🏁 RACE
+          
+          <button 
+            className="btn-flash race" 
+            onClick={() => startFlash('race', 'NOPEUSKISA!', xpConfig?.flash_race || 500)}
+          >
+            🏁 RACE ({xpConfig?.flash_race || 500} XP)
           </button>
-          <button className="btn-flash photo" onClick={() => startFlash('photo', 'OTA YHTEISSELFIE NYT!', 200)}>
-            📸 FOTO
+          
+          <button 
+            className="btn-flash photo" 
+            onClick={() => startFlash('photo', 'OTA YHTEISSELFIE NYT!', xpConfig?.flash_photo || 200)}
+          >
+            📸 FOTO ({xpConfig?.flash_photo || 200} XP)
           </button>
         </div>
       )}

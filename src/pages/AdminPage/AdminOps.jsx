@@ -1,40 +1,44 @@
 import React from 'react';
-// Varmista että polut ovat oikein suhteessa tähän tiedostoon
+// Tuodaan komponentit ops-alikansiosta
 import VettingQueue from './ops/VettingQueue';
 import FlashMissions from './ops/FlashMissions';
 import FieldMissions from './ops/FieldMissions';
 import ManualXP from './ops/ManualXP';
 import AdminVault from './ops/AdminVault'; 
 
+// Tuodaan AdminScoring samasta kansiosta missä AdminOps on
+import AdminScoring from './AdminScoring'; 
+
 const AdminOps = ({ 
   activeFlash, 
   flashCount, 
-  missions = [], // Lisätty oletusarvo [] kaatumisen estämiseksi
+  missions = [], 
   guests, 
   characters,
-  startFlash, // <--- UUSI: Funktio tehtävän aloittamiseen
-  stopFlash   // <--- UUSI: Funktio tehtävän lopettamiseen
+  startFlash, 
+  stopFlash   
 }) => {
   return (
     <>
-      {/* 1. Hyväksyntäjono (Hakee datansa itse) */}
+      {/* 0. PISTEYTYKSEN HALLINTA */}
+      <AdminScoring />
+
+      {/* 1. Hyväksyntäjono */}
       <VettingQueue />
 
-      {/* 2. Flash-tehtävät (Nyt mukana kontrollit start/stop) */}
+      {/* 2. Flash-tehtävät */}
       <FlashMissions 
         activeFlash={activeFlash} 
         flashCount={flashCount} 
-        startFlash={startFlash} // Välitetään eteenpäin
-        stopFlash={stopFlash}   // Välitetään eteenpäin
       />
 
-      {/* 3. Etsintäkuulutukset (Saa datan propseina) */}
+      {/* 3. Etsintäkuulutukset */}
       <FieldMissions missions={missions} />
 
-      {/* 4. Manuaaliset pisteet (Saa vieraslistan propseina) */}
+      {/* 4. Manuaaliset pisteet */}
       <ManualXP guests={guests} characters={characters} />
 
-      {/* 5. Salakapakka (Hakee datansa itse) */}
+      {/* 5. Salakapakka */}
       <AdminVault />
     </>
   );

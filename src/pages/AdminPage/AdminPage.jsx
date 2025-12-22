@@ -16,7 +16,7 @@ const AdminPage = () => {
     voteCounts, 
     guests, 
     characters, 
-    missions,       // <--- TÄMÄ OLI AIEMMIN, MUTTA Sitä EI VÄLITETTY ETEENPÄIN
+    missions,       // Haetaan missiot datasta
     activeFlash, 
     flashCount, 
     startFlash, 
@@ -42,7 +42,7 @@ const AdminPage = () => {
 
       {activeTab === 'LIVEWALL' && (
         <AdminLiveWallControl 
-          liveState={liveState || { mode: 'FEED' }} // Estä kaatuminen jos null
+          liveState={liveState || { mode: 'FEED' }} 
           setLiveMode={setLiveMode} 
           setBroadcast={setBroadcast} 
         />
@@ -58,8 +58,8 @@ const AdminPage = () => {
           flashCount={flashCount} 
           startFlash={startFlash} 
           stopFlash={stopFlash}
-          missions={missions || []} // <--- KORJAUS: Välitetään missions, ja varmistetaan ettei se ole null
-          guests={guests}           // Välitetään myös nämä jos AdminOps tarvitsee
+          missions={missions || []} // Välitetään missiot AdminOpsille
+          guests={guests}           
           characters={characters}
         />
       )}
