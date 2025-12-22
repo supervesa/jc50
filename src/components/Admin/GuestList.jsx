@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Download, Grid, List, 
   Database, UserPlus, Users, 
-  Trophy, Link as LinkIcon, AlertCircle 
+  Trophy, Link as LinkIcon, AlertCircle, 
+  CheckCircle, HelpCircle // Lisätty ikoni kysymyksille
 } from 'lucide-react';
-import './AdminPage.css'; // Käytetään samoja tyylejä
+import './AdminPage.css'; 
 
-function GuestList({ guests, splits = [], characters = [] }) {
+function GuestList({ guests, splits = [], characters = [], feedbacks = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL'); 
   const [viewMode, setViewMode] = useState('GRID'); 
@@ -19,17 +20,26 @@ function GuestList({ guests, splits = [], characters = [] }) {
       const mainCharacter = myChars.find(c => !c.is_spouse_character) || myChars[0];
       const spouseCharacter = myChars.find(c => c.is_spouse_character && c.id !== mainCharacter?.id);
 
-      // 2. Onko tämä vieras "lapsi" (splitattu)?
+      // 2. Splitit
       const splitAsChild = splits.find(s => s.child_guest_id === g.id);
       const parentName = splitAsChild 
         ? guests.find(p => p.id === splitAsChild.parent_guest_id)?.name 
         : null;
 
-      // 3. Onko tällä vieraalla "lapsia" (splitannut avecin)?
       const splitAsParent = splits.find(s => s.parent_guest_id === g.id);
       const childName = splitAsParent 
         ? guests.find(c => c.id === splitAsParent.child_guest_id)?.name 
         : null;
+
+      // 3. Hyväksyntä ja Status (KORJATTU LOGIIKKA)
+      // Haetaan kaikki tälle vieraalle kuuluvat palauterivit
+      const myFeedbacks = feedbacks.filter(f => f.guest_id === g.id);
+      
+      // Onko JOKIN riveistä 'accepted'? (Korjaa ongelman, jossa vanha 'resolved' piilotti hyväksynnän)
+      const isAccepted = myFeedbacks.some(f => f.status === 'accepted');
+      
+      // Onko vireillä oleva kysymys? (Jos ei ole hyväksytty, mutta on pending)
+      const hasPendingQuestion = !isAccepted && myFeedbacks.some(f => f.status === 'pending_feedback');
 
       return { 
         ...g, 
@@ -39,15 +49,18 @@ function GuestList({ guests, splits = [], characters = [] }) {
         parentName,
         isParent: !!splitAsParent,
         childName,
-        childId: splitAsParent?.child_guest_id
+        childId: splitAsParent?.child_guest_id,
+        isAccepted,        // Tosi, jos yksikin hyväksyntä löytyy
+        hasPendingQuestion // Tosi, jos ei hyväksytty mutta kysymys auki
       };
     });
-  }, [guests, splits, characters]);
+  }, [guests, splits, characters, feedbacks]); 
 
   // --- LASKURI (HUD STATS) ---
   const stats = useMemo(() => {
-    const realGuests = guests.length; // Tietokannan rivit
+    const realGuests = guests.length; 
     let ghostAvecs = 0;
+    let acceptedCount = 0;
 
     guests.forEach(g => {
       const isSplit = splits.some(s => s.parent_guest_id === g.id);
@@ -55,9 +68,11 @@ function GuestList({ guests, splits = [], characters = [] }) {
         ghostAvecs++;
       }
     });
+    
+    acceptedCount = enrichedGuests.filter(g => g.isAccepted).length;
 
-    return { total: realGuests + ghostAvecs, real: realGuests, ghosts: ghostAvecs };
-  }, [guests, splits]);
+    return { total: realGuests + ghostAvecs, real: realGuests, ghosts: ghostAvecs, accepted: acceptedCount };
+  }, [guests, splits, enrichedGuests]);
 
   // --- SUODATUS ---
   const filteredGuests = useMemo(() => {
@@ -71,6 +86,8 @@ function GuestList({ guests, splits = [], characters = [] }) {
       if (filterType === 'NO_CHAR') matchesFilter = !guest.mainCharacter;
       if (filterType === 'AVEC') matchesFilter = guest.brings_spouse || guest.isChild; 
       if (filterType === 'DIET') matchesFilter = guest.dietary_restrictions && guest.dietary_restrictions.length > 0;
+      if (filterType === 'ACCEPTED') matchesFilter = guest.isAccepted;
+      if (filterType === 'PENDING') matchesFilter = guest.hasPendingQuestion; // Uusi suodatin kysymyksille
 
       return matchesSearch && matchesFilter;
     });
@@ -79,7 +96,7 @@ function GuestList({ guests, splits = [], characters = [] }) {
   // --- CSV LATAUS ---
   const downloadCSV = () => {
     if (enrichedGuests.length === 0) return;
-    const headers = ["Nimi,Sähköposti,Status,Avec/Linkki,Allergiat,Hahmo,Rooli"];
+    const headers = ["Nimi,Sähköposti,Status,Avec/Linkki,Allergiat,Hahmo,Rooli,Hyväksytty,Kysymys"];
     
     const rows = enrichedGuests.map(g => {
       const safeDiet = g.dietary_restrictions ? `"${g.dietary_restrictions.replace(/"/g, '""')}"` : "-";
@@ -100,9 +117,11 @@ function GuestList({ guests, splits = [], characters = [] }) {
 
       const charName = g.mainCharacter ? `"${g.mainCharacter.name}"` : "-";
       const charRole = g.mainCharacter ? `"${g.mainCharacter.role}"` : "-";
+      const acceptedStr = g.isAccepted ? "Kyllä" : "Ei";
+      const pendingStr = g.hasPendingQuestion ? "Kyllä" : "-";
       
       return [
-        `"${g.name}"`, g.email, status, linkInfo, safeDiet, charName, charRole
+        `"${g.name}"`, g.email, status, linkInfo, safeDiet, charName, charRole, acceptedStr, pendingStr
       ].join(",");
     });
     
@@ -117,12 +136,36 @@ function GuestList({ guests, splits = [], characters = [] }) {
     document.body.removeChild(link);
   };
 
-  const allDiets = guests.filter(g => g.dietary_restrictions).map(g => g.dietary_restrictions);
+  // --- CATERING YHTEENVETO (UUSI LOGIIKKA) ---
+  const cateringStats = useMemo(() => {
+    const counts = {};
+    guests.forEach(g => {
+      if (!g.dietary_restrictions) return;
+      // Pilkotaan pilkulla, poistetaan tyhjät välit
+      const diets = g.dietary_restrictions.split(',').map(d => d.trim()).filter(Boolean);
+      
+      diets.forEach(diet => {
+        counts[diet] = (counts[diet] || 0) + 1;
+      });
+    });
+    
+    // Muutetaan arrayksi ja järjestetään yleisimmästä harvinaisimpaan
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [guests]);
 
   return (
     <div>
-      {/* 1. HUD STATS ROW */}
-      <div className="jc-card guest-stats-row">
+      {/* 1. HUD STATS ROW (PÄIVITETTY LAYOUT) */}
+      <div 
+        className="jc-card guest-stats-row" 
+        style={{ 
+          display: 'grid', 
+          // Neljä saraketta isolla, pienemmällä joustaa (minimi 200px)
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '15px', 
+          marginBottom: '20px' 
+        }}
+      >
         
         <div className="stat-box turquoise">
           <div className="stat-label">
@@ -145,19 +188,26 @@ function GuestList({ guests, splits = [], characters = [] }) {
           <div className="stat-value">{stats.total}</div>
         </div>
 
+        <div className="stat-box" style={{borderColor: 'var(--lime)', color: 'var(--lime)'}}>
+          <div className="stat-label" style={{color: 'var(--lime)'}}>
+            <CheckCircle size={16} /> Hyväksynyt
+          </div>
+          <div className="stat-value">{stats.accepted}</div>
+        </div>
+
       </div>
 
-      {/* 2. CATERING ALERT (Vain jos allergioita) */}
-      {allDiets.length > 0 && (
+      {/* 2. CATERING ALERT (PÄIVITETTY: Ei tuplia) */}
+      {cateringStats.length > 0 && (
         <div className="jc-card small mb-2" style={{borderColor:'#ffaa00', background:'rgba(255, 170, 0, 0.05)'}}>
           <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'0.5rem'}}>
             <AlertCircle size={16} color="#ffaa00"/>
             <h4 className="small text-gold" style={{ margin: 0 }}>CATERING HUOMIOT</h4>
           </div>
           <div style={{display:'flex', flexWrap:'wrap', gap:'8px'}}>
-            {allDiets.map((diet, i) => (
+            {cateringStats.map(([diet, count], i) => (
               <span key={i} className="jc-badge" style={{borderColor:'#ffaa00', color:'#ffaa00', fontSize:'0.75rem'}}>
-                {diet}
+                {diet} <strong>({count})</strong>
               </span>
             ))}
           </div>
@@ -181,10 +231,12 @@ function GuestList({ guests, splits = [], characters = [] }) {
         </div>
 
         {/* Suodattimet */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button onClick={() => setFilterType('ALL')} className={`jc-cta ${filterType === 'ALL' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Kaikki</button>
           <button onClick={() => setFilterType('AVEC')} className={`jc-cta ${filterType === 'AVEC' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Avecit</button>
           <button onClick={() => setFilterType('DIET')} className={`jc-cta ${filterType === 'DIET' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Allergiat</button>
+          <button onClick={() => setFilterType('ACCEPTED')} className={`jc-cta ${filterType === 'ACCEPTED' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Hyväksyneet</button>
+          <button onClick={() => setFilterType('PENDING')} className={`jc-cta ${filterType === 'PENDING' ? 'primary' : 'ghost'}`} style={{padding:'0.5rem 1rem', fontSize:'0.9rem'}}>Kysymykset</button>
         </div>
 
         {/* Näkymävalinta & Lataus */}
@@ -209,7 +261,7 @@ function GuestList({ guests, splits = [], characters = [] }) {
             <div key={guest.id} className="jc-col-4" style={{minWidth:'300px'}}>
               <div className="jc-card small" style={{height:'100%', position:'relative', overflow:'hidden'}}>
                 
-                {/* Lapsi-indikaattori (Väriraita vasemmalla) */}
+                {/* Lapsi-indikaattori */}
                 {guest.isChild && (
                   <div style={{position:'absolute', left:0, top:0, bottom:0, width:'4px', background:'var(--turquoise)'}}></div>
                 )}
@@ -226,7 +278,42 @@ function GuestList({ guests, splits = [], characters = [] }) {
                          <LinkIcon size={12}/> Kutsunut: {guest.parentName}
                        </div>
                     )}
-                    <h3 style={{margin:0, color:'var(--cream)', fontSize:'1.1rem'}}>{guest.name}</h3>
+                    
+                    <h3 style={{margin:0, color:'var(--cream)', fontSize:'1.1rem', display:'flex', alignItems:'center', gap:'8px', flexWrap: 'wrap'}}>
+                      {guest.name}
+                      {/* APPRO-BADGE */}
+                      {guest.isAccepted && (
+                        <span style={{
+                          fontSize: '0.6rem', 
+                          background: 'rgba(0,255,65,0.1)', 
+                          color: '#00ff41', 
+                          border: '1px solid #00ff41',
+                          padding: '2px 4px',
+                          borderRadius: '4px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Appro.
+                        </span>
+                      )}
+                      {/* PENDING QUESTION BADGE */}
+                      {guest.hasPendingQuestion && (
+                        <span style={{
+                          fontSize: '0.6rem', 
+                          background: 'rgba(255,165,0,0.1)', 
+                          color: 'orange', 
+                          border: '1px solid orange',
+                          padding: '2px 4px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}>
+                          <HelpCircle size={10} /> Kysymys
+                        </span>
+                      )}
+                    </h3>
+
                     <div className="small" style={{opacity:0.6}}>{guest.email}</div>
                   </div>
                   
@@ -247,7 +334,7 @@ function GuestList({ guests, splits = [], characters = [] }) {
                     </div>
                   )}
 
-                  {/* Roolit - KORJATTU LINKIT (/agent?id=UUID) */}
+                  {/* Roolit */}
                   <div style={{display:'flex', flexDirection:'column', gap:'5px'}}>
                     {guest.mainCharacter ? (
                       <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
@@ -267,7 +354,7 @@ function GuestList({ guests, splits = [], characters = [] }) {
                       <span className="small" style={{opacity:0.3}}>Ei roolia</span>
                     )}
                     
-                    {/* Avecin rooli (jos "haamu" tai muuten saatavilla) */}
+                    {/* Avecin rooli */}
                     {guest.spouseCharacter && (
                       <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
                         <Trophy size={14} color="var(--plasma-gold)"/> 
@@ -324,7 +411,35 @@ function GuestList({ guests, splits = [], characters = [] }) {
               {filteredGuests.map(g => (
                 <tr key={g.id} style={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
                   <td style={{padding:'10px'}}>
-                    {g.name}
+                    <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                      {g.name}
+                      {/* APPRO-BADGE LISTASSA */}
+                      {g.isAccepted && (
+                        <span style={{
+                          fontSize: '0.6rem', 
+                          background: 'rgba(0,255,65,0.1)', 
+                          color: '#00ff41', 
+                          border: '1px solid #00ff41',
+                          padding: '2px 4px',
+                          borderRadius: '4px',
+                          textTransform: 'uppercase'
+                        }}>
+                          Appro.
+                        </span>
+                      )}
+                      {g.hasPendingQuestion && (
+                        <span style={{
+                          fontSize: '0.6rem', 
+                          background: 'rgba(255,165,0,0.1)', 
+                          color: 'orange', 
+                          border: '1px solid orange',
+                          padding: '2px 4px',
+                          borderRadius: '4px',
+                        }}>
+                          ?
+                        </span>
+                      )}
+                    </div>
                     <div className="small" style={{opacity:0.5}}>{g.email}</div>
                   </td>
                   <td style={{padding:'10px'}}>

@@ -7,8 +7,8 @@ import CharacterFactory from '../../components/Admin/CharacterFactory';
 import RelationManager from '../../components/Admin/RelationManager';
 import CharacterCasting from '../../components/Admin/CharacterCasting'; 
 import GuestManager from '../../components/Admin/GuestManager';
-// KORJAUS: Oikea polku on kaksi tasoa ylös (../../) komponenttikansioon
-import EmailComposer from '../../components/EmailComposer';
+import EmailComposer from '../../components/EmailComposer'; // Tämä rivi oli koodissasi, annoin olla
+import MessageCenter from '../../components/MessageCenter';
 
 function SecretPage() {
   const [activeTab, setActiveTab] = useState('GUESTS'); 
@@ -19,6 +19,7 @@ function SecretPage() {
   const [characters, setCharacters] = useState([]);
   const [relationships, setRelationships] = useState([]);
   const [splits, setSplits] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]); // <--- UUSI: Tila palautteille
 
   // --- DATAHAKU ---
   const refreshData = async () => {
@@ -29,11 +30,15 @@ function SecretPage() {
       const { data: cData } = await supabase.from('characters').select('*').order('name');
       const { data: rData } = await supabase.from('character_relationships').select('*');
       const { data: sData } = await supabase.from('guest_splits').select('*');
+      
+      // <--- UUSI: Haetaan hyväksynnät
+      const { data: fData } = await supabase.from('character_feedback').select('*');
 
       // Päivitetään tilat
       if (cData) setCharacters(cData);
       if (rData) setRelationships(rData);
       if (sData) setSplits(sData);
+      if (fData) setFeedbacks(fData); // <--- UUSI: Tallennus
 
       // Yhdistetään vieraisiin hahmot valmiiksi
       if (gData && cData) {
@@ -64,6 +69,8 @@ function SecretPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'characters' }, refreshData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'guest_splits' }, refreshData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'character_relationships' }, refreshData)
+      // <--- UUSI: Kuunnellaan palautteita
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'character_feedback' }, refreshData)
       .subscribe();
 
     return () => {
@@ -95,6 +102,7 @@ function SecretPage() {
               guests={guests} 
               characters={characters} 
               splits={splits}
+              feedbacks={feedbacks} /* <--- UUSI PROP */
               onUpdate={refreshData} 
             />
           )}
@@ -129,13 +137,14 @@ function SecretPage() {
               guests={guests} 
               characters={characters} 
               splits={splits} 
+              feedbacks={feedbacks} /* <--- UUSI PROP */
               onUpdate={refreshData} 
             />
           )}
 
-          {/* UUSI TAB: Viestien lähetys */}
+          {/* UUSI TAB: Viestien lähetys & Inbox */}
           {activeTab === 'EMAIL' && (
-            <EmailComposer />
+             <MessageCenter />
           )}
         </>
       )}

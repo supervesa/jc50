@@ -8,6 +8,7 @@ import TicketHeader from './TicketHeader';
 import CharacterCard from './CharacterCard';
 import GuestInfo from './GuestInfo';
 import PhotoFeed from './PhotoFeed';
+import CharacterAcceptance from './CharacterAcceptance';
 
 function TicketPage() {
   const { id } = useParams();
@@ -235,6 +236,14 @@ function TicketPage() {
                 uploading={uploading} 
               />
             ))
+          )}
+          {/* --- UUSI KOMPONENTTI TÄSSÄ --- */}
+          {/* Näytetään vain jos hahmoja on löytynyt */}
+          {myCharacters.length > 0 && (
+            <CharacterAcceptance 
+               guestId={id} 
+               characterCount={myCharacters.length} 
+            />
           )}
 
           <GuestInfo 

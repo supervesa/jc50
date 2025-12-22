@@ -9,7 +9,7 @@ const SAFE_MODE_EMAILS = [
   import.meta.env.VITE_ADMIN_EMAIL_2?.toLowerCase().trim()
 ].filter(Boolean);
 
-export default function EmailComposer() {
+export default function EmailComposer({ initialRecipient }) { // <--- LISÄTTY PROP
   const [activeTab, setActiveTab] = useState('recipients');
   const [editorMode, setEditorMode] = useState('code'); // 'code' tai 'visual'
   const [loading, setLoading] = useState(true);
