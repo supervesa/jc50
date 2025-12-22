@@ -1510,3 +1510,138 @@ html {
   margin-bottom: 1rem;
   align-items: center;
 }
+
+/* Uudet tyylit PhotoFeedille */
+
+.action-buttons-row {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.upload-btn-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  flex: 1;
+  transition: transform 0.1s;
+}
+
+.upload-btn-label:active {
+  transform: scale(0.95);
+}
+
+.upload-btn-label.primary {
+  background: linear-gradient(135deg, #00e7ff 0%, #0099ff 100%);
+  color: #000;
+  box-shadow: 0 4px 15px rgba(0, 231, 255, 0.3);
+}
+
+.upload-btn-label.secondary {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+}
+
+.upload-btn-label span {
+  margin-top: 5px;
+  font-size: 0.9rem;
+}
+
+.wall-link {
+  color: #00e7ff;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 10px;
+  display: block;
+}
+
+/* Omat kuvat lista */
+.my-photos-section {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 30px;
+  padding-bottom: 50px;
+}
+
+.section-title {
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.photo-card {
+  background: #222;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.photo-thumb-wrapper {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #000;
+}
+
+.photo-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-meta {
+  padding: 10px;
+}
+
+.photo-msg {
+  font-size: 0.8rem;
+  color: #ccc;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.photo-actions {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #333;
+  padding-top: 8px;
+}
+
+.action-icon-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.action-icon-btn:hover {
+  color: #fff;
+}
+
+.action-icon-btn.danger:hover {
+  color: #ff4444;
+}
+
+.empty-state {
+  color: #666;
+  font-style: italic;
+  margin-top: 20px;
+}
