@@ -735,3 +735,17 @@ h2 {
 .btn-save-scoring:active {
     transform: scale(0.98);
 }
+
+.admin-content-scrollable {
+  /* 1. Ottaa kaiken tilan otsikon ja alareunan välistä */
+  flex: 1; 
+  
+  /* 2. SALLII VIERITYKSEN TÄMÄN ELEMENTIN SISÄLLÄ */
+  overflow-y: auto; 
+  
+  /* 3. Pehmeä vieritys iPhonelle */
+  -webkit-overflow-scrolling: touch; 
+  
+  padding: 20px;
+  padding-bottom: 120px; /* Reilu tila alas, ettei sisältö jää puhelimen alareunan alle */
+}

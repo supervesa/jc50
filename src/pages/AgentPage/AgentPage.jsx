@@ -16,6 +16,7 @@ import AgentMissions from './components/AgentMissions';
 import VaultTab from './VaultTab';     
 import RewardOverlay from './RewardOverlay'; 
 import HeistPersonalScoreboard from './HeistPersonalScoreboard';
+import { Home, MessageSquare, Briefcase, Lock, Unlock } from 'lucide-react';
 
 const AgentPage = () => {
   const [searchParams] = useSearchParams();
@@ -92,13 +93,42 @@ const AgentPage = () => {
         />
       )}
 
-      {/* 3. NAVIGAATIO TABIT */}
+   {/* 3. NAVIGAATIO TABIT */}
       <div className="ap-tabs">
-        <button className={activeTab === 'HOME' ? 'active' : ''} onClick={() => setActiveTab('HOME')}>🏠 KOTI</button>
-        <button className={activeTab === 'CHAT' ? 'active' : ''} onClick={() => setActiveTab('CHAT')}>💬 CHAT</button>
-        <button className={activeTab === 'MISSIONS' ? 'active' : ''} onClick={() => setActiveTab('MISSIONS')}>🕵️ TEHTÄVÄT</button>
-        <button className={activeTab === 'VAULT' ? 'active' : ''} onClick={() => setActiveTab('VAULT')}>
-           {isVaultActive ? '🔓 HOLVI' : '🔒 HOLVI'}
+        <button 
+          className={activeTab === 'HOME' ? 'active' : ''} 
+          onClick={() => setActiveTab('HOME')}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+        >
+          <Home size={20} />
+          <span>KOTI</span>
+        </button>
+
+        <button 
+          className={activeTab === 'CHAT' ? 'active' : ''} 
+          onClick={() => setActiveTab('CHAT')}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+        >
+          <MessageSquare size={20} />
+          <span>CHAT</span>
+        </button>
+
+        <button 
+          className={activeTab === 'MISSIONS' ? 'active' : ''} 
+          onClick={() => setActiveTab('MISSIONS')}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+        >
+          <Briefcase size={20} />
+          <span>TEHTÄVÄT</span>
+        </button>
+
+        <button 
+          className={activeTab === 'VAULT' ? 'active' : ''} 
+          onClick={() => setActiveTab('VAULT')}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+        >
+          {isVaultActive ? <Unlock size={20} /> : <Lock size={20} />}
+          <span>{isVaultActive ? 'AUKI' : 'HOLVI'}</span>
         </button>
       </div>
 

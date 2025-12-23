@@ -59,14 +59,6 @@ const PhotoWall = () => {
     };
   }, []);
 
-  useEffect(() => {
-    fetchPhotos();
-    
-    // Polling: Päivitetään seinä 10s välein
-    const interval = setInterval(fetchPhotos, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div id="photo-wall" className="wall-container">
       

@@ -6,7 +6,7 @@ import '../AgentPage.css';
 
 const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNavigate, onOpenScoreboard, hasVoted, onVote }) => {
   
-  // Haetaan livetilasto (Sijoitus, XP, Seuraava kohde)
+  // Haetaan livetilasto
   const { myStats, loading } = useHeistData(identity.id);
 
   const isLeader = myStats?.rank === 1;
@@ -17,17 +17,21 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
   return (
     <div 
       className="dashboard-container" 
-      // KORJAUS: Lisätään reilu padding alas, jotta sisältöä voi rullata osoitepalkin "yli"
-      style={{ paddingBottom: '140px', minHeight: '100vh' }}
+      // KORJAUS 1: 100dvh ja safe-area varmistavat, ettei mikään jää Androidin palkkien alle
+      style={{ 
+        paddingBottom: 'calc(140px + env(safe-area-inset-bottom))', 
+        minHeight: '100dvh' 
+      }}
     >
       
-      {/* 1. HERO KORTTI (Sijoitus & Seuraava kohde) */}
+      {/* 1. HERO KORTTI */}
       <div className="dash-card hero-card" onClick={onOpenScoreboard}>
         <div className="hero-top">
           <div className="hero-avatar-area">
              <div className="hero-avatar">
               {identity.avatar ? (
-                <img src={identity.avatar} alt="Avatar" />
+                // KORJAUS 2: pointerEvents: 'none' estää selainta avaamasta kuvaa "katselutilaan"
+                <img src={identity.avatar} alt="Avatar" style={{ pointerEvents: 'none' }} />
               ) : (
                 <div className="hero-avatar-placeholder">{identity.realName?.charAt(0)}</div>
               )}
@@ -41,7 +45,7 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
           </div>
         </div>
 
-        {/* SEURAAVA KOHDE (Gamification) */}
+        {/* SEURAAVA KOHDE */}
         {!loading && !isLeader && myStats?.nextName && (
           <div className="hero-target-section">
             <div className="target-label"><Target size={14} /> SEURAAVA KOHDE</div>
@@ -63,7 +67,7 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
         </div>
       </div>
 
-      {/* 2. UUSI: LIVE POLL */}
+      {/* 2. LIVE POLL */}
       {activePoll && (
         <DashboardPoll 
           poll={activePoll} 
@@ -72,7 +76,7 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
         />
       )}
 
-      {/* 3. STICKY MISSION (Pysyvä tehtäväkortti) */}
+      {/* 3. NYKYINEN TEHTÄVÄ */}
       <div className="section-title">NYKYINEN TEHTÄVÄ</div>
       
       {nextMission ? (
@@ -95,14 +99,11 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
 
       {/* 4. ALERTS & SHORTCUTS */}
       <div className="dash-grid">
-        
-        {/* Tehtävät-pikavalinta */}
         <div className="dash-stat" onClick={() => onNavigate('MISSIONS')}>
            <span className="stat-label">TEHTÄVÄLISTA</span>
            <span className="stat-value">AVAA ➜</span>
         </div>
 
-        {/* HOLVI */}
         <div 
           className={`dash-stat vault ${isVaultActive ? 'open' : 'closed'}`}
           onClick={() => onNavigate('VAULT')}
@@ -112,7 +113,6 @@ const AgentDashboard = ({ identity, nextMission, isVaultActive, activePoll, onNa
       </div>
 
       {/* 5. CHAT NAVIGAATIO */}
-      {/* Lisätty margin-bottom varmistamaan ettei nappi ole ihan kiinni reunassa */}
       <button 
         className="btn-big-chat" 
         onClick={() => onNavigate('CHAT')}
