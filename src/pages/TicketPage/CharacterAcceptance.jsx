@@ -12,25 +12,52 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- LOGIIKKA (Pysyy samana, koska se toimi oikein) ---
+  // --- LOGIIKKA (PÄIVITETTY HAKEMAAN UUSIN RIVI) ---
   useEffect(() => {
     if (!guestId) return;
+
     const fetchStatus = async () => {
-      const { data } = await supabase.from('character_feedback').select('status').eq('guest_id', guestId).single();
+      // MUUTOS: Haetaan aikajärjestyksessä uusin rivi (created_at descending),
+      // jotta nähdään viimeisin tila, vaikka historiassa olisi vanhoja rivejä.
+      const { data } = await supabase
+        .from('character_feedback')
+        .select('status')
+        .eq('guest_id', guestId)
+        .order('created_at', { ascending: false }) // Uusin ensin
+        .limit(1)
+        .maybeSingle(); // Turvallisempi kuin .single() jos rivejä on nolla tai useita
+
       if (data) setSavedStatus(data.status);
       setLoading(false);
     };
     fetchStatus();
 
+    // MUUTOS: Kuunnellaan kaikkia tapahtumia ('*'), eli myös INSERT.
+    // Kun vieras lähettää uuden viestin, se on INSERT-tapahtuma.
     const channel = supabase.channel(`feedback:${guestId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'character_feedback', filter: `guest_id=eq.${guestId}`}, 
-      (payload) => setSavedStatus(payload.new.status))
+      .on(
+        'postgres_changes', 
+        { 
+          event: '*', // Kuuntelee: INSERT, UPDATE, DELETE
+          schema: 'public', 
+          table: 'character_feedback', 
+          filter: `guest_id=eq.${guestId}`
+        }, 
+        (payload) => {
+          // Jos uusi rivi luodaan tai vanhaa päivitetään, otetaan uusi status talteen
+          if (payload.new && payload.new.status) {
+            setSavedStatus(payload.new.status);
+          }
+        }
+      )
       .subscribe();
+
     return () => supabase.removeChannel(channel);
   }, [guestId]);
 
   const handleAccept = async () => {
     setIsSubmitting(true);
+    // Koska guest_id:llä ei ole unique-rajoitetta, tämä luo uuden rivin historiaan (mikä on ok).
     const { error } = await supabase.from('character_feedback').upsert({ guest_id: guestId, status: 'accepted', message: null });
     if (!error) { setSavedStatus('accepted'); setViewState('idle'); }
     setIsSubmitting(false);
@@ -39,6 +66,7 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
   const handleSendFeedback = async () => {
     if (!message.trim()) return;
     setIsSubmitting(true);
+    // Tämä luo uuden rivin pinon päälle tilalla 'pending_feedback'
     const { error } = await supabase.from('character_feedback').upsert({ guest_id: guestId, status: 'pending_feedback', message: message });
     if (!error) { setSavedStatus('pending_feedback'); setViewState('idle'); setMessage(''); }
     setIsSubmitting(false);

@@ -2,11 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import DeleteGuestButton from './DeleteGuestButton';
 import CreateGuestModal from './CreateGuestModal';
+import MemoryLane from './MemoryLane';
 import './AdminPage.css';
-// Tuodaan Lucide-ikonit (lisäsin muutaman toiminnallisen ikonin kuten Trash2 ja Share2)
 import { 
   Zap, Target, ArrowLeft, Trophy, Diamond, Wine, Clock, 
-  Share2, Plus, Search, AlertCircle 
+  Share2, Plus, Search, AlertCircle, Edit2, Save, History 
 } from 'lucide-react';
 
 // --- APUKOMPONENTIT ---
@@ -14,12 +14,11 @@ import {
 const StatusBadge = ({ type, active, tooltip }) => {
   if (!active) return null;
   
-  // Määritellään ikonit ja värit
   const styles = {
     CHAR:   { icon: <Trophy size={16} />, color: 'var(--turquoise)' },
     SPLIT:  { icon: <Zap size={16} />,    color: 'var(--magenta)' },
     SPOUSE: { icon: <Wine size={16} />,   color: 'var(--plasma-gold)' }, 
-    ERROR:  { icon: <Clock size={16} />,  color: '#ffaa00' } // "Odottaa" on parempi kuin error
+    ERROR:  { icon: <Clock size={16} />,  color: '#ffaa00' }
   };
 
   const s = styles[type] || styles.ERROR;
@@ -49,9 +48,13 @@ const StatusBadge = ({ type, active, tooltip }) => {
 const GuestManager = ({ guests, characters, splits, onUpdate }) => {
   const [selectedGuest, setSelectedGuest] = useState(null); 
   const [showCreateModal, setShowCreateModal] = useState(false); 
+  const [showHistory, setShowHistory] = useState(false); // Toggle Memory Lanelle
   const [searchTerm, setSearchTerm] = useState('');
   
-  // --- DATAN RIKASTUS (Pysyy samana) ---
+  // Editointitila (Detail view)
+  const [isEditing, setIsEditing] = useState(false);
+
+  // --- DATAN RIKASTUS ---
   const enrichedGuests = useMemo(() => {
     return guests.map(g => {
       const myChars = characters.filter(c => c.assigned_guest_id === g.id);
@@ -108,12 +111,18 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
 
   const handleDeleteSuccess = () => {
     setSelectedGuest(null);
+    setIsEditing(false); // Resetoi tila
     onUpdate(); 
   };
 
   const handleCreateSuccess = () => {
     setShowCreateModal(false);
     onUpdate(); 
+  };
+
+  const handleSelectGuest = (g) => {
+    setSelectedGuest(g);
+    setIsEditing(false); // Aina read-only kun avataan uusi kortti
   };
 
   const handleUpdate = async (id, updates) => {
@@ -181,9 +190,8 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
           </div>
           
           {/* TOOLBAR */}
-          <div className="jc-toolbar" style={{display:'flex', gap:'10px', marginBottom:'2rem', alignItems:'center'}}>
-            <div className="jc-form" style={{flex:1, marginBottom:0, position:'relative'}}>
-              {/* Hakukuvake inputin sisällä */}
+          <div className="jc-toolbar" style={{display:'flex', gap:'10px', marginBottom:'2rem', alignItems:'center', flexWrap:'wrap'}}>
+            <div className="jc-form" style={{flex:1, minWidth:'200px', marginBottom:0, position:'relative'}}>
               <Search size={18} style={{position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'var(--muted)'}} />
               <input 
                 type="text" 
@@ -201,6 +209,13 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
             >
               <Plus size={18} /> Lisää
             </button>
+            <button 
+              onClick={() => setShowHistory(!showHistory)} 
+              className={`jc-cta ${showHistory ? 'primary' : 'outline'}`}
+              style={{padding:'0.8rem 1.2rem', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:'8px'}}
+            >
+              <History size={18} /> Arkisto
+            </button>
           </div>
 
           <div className="manager-list">
@@ -208,7 +223,7 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
               <div 
                 key={g.id} 
                 className="jc-card guest-list-card" 
-                onClick={() => setSelectedGuest(g)}
+                onClick={() => handleSelectGuest(g)}
               >
                 <div className="item-main">
                   <div className="item-name">{g.name}</div>
@@ -233,6 +248,9 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
               </div>
             ))}
           </div>
+
+          {/* MEMORY LANE (SIVUN JATKONA) */}
+          {showHistory && <MemoryLane />}
         </div>
       )}
 
@@ -241,14 +259,26 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
         <div className="manager-detail-view">
           
           {/* HEADER */}
-          <div className="detail-header">
-            <button onClick={() => setSelectedGuest(null)} className="btn-back">
-               <ArrowLeft size={20} /> Takaisin
-            </button>
-            <div style={{fontWeight:'bold', color:'var(--cream)', display:'flex', alignItems:'center', gap:'10px'}}>
-              <Diamond size={16} color="var(--turquoise)" />
-              {selectedGuest.name}
+          <div className="detail-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                <button onClick={() => setSelectedGuest(null)} className="btn-back">
+                   <ArrowLeft size={20} /> Takaisin
+                </button>
+                <div style={{fontWeight:'bold', color:'var(--cream)', display:'flex', alignItems:'center', gap:'10px'}}>
+                  <Diamond size={16} color="var(--turquoise)" />
+                  {selectedGuest.name}
+                </div>
             </div>
+            
+            {/* EDIT MODE TOGGLE */}
+            <button 
+              onClick={() => setIsEditing(!isEditing)} 
+              className={`jc-btn ${isEditing ? 'primary' : 'ghost'}`}
+              style={{padding:'6px 12px', fontSize:'0.9rem', display:'flex', alignItems:'center', gap:'6px'}}
+            >
+              {isEditing ? <Save size={16} /> : <Edit2 size={16} />}
+              {isEditing ? 'Muokkaus aktiivinen' : 'Muokkaa'}
+            </button>
           </div>
 
           {/* CONTENT */}
@@ -282,10 +312,11 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
                     <input 
                       type="text" 
                       defaultValue={selectedGuest.name}
+                      disabled={!isEditing} // LUKITTU JOS EI EDIT
                       onBlur={(e) => {
                         if(e.target.value !== selectedGuest.name) handleUpdate(selectedGuest.id, {name: e.target.value});
                       }}
-                      className="jc-input-custom" 
+                      className={`jc-input-custom ${!isEditing ? 'readonly-input' : ''}`} 
                     />
                   </div>
                   <div className="jc-field">
@@ -293,20 +324,22 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
                     <input 
                       type="email" 
                       defaultValue={selectedGuest.email}
+                      disabled={!isEditing}
                       onBlur={(e) => {
                         if(e.target.value !== selectedGuest.email) handleUpdate(selectedGuest.id, {email: e.target.value});
                       }}
-                      className="jc-input-custom" 
+                      className={`jc-input-custom ${!isEditing ? 'readonly-input' : ''}`}
                     />
                   </div>
                   <div className="jc-field">
                     <label>Erityisruokavaliot</label>
                     <textarea 
                       defaultValue={selectedGuest.dietary_restrictions}
+                      disabled={!isEditing}
                       onBlur={(e) => {
                         if(e.target.value !== selectedGuest.dietary_restrictions) handleUpdate(selectedGuest.id, {dietary_restrictions: e.target.value});
                       }}
-                      className="jc-input-custom"
+                      className={`jc-input-custom ${!isEditing ? 'readonly-input' : ''}`}
                       rows="2"
                     />
                   </div>
@@ -338,12 +371,13 @@ const GuestManager = ({ guests, characters, splits, onUpdate }) => {
                         type="email"
                         defaultValue={selectedGuest.splitEmail || ""}
                         placeholder="Lisää sähköposti..."
+                        disabled={!isEditing}
                         onBlur={(e) => {
                            if (e.target.value !== selectedGuest.splitEmail) {
                               handleSplitUpdate(selectedGuest.id, { email: e.target.value });
                            }
                         }}
-                        className="jc-input-custom"
+                        className={`jc-input-custom ${!isEditing ? 'readonly-input' : ''}`}
                         style={{borderColor: 'rgba(255, 0, 229, 0.3)'}}
                       />
                       <div className="jc-help">Päivittää linkitystaulun tiedot.</div>
