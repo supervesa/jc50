@@ -80,11 +80,15 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderRadius: '8px'
+          borderRadius: '8px',
+          gap: '10px',        // Lisätty väli elementtien väliin
+          flexWrap: 'wrap'    // SALLII RIVITYKSEN MOBIILISSA
         }}>
-          <div>
+          <div style={{ flex: '1 1 auto', minWidth: '200px' }}> {/* Joustava leveys */}
             <span style={{ color: '#888', fontSize: '0.9rem', display: 'block' }}>NYT NÄYTÖLLÄ:</span>
-            <strong style={{ fontSize: '1.2rem', color: '#fff' }}>"{liveState.broadcast_message}"</strong>
+            <strong style={{ fontSize: '1.2rem', color: '#fff', wordBreak: 'break-word' }}> {/* Rivitys pitkälle sanalle */}
+              "{liveState.broadcast_message}"
+            </strong>
           </div>
           <button 
             onClick={clearBroadcast} 
@@ -95,7 +99,9 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
               padding: '8px 16px', 
               cursor: 'pointer',
               fontWeight: 'bold',
-              borderRadius: '4px'
+              borderRadius: '4px',
+              flexShrink: 0,      // Estää nappia kutistumasta kasaan
+              whiteSpace: 'nowrap' // Estää tekstin katkeamisen napin sisällä
             }}
           >
             POISTA X
