@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
+import PhotoModerator from './PhotoModerator'; 
 
 const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
   const [msg, setMsg] = useState('');
 
   const handleBroadcast = (e) => {
     e.preventDefault();
-    if (!msg.trim()) return; // Estä tyhjät viestit
+    if (!msg.trim()) return;
     setBroadcast(msg);
-    setMsg(''); // Tyhjennä kenttä lähetyksen jälkeen
+    setMsg('');
   };
 
   const clearBroadcast = () => setBroadcast('');
 
   return (
     <div className="admin-section">
-      <h2>📺 LIVEWALL MODE</h2>
+      <h2 className="jc-h2">📺 LIVEWALL MODE</h2>
       
-      {/* MODE BUTTONS */}
+      {/* 1. MOODIN VALINTA */}
       <div className="mode-buttons" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '30px' }}>
         <button 
           onClick={() => setLiveMode('FEED')}
@@ -27,7 +28,8 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
             background: liveState.mode === 'FEED' ? '#00ff41' : '#222',
             color: liveState.mode === 'FEED' ? '#000' : '#888',
             border: liveState.mode === 'FEED' ? '2px solid #fff' : '1px solid #444',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            borderRadius: '8px'
           }}
         >
           🖼️ FEED
@@ -41,7 +43,8 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
             background: liveState.mode === 'STATS' ? '#ff00ff' : '#222',
             color: liveState.mode === 'STATS' ? '#fff' : '#888',
             border: liveState.mode === 'STATS' ? '2px solid #fff' : '1px solid #444',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            borderRadius: '8px'
           }}
         >
           📊 STATS
@@ -55,18 +58,19 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
             background: liveState.mode === 'BLACKOUT' ? 'red' : '#222',
             color: '#fff',
             border: liveState.mode === 'BLACKOUT' ? '2px solid #fff' : '1px solid #444',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            borderRadius: '8px'
           }}
         >
           ⬛ BLACKOUT
         </button>
       </div>
 
-      <hr style={{ borderColor: '#333', margin: '20px 0' }} />
+      <hr style={{ borderColor: '#333', margin: '30px 0' }} />
 
-      <h2>📢 BROADCAST MESSAGE (TICKER)</h2>
+      {/* 2. BROADCAST VIESTI */}
+      <h2 className="jc-h2">📢 BROADCAST MESSAGE (TICKER)</h2>
       
-      {/* ACTIVE MESSAGE DISPLAY */}
       {liveState.broadcast_message && (
         <div style={{
           background: 'rgba(0, 255, 255, 0.1)', 
@@ -88,7 +92,7 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
               background: '#ff3333', 
               color: 'white', 
               border: 'none', 
-              padding: '10px 20px', 
+              padding: '8px 16px', 
               cursor: 'pointer',
               fontWeight: 'bold',
               borderRadius: '4px'
@@ -99,17 +103,16 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
         </div>
       )}
 
-      {/* INPUT FORM - KORJATTU TYYLIT */}
-         <form onSubmit={handleBroadcast} style={{ display: 'flex', gap: '15px', width: '100%' }}>
+      <form onSubmit={handleBroadcast} style={{ display: 'flex', gap: '15px', width: '100%', marginBottom: '40px' }}>
         <input 
           value={msg} 
           onChange={e => setMsg(e.target.value)} 
           placeholder="KIRJOITA VIESTI TÄHÄN (esim. Bussi lähtee!)..." 
           style={{
-            flex: '1',       // TÄMÄ ON TÄRKEÄ: Ottaa kaiken vapaan tilan (kasvaa)
-            width: 'auto',   // Varmistetaan ettei leveys rajoita
+            flex: '1',
+            width: 'auto',
             padding: '15px 20px',
-            fontSize: '1.2rem',
+            fontSize: '1.1rem',
             background: '#111',
             border: '2px solid #444',
             color: '#fff',
@@ -120,20 +123,29 @@ const AdminLiveWallControl = ({ liveState, setLiveMode, setBroadcast }) => {
           type="submit" 
           className="btn-create"
           style={{
-            // YLIKIRJOITETAAN GLOBAALIT TYYLIT:
-            flex: '0 0 auto', // Älä kasva, älä kutistu, ole automaattinen
-            width: 'auto',    // TÄRKEÄ: Kumoaa "width: 100%" asetuksen
-            minWidth: '150px',
+            flex: '0 0 auto',
+            width: 'auto',
+            minWidth: '120px',
             padding: '0 30px',
-            fontSize: '1.2rem',
+            fontSize: '1.1rem',
             fontWeight: 'bold',
             whiteSpace: 'nowrap',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            background: 'var(--magenta)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px'
           }}
         >
           LÄHETÄ 📢
         </button>
       </form>
+
+      {/* 3. KUVAMODEROINTI */}
+      <div style={{borderTop: '1px solid #444', paddingTop: '20px'}}>
+        <PhotoModerator />
+      </div>
+
     </div>
   );
 };

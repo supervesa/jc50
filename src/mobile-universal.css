@@ -13,40 +13,48 @@
     margin: 0;
     padding: 0;
     width: 100%;
-    background-color: #121212; /* Tumma tausta ettei valkoinen vilku */
-    overflow-x: hidden; /* Estää sivuttaisheilunnan */
-    -webkit-text-size-adjust: 100%; /* Estää fontin skaalauksen käännössä */
+    background-color: #121212;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    /* Estää "pomppimisen" iOS:llä */
+    overscroll-behavior-y: none; 
   }
 
-  /* 3. PÄÄKONTAINERIT (Lisää tähän kaikki sivujesi pää-ID:t) */
+  /* 3. NORMAALIT RULLAAVAT SIVUT (Ticket, Feed, Wall...) */
+  /* POISTETTU #admin-page TÄSTÄ LISTASTA */
   #ticket-page,
   #photo-feed,
   #photo-wall,
   #live-wall,
-  #agent-page,
-  #admin-page {
-    /* TÄRKEÄ: 100dvh huomioi mobiiliselaimen osoitepalkin liikkeet */
+  #agent-page {
     min-height: 100vh;
-    min-height: 100dvh; 
-    
+    min-height: 100dvh; /* Huomioi osoitepalkin */
     width: 100%;
     max-width: 100vw;
-    
-
-    
-    /* Flow-root estää margin-collapsen (valkoiset raot ylhäällä) */
-    display: flow-root; 
-    
-    /* Nollataan oletuspaddingit, komponentti hoitaa itse */
+    display: flow-root; /* Estää margin-collapsen */
     padding: 0;
-    
-    /* Varmistus asemointiin */
     position: relative;
     overflow-x: hidden;
   }
 
-  /* 4. Yleinen padding alas, jotta sisältö ei jää 'home barin' alle iPhonella */
-  /* Voit käyttää tätä luokkaa: <div className="mobile-safe-padding"> */
+  /* 4. ADMIN APP (Mission Control) - Erityiskäsittely */
+  /* Tämä on "sovellusnäkymä", joka ei saa kasvaa yli ruudun */
+  #admin-page {
+    height: 100vh;
+    height: 100dvh; /* TÄRKEÄ: Pakottaa tasan ruudun korkuiseksi */
+    width: 100%;
+    max-width: 100vw;
+    
+    /* Palautetaan Flexbox, jotta header pysyy kiinni ja sisältö rullaa */
+    display: flex; 
+    flex-direction: column;
+    
+    overflow: hidden; /* Estää ulkokuoren rullauksen */
+    position: relative;
+    padding: 0;
+  }
+
+  /* 5. Safe Area Padding (iPhone Home Bar) */
   .mobile-safe-padding {
     padding-bottom: 120px; 
     padding-bottom: calc(100px + env(safe-area-inset-bottom));

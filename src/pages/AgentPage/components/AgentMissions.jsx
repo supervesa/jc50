@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../lib/supabaseClient';
 import PersonalMissionCard from '../PersonalMissionCard'; 
 
 const MissionCard = ({ mission, submitCode }) => {
@@ -7,6 +8,7 @@ const MissionCard = ({ mission, submitCode }) => {
 
   const handleSubmit = async () => {
     setLoading(true);
+    // Lähetetään päivitetty mission-objekti (jossa uusi XP) eteenpäin
     const success = await submitCode(mission, code);
     if (success) setCode('');
     setLoading(false);
@@ -17,6 +19,7 @@ const MissionCard = ({ mission, submitCode }) => {
       <div className="mission-badge">WANTED</div>
       <div className="mission-header">
         <div className="mission-title">{mission.title}</div>
+        {/* Näyttää nyt dynaamisen pistemäärän */}
         <div className="mission-xp">{mission.xp_reward} XP</div>
       </div>
       <div className="mission-action">
@@ -31,14 +34,31 @@ const MissionCard = ({ mission, submitCode }) => {
 };
 
 const AgentMissions = ({ 
-  missions, // Tämä on nyt valmiiksi hookissa sekoitettu "visibleMissions"
+  missions, 
   completedIds, 
   guestId, 
   submitCode, secretMission, personalMissionStatus, onPersonalReport 
 }) => {
   
-  // LOGIIKKA POISTETTU TÄÄLTÄ: Ei enää useMemo tai shuffling.
-  // Komponentti on nyt "tyhmä" ja näyttää vain sen mitä propsina tulee.
+  // Tila dynaamiselle XP-arvolle (Hahmon löytäminen)
+  const [findRoleXp, setFindRoleXp] = useState(null);
+
+  // Haetaan pisteytyssäännöt
+  useEffect(() => {
+    const fetchRules = async () => {
+      const { data } = await supabase
+        .from('game_rules')
+        .select('value')
+        .eq('rule_key', 'xp_config')
+        .single();
+      
+      // Jos "find_role" on asetettu adminissa, käytetään sitä
+      if (data && data.value && data.value.find_role) {
+        setFindRoleXp(data.value.find_role);
+      }
+    };
+    fetchRules();
+  }, []);
 
   return (
     <div className="ap-mission-list">
@@ -53,9 +73,21 @@ const AgentMissions = ({
 
       <div className="mission-intro"><p>ETSINTÄKUULUTUKSET</p></div>
 
-      {missions.map(m => (
-        <MissionCard key={m.id} mission={m} submitCode={submitCode} />
-      ))}
+      {missions.map(m => {
+        // LOGIIKKA: Jos meillä on dynaaminen 'find_role' arvo, ylikirjoitetaan tehtävän XP.
+        // Muuten käytetään alkuperäistä.
+        const activeMission = findRoleXp 
+          ? { ...m, xp_reward: findRoleXp } 
+          : m;
+
+        return (
+          <MissionCard 
+            key={m.id} 
+            mission={activeMission} 
+            submitCode={submitCode} 
+          />
+        );
+      })}
       
       {missions.length === 0 && !secretMission && (
         <div className="no-missions"><h3>KAIKKI SUORITETTU!</h3></div>

@@ -178,8 +178,10 @@ export const useAgentData = (guestId) => {
     return !error; 
   };
 
+  // --- PÄIVITETTY: STEALTH UPLOAD LOGIIKKA ---
   const submitPersonalReport = async (reportText, imageUrl) => {
     try {
+      // 1. Mission Log (Pelaajan oma status)
       const { data: existingLog } = await supabase
         .from('mission_log')
         .select('id')
@@ -190,27 +192,38 @@ export const useAgentData = (guestId) => {
       const proofPayload = JSON.stringify({ text: reportText, image: imageUrl });
 
       if (existingLog) {
-        const { error } = await supabase
-          .from('mission_log')
-          .update({
+        await supabase.from('mission_log').update({
             approval_status: 'pending',
             proof_data: proofPayload,
             created_at: new Date().toISOString()
-          })
-          .eq('id', existingLog.id);
-        if (error) throw error;
+          }).eq('id', existingLog.id);
       } else {
-        const { error } = await supabase
-          .from('mission_log')
-          .insert({
+        await supabase.from('mission_log').insert({
             guest_id: guestId,
             mission_id: 'personal-objective',
             xp_earned: 0,
             approval_status: 'pending',
             proof_data: proofPayload
           });
-        if (error) throw error;
       }
+
+      // 2. Live Posts (Adminin hyväksyntäjono) - LISÄTTY
+      if (reportText || imageUrl) {
+        // Määritetään lähettäjän nimi (Hahmo tai oikea nimi)
+        const sender = identity?.charName || identity?.realName || 'Salainen Agentti';
+        
+        await supabase.from('live_posts').insert({
+          guest_id: guestId,
+          sender_name: sender,
+          message: `🕵️ SALAINEN RAPORTTI: ${reportText || '(Vain kuva)'}`,
+          image_url: imageUrl,
+          is_visible: false,           // TÄRKEÄ: Ei näy seinällä
+          status: 'pending',           // TÄRKEÄ: Odottaa hyväksyntää
+          flag_type: 'mission_proof',  // TÄRKEÄ: Admin tunnistaa tästä
+          is_deleted: false
+        });
+      }
+
       setPersonalMissionStatus('pending');
       alert("Raportti lähetetty päämajaan!");
     } catch (error) {
@@ -262,7 +275,7 @@ export const useAgentData = (guestId) => {
 
   const nextMission = visibleMissions.length > 0 ? visibleMissions[0] : null;
 
-  // --- RETURN (TÄMÄ ON NYT OIKEASSA PAIKASSA SULKUJEN SISÄLLÄ) ---
+  // --- RETURN ---
   return {
     loading,
     identity,
@@ -288,4 +301,4 @@ export const useAgentData = (guestId) => {
     submitPersonalReport,
     submitCode 
   };
-}; // <--- TÄRKEÄ: Tämä sulkee useAgentData-funktion
+};

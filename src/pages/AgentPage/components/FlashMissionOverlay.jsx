@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import '../AgentPage.css'; // Tuodaan tyylit (jotka luodaan kohta)
+import '../AgentPage.css'; // Tuodaan tyylit
 
 const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
   const [flashFile, setFlashFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // Tämä oli aiemmin pääsivulla, nyt se on siististi täällä
   const handleFlashAction = async () => {
     if (!activeFlash) return;
 
@@ -35,19 +34,18 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
         publicUrl = data.publicUrl;
       }
 
-      // 2. TALLENNETAAN VASTAUS
+      // 2. TALLENNETAAN VASTAUS (Peliä varten)
       const responseData = { 
         flash_id: activeFlash.id, 
         guest_id: guestId,
         image_url: publicUrl 
       };
       
-      // Poistetaan undefined kentät varmuuden vuoksi
       if (!publicUrl) delete responseData.image_url;
 
       await supabase.from('flash_responses').insert(responseData);
 
-      // 3. TALLENNETAAN XP JA LOGI
+      // 3. TALLENNETAAN XP JA LOGI (Pisteitä varten)
       await supabase.from('mission_log').insert({ 
         guest_id: guestId, 
         xp_earned: activeFlash.xp_reward, 
@@ -55,6 +53,21 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
         custom_reason: `Flash: ${activeFlash.title}`, 
         approval_status: 'approved' 
       });
+
+      // 4. (UUSI) LISÄTÄÄN LIVEWALLILLE (Jos on kuva)
+      // Tämä varmistaa että kuva näkyy seinällä ja adminin feedissä
+      if (publicUrl) {
+        await supabase.from('live_posts').insert({
+          guest_id: guestId,
+          sender_name: 'Flash Agent', // LiveWall rikastaa tämän myöhemmin oikealla nimellä guest_id:n perusteella
+          image_url: publicUrl,
+          message: `FLASH: ${activeFlash.title}`, // Kuvatekstiksi tehtävän otsikko
+          is_visible: true, // Pakotetaan näkyviin heti
+          status: 'approved',
+          is_deleted: false,
+          flag_type: 'flash' // <--- TÄMÄ ON SE VIP-LIPPU
+        });
+      }
 
       // Ilmoitetaan pääsivulle, että valmista tuli
       if (onComplete) onComplete();
