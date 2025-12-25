@@ -1,6 +1,8 @@
 /* EmailStyles.css - Neon Gatsby Teema */
 
 :root {
+  color-scheme: light dark;
+  supported-color-schemes: light dark;
   --bg-deep: #0b0b10;
   --cream: #F7F5E6;
   --magenta: #FF00E5;
@@ -11,7 +13,26 @@
   --card-radius: 14px;
 }
 
-/* Yleiset */
+/* Yleiset & Reset */
+body, .email-container {
+  background-color: #0b0b10 !important;
+  color: #F7F5E6 !important;
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+img {
+  display: block;
+  border: 0;
+  height: auto;
+  line-height: 100%;
+  outline: none;
+  text-decoration: none;
+  -ms-interpolation-mode: bicubic;
+}
+
 .jc-hero-block {
   text-align: center;
   padding: 20px;
@@ -28,7 +49,7 @@
   font-family: 'Josefin Sans', sans-serif;
   font-size: 3.5rem;
   font-weight: bold;
-  color: white;
+  color: white !important;
   text-transform: uppercase;
   text-shadow: 0 0 20px var(--magenta);
   margin: 0;
@@ -39,18 +60,17 @@
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
   font-size: 1.8rem;
-  color: var(--turquoise);
+  color: var(--turquoise) !important;
   text-transform: uppercase;
   background: linear-gradient(90deg, var(--plasma-gold) 0%, var(--magenta) 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
   margin: 0;
 }
 
 .jc-text-p {
   font-family: 'Montserrat', sans-serif;
-  color: var(--cream);
+  color: var(--cream) !important;
   font-size: 1rem;
   line-height: 1.6;
   opacity: 0.9;
@@ -61,7 +81,7 @@
   margin: 0;
   border-radius: var(--card-radius);
   padding: 20px;
-  background: #0b0b10; /* Editorin tausta */
+  background: #0b0b10;
 }
 
 /* Ticket */
@@ -94,7 +114,7 @@
 
 .jc-cta-primary {
   background: linear-gradient(135deg, #b000e6, var(--magenta));
-  color: #fff;
+  color: #fff !important;
   padding: 12px 20px;
   border-radius: 10px;
   text-align: center;
@@ -144,7 +164,7 @@
   50% { transform: scale(1.1); opacity: 1; }
 }
 
-/* Action Box (Kymppikuva) */
+/* Action Box */
 .action-box {
   background: rgba(0, 231, 255, 0.03);
   border: 1px dashed var(--turquoise);
@@ -168,7 +188,7 @@
 .privacy-box {
   border: 1px solid var(--sun);
   background: rgba(255, 165, 0, 0.05);
-  color: #ffeab0;
+  color: #ffeab0 !important;
 }
 
 .info-box {
@@ -178,7 +198,7 @@
 .jc-input {
   background: transparent;
   border: none; 
-  color: var(--turquoise);
+  color: var(--turquoise) !important;
   font-size: 1.2rem;
   width: 100%;
 }
@@ -186,7 +206,7 @@
 .jc-textarea {
   background: transparent;
   border: none;
-  color: var(--cream);
+  color: var(--cream) !important;
   width: 100%;
   resize: none;
 }

@@ -1,15 +1,29 @@
 /**
  * HtmlGenerator.js
- * Generoi HTML-koodin käyttäen CSS-luokkia.
- * HUOM: Netlify backendin (juice) tulee hoitaa inlining lopullisessa lähetyksessä.
+ * Generoi HTML-koodin ja pakottaa Dark Moden metatiedoilla.
  */
 
 // TÄHÄN KOPIOIDAAN SAMA CSS KUIN EmailStyles.css-TIEDOSTOON
-// Jotta se kulkee HTML:n mukana esikatseluun ja sähköpostiin.
 const EMAIL_CSS = `
-  :root { --bg-deep:#0b0b10; --cream:#F7F5E6; --magenta:#FF00E5; --turquoise:#00E7FF; --lime:#ADFF2F; --sun:#FFA500; --plasma-gold:#D4AF37; --card-radius:14px; }
-  body { margin:0; padding:0; background-color:#0b0b10; color:#F7F5E6; font-family:"Montserrat", sans-serif; }
-  .email-container { width:100%; background-color:#0b0b10; padding-bottom:4rem; }
+  :root { 
+    color-scheme: light dark; 
+    supported-color-schemes: light dark;
+    --bg-deep:#0b0b10; --cream:#F7F5E6; --magenta:#FF00E5; --turquoise:#00E7FF; --lime:#ADFF2F; --sun:#FFA500; --plasma-gold:#D4AF37; --card-radius:14px; 
+  }
+  
+  /* Reset ja Dark Mode Pakotus */
+  body, .email-container { 
+    margin:0; padding:0; 
+    background-color:#0b0b10 !important; 
+    color:#F7F5E6 !important; 
+    font-family:"Montserrat", sans-serif; 
+    mso-line-height-rule: exactly;
+  }
+  
+  /* Kuvien korjaus (poistaa haamu-välit) */
+  img { display:block; border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+  
+  .email-container { width:100%; padding-bottom:4rem; }
   .jc-wrapper { max-width:800px; margin:0 auto; padding:2rem; }
   .jc-card { background:rgba(5,7,10,0.65); border-radius:14px; padding:2rem; margin-bottom:2.5rem; border:1px solid rgba(255,255,255,0.1); }
   
@@ -40,7 +54,6 @@ const EMAIL_CSS = `
 
 export const renderBlockToHtml = (block) => {
   const { type, content } = block;
-  // HUOM: Usein käärimme lohkot valmiiksi luokkiin, jotta välykset toimivat
   
   switch (type) {
     case 'hero':
@@ -134,13 +147,16 @@ export const renderBlockToHtml = (block) => {
 
 export const assembleFullHtml = (content) => `
 <!DOCTYPE html>
-<html lang="fi">
+<html lang="fi" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@700&family=Montserrat:wght@400;600&family=Outfit:wght@300;400;800&display=swap" rel="stylesheet">
     <style>${EMAIL_CSS}</style>
-</head>
-<body>
+    </head>
+<body style="margin:0;padding:0;word-spacing:normal;background-color:#0b0b10;">
     <div class="email-container">
         <div style="text-align:center; padding:15px 0; font-size:10px; color:#444; font-family:sans-serif;">
             Eikö viesti näy oikein? <a href="{{browser_link}}" style="color:#00E7FF; text-decoration:underline;">Avaa selainversio tästä.</a>
