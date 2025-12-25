@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
-const juice = require('juice'); // <--- TÄMÄ ON SE UUSI TAIKA
+import juice from 'juice'; // <--- KÄYTÄ TÄTÄ (ei require)
 
 const SAFETY_MODE = true; 
 const ALLOWED_EMAILS = ['vesa.nessling@gmail.com', 'saikkonen.jukka@outlook.com'];
@@ -20,7 +20,22 @@ export const handler = async (event) => {
 
   try {
     const { characterIds, subject, htmlTemplate, textTemplate, templateId } = JSON.parse(event.body);
-    const optimizedHtml = juice(htmlTemplate);
+   
+    // DEBUG: Tarkistetaan onko HTML olemassa
+    if (!htmlTemplate) {
+       console.error("VIRHE: htmlTemplate puuttuu!");
+       return { statusCode: 400, body: "HTML Template missing" };
+    }
+
+    // Aja Juice turvallisesti
+    let optimizedHtml = htmlTemplate;
+    try {
+        optimizedHtml = juice(htmlTemplate);
+    } catch (err) {
+        console.error("JUICE VIRHE:", err);
+        // Jos juice epäonnistuu, jatketaan alkuperäisellä HTML:llä ettei koko lähetys kaadu
+    }
+    
     const { data: characters, error: fetchError } = await supabase
       .from('characters')
       .select('id, name, is_spouse_character, pre_assigned_email, assigned_guest_id, guests:assigned_guest_id(name, email, spouse_name)')
