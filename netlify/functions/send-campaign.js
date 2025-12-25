@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
+const juice = require('juice'); // <--- TÄMÄ ON SE UUSI TAIKA
 
 const SAFETY_MODE = true; 
 const ALLOWED_EMAILS = ['vesa.nessling@gmail.com', 'saikkonen.jukka@outlook.com'];
@@ -19,7 +20,7 @@ export const handler = async (event) => {
 
   try {
     const { characterIds, subject, htmlTemplate, textTemplate, templateId } = JSON.parse(event.body);
-
+    const optimizedHtml = juice(htmlTemplate);
     const { data: characters, error: fetchError } = await supabase
       .from('characters')
       .select('id, name, is_spouse_character, pre_assigned_email, assigned_guest_id, guests:assigned_guest_id(name, email, spouse_name)')

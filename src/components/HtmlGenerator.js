@@ -1,111 +1,134 @@
 /**
  * HtmlGenerator.js
- * Globaali 2.5rem välys kaikille lohkoille.
+ * Generoi HTML-koodin käyttäen CSS-luokkia.
+ * HUOM: Netlify backendin (juice) tulee hoitaa inlining lopullisessa lähetyksessä.
  */
+
+// TÄHÄN KOPIOIDAAN SAMA CSS KUIN EmailStyles.css-TIEDOSTOON
+// Jotta se kulkee HTML:n mukana esikatseluun ja sähköpostiin.
+const EMAIL_CSS = `
+  :root { --bg-deep:#0b0b10; --cream:#F7F5E6; --magenta:#FF00E5; --turquoise:#00E7FF; --lime:#ADFF2F; --sun:#FFA500; --plasma-gold:#D4AF37; --card-radius:14px; }
+  body { margin:0; padding:0; background-color:#0b0b10; color:#F7F5E6; font-family:"Montserrat", sans-serif; }
+  .email-container { width:100%; background-color:#0b0b10; padding-bottom:4rem; }
+  .jc-wrapper { max-width:800px; margin:0 auto; padding:2rem; }
+  .jc-card { background:rgba(5,7,10,0.65); border-radius:14px; padding:2rem; margin-bottom:2.5rem; border:1px solid rgba(255,255,255,0.1); }
+  
+  .jc-h1 { font-family:"Josefin Sans"; font-size:3.5rem; color:white; text-shadow:0 0 20px #FF00E5; text-align:center; margin:0; line-height:1; }
+  .jc-h2 { font-family:"Outfit"; font-weight:800; font-size:1.8rem; color:#00E7FF; text-transform:uppercase; margin:0 0 10px 0; }
+  .jc-p { font-family:"Montserrat"; font-size:1rem; line-height:1.6; color:#F7F5E6; opacity:0.9; margin:0; }
+  
+  .agent-hero-btn { display:flex; align-items:center; background:rgba(0,231,255,0.05); border:1px solid #00E7FF; padding:15px; border-radius:12px; margin-bottom:2.5rem; text-decoration:none; }
+  .agent-icon-box { width:50px; height:50px; background:#00E7FF; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-right:15px; position:relative; }
+  .ping-ring { position:absolute; inset:0; border-radius:10px; border:2px solid #00E7FF; animation:ping 2s infinite; }
+  
+  .ticket-wrapper { border:1px solid #00E7FF; background:rgba(0,0,0,0.6); padding:2rem; margin-bottom:2.5rem; border-radius:14px; }
+  .ticket-header { display:flex; justify-content:space-between; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem; }
+  .ticket-status { color:#ADFF2F; border:1px solid #ADFF2F; padding:2px 8px; border-radius:4px; font-family:monospace; font-size:0.7rem; }
+  .character-box { border-left:4px solid #FF00E5; background:rgba(255,0,229,0.1); padding:2rem; margin:1.5rem 0; }
+  .jc-cta { background:linear-gradient(135deg, #b000e6, #FF00E5); color:white; padding:1.2rem 2.5rem; border-radius:12px; font-weight:bold; text-decoration:none; display:inline-block; text-align:center; }
+  
+  .action-box { background:rgba(0,231,255,0.05); border:1px dashed #00E7FF; border-radius:12px; padding:2rem; text-align:center; margin-bottom:2.5rem; }
+  .camera-icon { font-size:2.5rem; margin-bottom:1rem; animation:pulse 2s infinite; }
+  
+  .points-box { border:1px solid #ADFF2F; background:rgba(173,255,47,0.05); padding:2rem; border-radius:14px; margin-bottom:2.5rem; }
+  .privacy-box { border:1px solid #FFA500; background:rgba(255,165,0,0.05); color:#ffeab0; padding:1rem; border-radius:8px; margin-bottom:2.5rem; font-size:0.85rem; }
+  
+  @keyframes ping { 75%, 100% { transform:scale(1.4); opacity:0; } }
+  @keyframes pulse { 0%, 100% { transform:scale(1); opacity:0.8; } 50% { transform:scale(1.1); opacity:1; } }
+  .small { font-size:0.75rem; color:#00E7FF; text-transform:uppercase; letter-spacing:0.1em; }
+`;
 
 export const renderBlockToHtml = (block) => {
   const { type, content } = block;
-  const wrap = (html) => `<div style="padding-bottom: 2.5rem;">${html}</div>`;
-
+  // HUOM: Usein käärimme lohkot valmiiksi luokkiin, jotta välykset toimivat
+  
   switch (type) {
     case 'hero':
-      return wrap(`
-        <div class="jc-hero">
-          <p class="small" style="letter-spacing: 0.3em; text-transform: uppercase; color: var(--turquoise);">${content.date}</p>
-          <h1 class="jc-h1" style="padding: 0 1.5rem;">${content.title}</h1>
-          <p class="lead" style="text-transform: uppercase; letter-spacing: 0.1em; color: var(--magenta);">Theme: ${content.theme}</p>
-        </div>`);
+      return `
+        <div style="text-align:center; padding:2rem 0 2.5rem 0;">
+          <p class="small" style="margin-bottom:10px;">${content.date}</p>
+          <h1 class="jc-h1">${content.title}</h1>
+          <p class="small" style="color:#FF00E5; margin-top:10px;">Theme: ${content.theme}</p>
+        </div>`;
 
-    case 'h1':
-      return wrap(`<h1 class="jc-h1" style="margin: 0; text-align: center; padding: 0 1.5rem;">${content.text}</h1>`);
-    
-    case 'h2':
-      return wrap(`<h2 class="jc-h2" style="margin: 0; text-align: left; padding: 0 1rem;">${content.text}</h2>`);
-    
-    case 'p':
-      return wrap(`<p style="margin: 0; line-height: 1.7; font-family: 'Montserrat'; color: var(--cream); opacity: 0.9; padding: 0 1rem;">${content.text}</p>`);
+    case 'h1': return `<h1 class="jc-h1" style="padding-bottom:2.5rem;">${content.text}</h1>`;
+    case 'h2': return `<h2 class="jc-h2" style="padding-bottom:1rem;">${content.text}</h2>`;
+    case 'p': return `<p class="jc-p" style="padding-bottom:2.5rem;">${content.text}</p>`;
 
     case 'agent':
-      return wrap(`
-        <div class="agent-hero-container">
-          <div class="agent-hero-btn" style="display: flex; align-items: center; background: rgba(0, 231, 255, 0.05); border: 1px solid var(--turquoise); padding: 15px; border-radius: 12px; text-decoration: none;">
-            <div class="agent-icon-box" style="width: 50px; height: 50px; background: var(--turquoise); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px; position: relative; flex-shrink: 0;">
-              <span style="font-size: 24px;">📱</span>
-              <div class="ping-ring"></div>
-            </div>
-            <div class="agent-text-box">
-              <span style="font-size: 0.7rem; color: var(--turquoise); text-transform: uppercase; letter-spacing: 1px;">TEHTÄVÄT & VIESTIT</span><br/>
-              <span style="font-family: 'Outfit'; font-weight: 800; color: #fff; font-size: 1rem;">AVAA SALAINEN KOMMUNIKAATTORI</span>
-            </div>
+      return `
+        <div class="agent-hero-btn">
+          <div class="agent-icon-box"><span style="font-size:24px;">📱</span><div class="ping-ring"></div></div>
+          <div style="display:flex; flex-direction:column;">
+            <span class="small">TEHTÄVÄT & VIESTIT</span>
+            <span style="font-family:'Outfit'; font-weight:800; color:white; font-size:1rem;">AVAA SALAINEN KOMMUNIKAATTORI</span>
           </div>
-        </div>`);
+        </div>`;
 
     case 'ticket':
-      return wrap(`
-        <div class="jc-card ticket-wrapper">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-            <span style="font-family: 'Outfit'; font-weight: 800; color: var(--cream); font-size: 0.75rem;">ACCESS PASS_v2.0</span>
-            <span style="font-family: monospace; color: var(--lime); border: 1px solid var(--lime); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">CONFIRMED</span>
+      return `
+        <div class="ticket-wrapper">
+          <div class="ticket-header">
+            <span style="font-family:'Outfit'; font-weight:800; color:#F7F5E6; font-size:0.75rem;">ACCESS PASS_v2.0</span>
+            <span class="ticket-status">CONFIRMED</span>
           </div>
-          <div style="text-align: center; margin-bottom: 2rem;">
-            <span class="small" style="color:var(--turquoise); letter-spacing:0.1em; font-size: 0.7rem;">TERVETULOA JÄSEN:</span>
-            <h2 class="jc-h2" style="font-size: 3rem; margin: 0.5rem 0; text-align: center; background: none; -webkit-text-fill-color: white; color: white; text-shadow: 0 0 15px var(--magenta);">{{name}}</h2>
+          <div style="text-align:center; margin-bottom:2rem;">
+            <span class="small">TERVETULOA JÄSEN:</span>
+            <h2 class="jc-h1" style="font-size:3rem; margin-top:0.5rem;">{{name}}</h2>
           </div>
-          <div class="character-box" style="background: rgba(255, 0, 229, 0.1); border-left: 4px solid var(--magenta); padding: 2rem; margin: 1.5rem 0;">
-            <span class="small" style="color:var(--magenta); letter-spacing:0.2em; display: block; margin-bottom: 1.5rem;">${content.label}</span>
-            <div style="font-family: 'Josefin Sans'; font-size: 2.5rem; color: #fff; text-shadow: 0 0 10px var(--magenta);">{{character}}</div>
+          <div class="character-box">
+            <span class="small" style="color:#FF00E5; display:block; margin-bottom:1rem;">${content.label}</span>
+            <div style="font-family:'Josefin Sans'; font-size:2.2rem; color:white; text-shadow:0 0 10px #FF00E5;">{{character}}</div>
           </div>
-          <div style="margin-top: 3.5rem;">
-            <a href="{{ticket_link}}" class="jc-cta primary" style="display: block; width: 100%; text-align: center; box-sizing: border-box;">AVAA LIPPU & LIVEWALL</a>
+          <div style="text-align:center; margin-top:2rem;">
+            <a href="{{ticket_link}}" class="jc-cta" style="width:100%; box-sizing:border-box;">AVAA LIPPU & LIVEWALL</a>
           </div>
-        </div>`);
+        </div>`;
 
     case 'action':
-      return wrap(`
-        <div style="background: rgba(0, 231, 255, 0.05); border: 1px dashed var(--turquoise); border-radius: 12px; padding: 2rem; text-align: center;">
-          <div style="font-size: 2.5rem; margin-bottom: 1rem; animation: pulse 2s infinite;">📸</div>
-          <h3 style="margin:0; color:white; font-family: 'Outfit'; text-transform: uppercase; letter-spacing: 0.1em;">${content.title}</h3>
-          <p style="font-size:0.9rem; color:var(--muted); margin-top: 10px; line-height: 1.5;">${content.body}</p>
-        </div>`);
+      return `
+        <div class="action-box">
+          <div class="camera-icon">📸</div>
+          <h3 style="margin:0; color:white; font-family:'Outfit'; text-transform:uppercase;">${content.title}</h3>
+          <p class="jc-p" style="font-size:0.9rem; margin-top:10px;">${content.body}</p>
+        </div>`;
 
     case 'points':
-      return wrap(`
-        <div class="jc-card" style="border: 1px solid var(--lime); background: rgba(173, 255, 47, 0.05);">
-          <h3 style="color: var(--lime); text-transform: uppercase; margin: 0 0 10px 0; font-family: 'Outfit';">Pistejahti: Aktiivisuus palkitaan</h3>
-          <p style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">${content.body}</p>
-        </div>`);
+      return `
+        <div class="points-box">
+          <h3 style="color:#ADFF2F; text-transform:uppercase; margin:0 0 10px 0; font-family:'Outfit';">Pistejahti: Aktiivisuus palkitaan</h3>
+          <p class="jc-p" style="font-size:0.95rem;">${content.body}</p>
+        </div>`;
 
     case 'privacy':
-      return wrap(`
-        <div style="padding: 1rem; border: 1px solid var(--sun); border-radius: 8px; background: rgba(255, 165, 0, 0.05); color: #ffeab0; font-size: 0.85rem; line-height: 1.4;">
+      return `
+        <div class="privacy-box">
           <strong>⚠️ YKSITYISYYS:</strong><br>${content.body}
-        </div>`);
+        </div>`;
 
     case 'info':
-      return wrap(`
+      return `
         <div class="jc-card small">
-            <h2 class="jc-h2" style="font-size: 1.4rem; margin-bottom: 1.5rem;">Sijaintitiedot</h2>
-            <div style="margin-bottom: 1rem;"><span class="small">OSOITE / LOC</span><br><strong style="font-size: 1.1rem;">${content.location}</strong></div>
-            <div><span class="small">AIKA / TIME</span><br><strong style="font-size: 1.1rem;">${content.time}</strong></div>
-        </div>`);
+            <h2 class="jc-h2">Sijaintitiedot</h2>
+            <div style="margin-bottom:1rem;"><span class="small">OSOITE</span><br><strong style="font-size:1.1rem; color:white;">${content.location}</strong></div>
+            <div><span class="small">AIKA</span><br><strong style="font-size:1.1rem; color:white;">${content.time}</strong></div>
+        </div>`;
 
     case 'list':
-      const listItems = content.items.split('\n').filter(i => i.trim()).map(item => `<li style="padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: #F7F5E6;"><span style="color:var(--magenta); margin-right: 10px;">●</span> ${item}</li>`).join('');
-      return wrap(`<div class="jc-card"><h2 class="jc-h2">${content.title}</h2><ul style="list-style: none; padding: 0; margin: 0;">${listItems}</ul></div>`);
+      const items = content.items.split('\n').filter(i=>i).map(i => `<li style="padding:0.5rem 0; border-bottom:1px solid rgba(255,255,255,0.1); color:#F7F5E6;"><span style="color:#FF00E5; margin-right:10px;">●</span> ${i}</li>`).join('');
+      return `<div class="jc-card"><h2 class="jc-h2">${content.title}</h2><ul style="list-style:none; padding:0; margin:0;">${items}</ul></div>`;
 
     case 'contact':
-      return wrap(`
-        <div class="jc-card small" style="background: linear-gradient(180deg, rgba(0, 231, 255, 0.05) 0%, rgba(0,0,0,0) 100%); border-color: var(--turquoise);">
-          <h2 class="jc-h2" style="font-size: 1.2rem; color: var(--turquoise); -webkit-text-fill-color: var(--turquoise); text-shadow: none;">${content.title}</h2>
-          <p class="small" style="margin-bottom: 0.5rem;">Lippuongelmat & lisätiedot:</p>
-          <a href="mailto:${content.email}" style="color: #fff; text-decoration: underline; font-weight: 600;">${content.email}</a>
-        </div>`);
+      return `
+        <div class="jc-card small" style="border-color:#00E7FF;">
+          <h2 class="jc-h2" style="font-size:1.2rem; color:#00E7FF;">${content.title}</h2>
+          <a href="mailto:${content.email}" style="color:white; text-decoration:underline;">${content.email}</a>
+        </div>`;
 
     case 'image':
-      return wrap(`<div style="text-align:center; padding: 1rem 0;"><img src="${content.url}" style="max-width:100%; border-radius:14px; border: 1px solid var(--turquoise);" /></div>`);
+      return `<div style="text-align:center; margin-bottom:2.5rem;"><img src="${content.url}" style="max-width:100%; border-radius:14px; border:1px solid #00E7FF;" /></div>`;
 
-    default:
-      return '';
+    default: return '';
   }
 };
 
@@ -115,32 +138,17 @@ export const assembleFullHtml = (content) => `
 <head>
     <meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@700&family=Montserrat:wght@400;600&family=Outfit:wght@300;400;800&display=swap" rel="stylesheet">
-    <style>
-        :root{ --bg-deep: #0b0b10; --cream: #F7F5E6; --magenta: #FF00E5; --turquoise:#00E7FF; --lime: #ADFF2F; --sun: #FFA500; --plasma-gold: #D4AF37; }
-        body { margin: 0; padding: 0; background-color: #0b0b10; color: #F7F5E6; font-family: "Montserrat", sans-serif; }
-        .email-container { width: 100%; background-color: #0b0b10; padding-bottom: 4rem; }
-        .jc-wrapper{ max-width: 800px; margin: 0 auto; padding: 2rem; }
-        .jc-card { background: rgba(5, 7, 10, 0.65); border-radius: 14px; padding: 2rem; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .jc-h1 { font-family: "Josefin Sans"; font-size: 3.5rem; color: white; text-shadow: 0 0 20px var(--magenta); text-align: center; line-height: 1; }
-        .jc-h2 { font-family: "Outfit"; font-weight: 800; color: var(--turquoise); text-transform: uppercase; background: linear-gradient(90deg, var(--plasma-gold) 0%, var(--magenta) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .ping-ring { position: absolute; inset: 0; border-radius: 10px; border: 2px solid var(--turquoise); animation: ping 2s infinite; }
-        @keyframes ping { 75%, 100% { transform: scale(1.4); opacity: 0; } }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; } }
-        .jc-cta.primary { background: linear-gradient(135deg, #b000e6, var(--magenta)); color: #fff; text-decoration: none; padding: 1.2rem 2.5rem; border-radius: 12px; font-weight: bold; display: inline-block; }
-        .small { font-size: 0.75rem; color: var(--turquoise); text-transform: uppercase; letter-spacing: 0.1em; }
-    </style>
+    <style>${EMAIL_CSS}</style>
 </head>
 <body>
     <div class="email-container">
-        <div style="text-align: center; padding: 15px 0; font-size: 10px; color: #444; font-family: sans-serif;">
-            Eikö viesti näy oikein? <a href="{{browser_link}}" style="color: var(--turquoise); text-decoration: underline;">Avaa selainversio tästä.</a>
+        <div style="text-align:center; padding:15px 0; font-size:10px; color:#444; font-family:sans-serif;">
+            Eikö viesti näy oikein? <a href="{{browser_link}}" style="color:#00E7FF; text-decoration:underline;">Avaa selainversio tästä.</a>
         </div>
-        
         <div class="jc-wrapper">
             ${content}
         </div>
-        
-        <div style="text-align: center; margin-top: 2rem; color: #333; font-size: 10px; font-family: sans-serif;">
+        <div style="text-align:center; margin-top:2rem; color:#333; font-size:10px; font-family:sans-serif;">
             © 2025 J:CLUB Event Systems. All protocols secure.
         </div>
     </div>
