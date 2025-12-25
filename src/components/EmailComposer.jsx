@@ -3,11 +3,10 @@ import { supabase } from '../lib/supabaseClient';
 import RecipientSelector from './RecipientSelector';
 import VisualEditor from './VisualEditor';
 
-// Haetaan sallitut osoitteet ympäristömuuttujista
-const SAFE_MODE_EMAILS = [
-  import.meta.env.VITE_ADMIN_EMAIL_1?.toLowerCase().trim(),
-  import.meta.env.VITE_ADMIN_EMAIL_2?.toLowerCase().trim()
-].filter(Boolean);
+const SAFE_MODE_EMAILS = (import.meta.env.VITE_SAFE_MODE_EMAILS || '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean);
 
 export default function EmailComposer({ initialRecipient }) { // <--- LISÄTTY PROP
   const [activeTab, setActiveTab] = useState('recipients');

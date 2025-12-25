@@ -3,7 +3,12 @@ import nodemailer from 'nodemailer';
 import juice from 'juice'; // <--- KÄYTÄ TÄTÄ (ei require)
 
 const SAFETY_MODE = true; 
-const ALLOWED_EMAILS = ['vesa.nessling@gmail.com', 'saikkonen.jukka@outlook.com'];
+
+// Haetaan sallitut sähköpostit ympäristömuuttujasta (Backend käyttää process.env)
+const ALLOWED_EMAILS = (process.env.VITE_SAFE_MODE_EMAILS || '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean);
 
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -35,7 +40,7 @@ export const handler = async (event) => {
         console.error("JUICE VIRHE:", err);
         // Jos juice epäonnistuu, jatketaan alkuperäisellä HTML:llä ettei koko lähetys kaadu
     }
-    
+
     const { data: characters, error: fetchError } = await supabase
       .from('characters')
       .select('id, name, is_spouse_character, pre_assigned_email, assigned_guest_id, guests:assigned_guest_id(name, email, spouse_name)')
