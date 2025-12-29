@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import './Constellation.css'; // Luo CSS alla olevalla koodilla
+import './Constellation.css';
 
 const getRandomPosition = (index) => {
   // Arvotaan paikka reunoilta, vältetään keskustaa (missä pääkuva on)
@@ -13,10 +13,13 @@ const getRandomPosition = (index) => {
 
 const ConstellationHistory = ({ history }) => {
   const nodes = useMemo(() => {
-    return history.map(post => ({ ...post, ...getRandomPosition() }));
+    // KORJAUS: Suodatetaan ensin pois ilmoitukset, joilla ei ole kuvaa
+    return history
+      .filter(post => post.image_url) 
+      .map(post => ({ ...post, ...getRandomPosition() }));
   }, [history]);
 
-  if (!history.length) return null;
+  if (!nodes.length) return null;
 
   return (
     <div className="jc-constellation-container">
@@ -35,4 +38,5 @@ const ConstellationHistory = ({ history }) => {
     </div>
   );
 };
+
 export default ConstellationHistory;

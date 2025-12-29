@@ -47,19 +47,39 @@ const VettingQueue = () => {
       let updates = { approval_status: 'approved' };
       
       // 2. Määritetään annettava XP dynaamisesti sääntöjen perusteella
+      let finalXP = 0;
+      let missionNameForWall = "";
+
       if (log.mission_id === 'personal-objective') {
-        // Päätehtävä: haetaan personal_objective arvo
-        updates.xp_earned = xpConfig?.personal_objective || 500; 
+        // Päätehtävä: haetaan personal_objective arvo (oletus 500)
+        finalXP = xpConfig?.personal_objective || 500; 
+        missionNameForWall = "SALAINEN TEHTÄVÄ";
       } else if (log.mission_id && (log.xp_earned === 0 || !log.xp_earned)) {
-        // Jos tavallinen tehtävä ja pisteet ovat 0, haetaan find_role
-        updates.xp_earned = xpConfig?.find_role || 50;
+        // Jos tavallinen tehtävä ja pisteet ovat 0, haetaan find_role (oletus 50)
+        finalXP = xpConfig?.find_role || 50;
+        missionNameForWall = "ETSINTÄKUULUTUS";
       } else {
-        // Käytetään tehtävän mukana tullutta pistemäärää
-        updates.xp_earned = log.xp_earned;
+        // Muuten käytetään olemassa olevaa arvoa
+        finalXP = log.xp_earned;
+        missionNameForWall = "TEHTÄVÄ";
       }
+
+      // Asetetaan laskettu XP päivitykseen
+      updates.xp_earned = finalXP;
 
       // 3. Päivitetään alkuperäinen suoritus hyväksytyksi
       await supabase.from('mission_log').update(updates).eq('id', log.id);
+
+// handleAction-funktion sisällä:
+await supabase.from('live_posts').insert({
+  guest_id: log.guest_id, // Liitetään agenttiin, jotta nähdään kuka pisteet sai
+  sender_name: "HQ / MISSION CONTROL",
+  message: `🚨 AGENTTI ${log.guests?.name || 'Tuntematon'} SUORITTI: ${missionNameForWall}! (+${finalXP} XP)`,
+  status: 'approved',
+  type: 'announcement',
+  is_visible: true,   // TÄRKEÄ: LiveWall suodattaa tämän mukaan!
+  is_deleted: false
+});
 
       // 4. Milestone-tarkistus (Vain roolien etsintätehtäville)
       if (log.mission_id && log.mission_id !== 'personal-objective' && xpConfig?.milestones) {
@@ -77,7 +97,7 @@ const VettingQueue = () => {
         const milestone = xpConfig.milestones.find(m => m.count === count);
 
         if (milestone) {
-          // Tarkistetaan duplikaatit (onko tämä bonus jo myönnetty)
+          // Tarkistetaan duplikaatit
           const { data: existingBonus } = await supabase
             .from('mission_log')
             .select('id')
@@ -86,13 +106,24 @@ const VettingQueue = () => {
             .single();
 
           if (!existingBonus) {
+            const bonusXP = milestone.bonus;
+            
             // Myönnetään milestone-bonus
             await supabase.from('mission_log').insert({
               guest_id: log.guest_id,
-              xp_earned: milestone.bonus,
+              xp_earned: bonusXP,
               custom_reason: `🏆 Milestone: ${milestone.label}! (${milestone.count} agenttia löydetty)`,
               approval_status: 'approved',
               mission_id: null 
+            });
+
+            // Milestone-ilmoitus myös seinälle
+            await supabase.from('live_posts').insert({
+              guest_id: log.guest_id,
+              sender_name: "HQ / MISSION CONTROL",
+              content: `🎖️ AGENTTI ${log.guests?.name || 'Tuntematon'} SAAVUTTI TASON: ${milestone.label}! (+${bonusXP} XP)`,
+              status: 'approved',
+              type: 'announcement'
             });
           }
         }
@@ -110,8 +141,8 @@ const VettingQueue = () => {
       <div className="mission-list">
         {pendingLogs.map(log => {
           const missionTitle = log.mission_id === 'personal-objective' 
-            ? 'HENKILÖKOHTAINEN TEHTÄVÄ' 
-            : 'MUU TEHTÄVÄ';
+            ? 'SALAINEN TEHTÄVÄ' 
+            : 'ETSINTÄKUULUTUS';
 
           let proofText = "";
           let proofImage = null;

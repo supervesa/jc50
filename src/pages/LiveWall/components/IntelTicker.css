@@ -1,0 +1,111 @@
+/* CONTAINER */
+.intel-ticker-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 45px; /* Hieman korkeampi */
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-top: 2px solid #333;
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.9);
+}
+
+.intel-ticker-container.hidden { transform: translateY(100%); opacity: 0; }
+.intel-ticker-container.visible { transform: translateY(0); opacity: 1; }
+
+/* HAZARD STRIPES */
+.hazard-stripe {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: repeating-linear-gradient(45deg, #000, #000 10px, #f0c000 10px, #f0c000 20px);
+  z-index: 10;
+  opacity: 0.8;
+}
+.hazard-stripe.top { top: 0; }
+.hazard-stripe.bottom { bottom: 0; }
+
+/* SCROLLING TRACK */
+.ticker-wrapper {
+  flex: 1;
+  overflow: hidden;
+  /* Maski tekee reunoista pehmeät, jotta teksti ei "katkea" rumasti */
+  mask-image: linear-gradient(to right, transparent, black 50px, black calc(100% - 50px), transparent);
+}
+
+.ticker-track {
+  display: flex;
+  /* TÄRKEÄ: Nauha on niin leveä kuin sisältö vaatii */
+  width: max-content; 
+  /* TÄRKEÄ: Poistettu padding-left: 100% */
+  animation: marquee 60s linear infinite; /* Hitaampi ja tasaisempi */
+}
+
+/* Pysäytys hoverilla */
+.intel-ticker-container:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  padding: 0 30px; /* Reilumpi väli viestien välillä */
+  white-space: nowrap;
+}
+
+.ticker-icon {
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.ticker-text {
+  color: #00ff41;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.6);
+  letter-spacing: 1px;
+}
+
+.ticker-separator {
+  color: #444;
+  margin-left: 30px;
+  font-weight: 300;
+}
+
+/* LABEL */
+.ticker-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #111;
+  color: #f0c000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  font-family: sans-serif;
+  font-size: 0.8rem;
+  font-weight: 900;
+  border-right: 3px solid #f0c000;
+  z-index: 20;
+  box-shadow: 5px 0 20px rgba(0,0,0,1);
+}
+
+/* ANIMAATIO */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  /* Koska monistimme listan 4 kertaa, siirrytään 25% (yksi setti) */
+  /* Tai yksinkertaisemmin: siirretään -50% jos oletetaan että lista on tuplattu. 
+     Turvallisinta on käyttää -25% jos lista on 4x, jotta se looppaa saumattomasti */
+  100% { transform: translateX(-25%); } 
+}

@@ -1,10 +1,11 @@
+// tiedosto: src/components/leader/HeistLeaderboard.jsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useHeistData } from './useHeistData'; // Tämä on se uusi moottori
-import { ArrowLeft, Zap, Target, Diamond, Wine, Clock, Flame, ChevronDown } from 'lucide-react';
+import { useHeistData } from './useHeistData'; 
+import { ArrowLeft, Target, Diamond, Wine, Clock, Flame, ChevronDown, X } from 'lucide-react';
 import './HeistLeaderboard.css';
 
-// --- PIENI EFEKTI-KOMPONENTTI ---
 const HackerText = ({ text }) => {
   const [disp, setDisp] = React.useState(text);
   React.useEffect(() => {
@@ -18,25 +19,27 @@ const HackerText = ({ text }) => {
   return <span>{disp}</span>;
 };
 
-// --- PÄÄKOMPONENTTI ---
-const HeistLeaderboard = () => {
+const HeistLeaderboard = ({ onClose }) => { // Lisätty onClose prop
   const navigate = useNavigate();
-  // Kutsutaan moottoria ilman ID:tä, koska tämä on yleinen näyttö
   const { agents, topTarget, chasers, active30Min = [], activeEvening = [], loading } = useHeistData();
   const [showAll, setShowAll] = useState(false);
+
+  // Käsitellään paluu: jos on onClose (modaalissa), käytetään sitä. Muuten navigoidaan taaksepäin.
+  const handleBack = () => {
+    if (onClose) onClose();
+    else navigate(-1);
+  };
 
   if (loading) return <div className="loading-scan">CONNECTING TO SATELLITE...</div>;
   if (!agents || agents.length === 0) return <div className="loading-scan">NO SIGNAL</div>;
 
   return (
     <div className="heist-dashboard">
-      <button onClick={() => navigate(-1)} className="back-btn">
+      <button onClick={handleBack} className="back-btn">
         <ArrowLeft size={16}/> BACK TO BASE
       </button>
 
-      {/* --- OSA 1: LIVE ACTIVITY (WIDGETIT) --- */}
       <div className="activity-section">
-        {/* 30 MIN */}
         <div className="activity-card flash">
           <div className="act-header"><Clock size={14}/> LIVE (30 MIN)</div>
           {active30Min.length > 0 ? active30Min.map((a,i)=>(
@@ -48,7 +51,6 @@ const HeistLeaderboard = () => {
           )) : <div className="no-act">- Hiljaista -</div>}
         </div>
         
-        {/* ILTA */}
         <div className="activity-card">
           <div className="act-header"><Flame size={14}/> TOP GUNS (ILTA)</div>
           {activeEvening.length > 0 ? activeEvening.map((a,i)=>(
@@ -61,10 +63,8 @@ const HeistLeaderboard = () => {
         </div>
       </div>
 
-      {/* --- OSA 2: TARGET & CHASERS --- */}
       {topTarget && (
         <div className="top-tier-section">
-          {/* CURRENT TARGET */}
           <div className="target-banner">
             <div className="tb-label">CURRENT TARGET // RANK 01</div>
             <div className="tb-content">
@@ -80,7 +80,6 @@ const HeistLeaderboard = () => {
             </div>
           </div>
 
-          {/* NISKAAN HUOHOTTAJAT */}
           <div className="chasers-grid">
             {chasers.map((a,i)=>(
               <div key={a.id} className="chaser-box">
@@ -93,7 +92,6 @@ const HeistLeaderboard = () => {
         </div>
       )}
 
-      {/* --- OSA 3: SCOREBOARD --- */}
       <div className="scoreboard-section">
         <div className="section-title">/// GLOBAL INTEL ///</div>
         <table className="scoreboard-table">

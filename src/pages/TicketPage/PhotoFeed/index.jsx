@@ -128,20 +128,22 @@ function PhotoFeed() {
   };
 
   // --- ACTIONS (DELETE, SHARE, DOWNLOAD) ---
-  const handleSoftDelete = async (photoId) => {
-    if (!window.confirm("Haluatko varmasti poistaa kuvan?")) return;
-
+ const handleSoftDelete = async (photoId) => {
+    // 1. Optimistic Update: Poistetaan kuva näkyvistä heti ilman varmistusta
     setMyPhotos(prev => prev.filter(p => p.id !== photoId));
 
+    // 2. Hiljainen päivitys tietokantaan
     const { error } = await supabase
       .from('live_posts')
       .update({ is_deleted: true })
       .eq('id', photoId);
 
     if (error) {
-      alert("Virhe poistettaessa");
+      console.error("Virhe poistettaessa (tausta):", error);
+      // Jos tuli virhe, haetaan lista uudelleen varmuuden vuoksi
       if(identityId) fetchUserHistory(identityId);
     }
+    // Ei alert-ilmoituksia tai confirmaatioita
   };
 
   const handleShare = async (photo) => {

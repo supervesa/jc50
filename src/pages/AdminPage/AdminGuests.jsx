@@ -7,6 +7,10 @@ const AdminGuests = ({ characters, guests }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [scores, setScores] = useState({});
   const [logs, setLogs] = useState([]);
+  
+  // UUSI: Tila vieraskohtaisille oikeuksille (Sidecar data)
+  const [accessControlMap, setAccessControlMap] = useState({});
+
   const [showUnassigned, setShowUnassigned] = useState(false);
   
   const [points, setPoints] = useState(0);
@@ -15,7 +19,7 @@ const AdminGuests = ({ characters, guests }) => {
 
   if (!characters) return <div className="admin-container">Ladataan hahmoja...</div>;
 
-  // --- 1. LUODAAN NIMI-HAKUKARTTA (UUSI) ---
+  // --- 1. LUODAAN NIMI-HAKUKARTTA ---
   // Tämä muuttaa guests-listan muotoon: { 'uuid-123': 'Matti Meikäläinen' }
   const guestMap = useMemo(() => {
     if (!guests) return {};
@@ -27,6 +31,7 @@ const AdminGuests = ({ characters, guests }) => {
 
   // --- 2. DATAHAKU ---
   const fetchData = async () => {
+    // A. Pisteet
     const { data: scoreData } = await supabase.from('leaderboard').select('assigned_guest_id, xp');
     if (scoreData) {
       const sMap = {};
@@ -34,16 +39,38 @@ const AdminGuests = ({ characters, guests }) => {
       setScores(sMap);
     }
 
+    // B. Logit
     const { data: logData } = await supabase.from('mission_log').select('*').order('created_at', { ascending: false }).limit(200);
     if (logData) setLogs(logData);
+
+    // C. UUSI: Access Control (Sidecar table)
+    const { data: accessData } = await supabase.from('guest_access_control').select('*');
+    if (accessData) {
+      const aMap = {};
+      accessData.forEach(row => {
+        aMap[row.guest_id] = row; // { role: 'tester', is_banned: true, ... }
+      });
+      setAccessControlMap(aMap);
+    }
   };
 
   useEffect(() => {
     fetchData();
-    const channel = supabase.channel('admin_chars_realtime')
+
+    // Kuunnellaan pisteitä
+    const scoreChannel = supabase.channel('admin_chars_realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_log' }, () => setTimeout(fetchData, 500))
       .subscribe();
-    return () => supabase.removeChannel(channel);
+
+    // Kuunnellaan oikeusmuutoksia (Access Control)
+    const accessChannel = supabase.channel('admin_access_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guest_access_control' }, () => setTimeout(fetchData, 500))
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(scoreChannel);
+      supabase.removeChannel(accessChannel);
+    };
   }, []);
 
   // --- 3. LOGIIKKA ---
@@ -61,6 +88,7 @@ const AdminGuests = ({ characters, guests }) => {
 
   const applyPreset = (xp, text) => { setPoints(xp); setReason(text); };
 
+  // --- PISTEIDEN LÄHETYS ---
   const sendPoints = async (guestId) => {
     if (!guestId) return alert("Virhe: Ei pelaajaa.");
     if (!reason) return alert("Syy vaaditaan!");
@@ -85,6 +113,33 @@ const AdminGuests = ({ characters, guests }) => {
     setLoading(false);
   };
 
+  // --- UUSI: ACCESS CONTROL LOGIIKKA ---
+  // Kirjoittaa suoraan guest_access_control -tauluun (UPSERT)
+  const toggleTester = async (guestId, currentRole) => {
+    const newRole = currentRole === 'tester' ? 'guest' : 'tester';
+    
+    const { error } = await supabase
+      .from('guest_access_control')
+      .upsert({ 
+        guest_id: guestId, 
+        role: newRole 
+      });
+      
+    if (error) alert("Virhe roolin vaihdossa: " + error.message);
+    // Realtime hoitaa UI-päivityksen
+  };
+
+  const toggleBan = async (guestId, currentBanStatus) => {
+    const { error } = await supabase
+      .from('guest_access_control')
+      .upsert({ 
+        guest_id: guestId, 
+        is_banned: !currentBanStatus 
+      });
+
+    if (error) alert("Virhe bannauksessa: " + error.message);
+  };
+
   // --- 4. RENDERÖINTI ---
   return (
     <div className="char-admin-container">
@@ -95,7 +150,7 @@ const AdminGuests = ({ characters, guests }) => {
       <hr className="section-divider" />
       
       <div className="admin-header-row">
-        <h2>🎭 HAHMOT & PISTEET</h2>
+        <h2>🎭 HAHMOT & PISTEET & OIKEUDET</h2>
         <label className="toggle-label">
           <input type="checkbox" checked={showUnassigned} onChange={(e) => setShowUnassigned(e.target.checked)} />
           Näytä myös ilman pelaajaa
@@ -112,17 +167,29 @@ const AdminGuests = ({ characters, guests }) => {
           // HAETAAN OIKEA NIMI KARTASTA
           const realName = guestMap[guestId] || 'Tuntematon';
 
+          // HAETAAN OIKEUDET KARTASTA (UUSI)
+          const accessInfo = hasPlayer ? (accessControlMap[guestId] || {}) : {};
+          const isTester = accessInfo.role === 'tester' || accessInfo.role === 'admin';
+          const isBanned = accessInfo.is_banned === true;
+
           return (
-            <div key={char.id} className={`char-card ${isOpen ? 'open' : ''} ${!hasPlayer ? 'disabled' : ''}`}>
+            <div key={char.id} className={`char-card ${isOpen ? 'open' : ''} ${!hasPlayer ? 'disabled' : ''} ${isBanned ? 'banned-card' : ''}`}>
               <div className="char-header" onClick={() => hasPlayer && toggleExpand(char.id)}>
                 <div className="char-info">
-                  {/* TÄSSÄ SE TAIKA TAPAHTUU: Hahmo (Oikea nimi) */}
+                  {/* TÄSSÄ SE TAIKA TAPAHTUU: Hahmo (Oikea nimi) + Statusikonit */}
                   <span className="char-name">
                     {char.name} 
                     {hasPlayer && <span style={{color: '#888', fontWeight: 'normal', fontSize: '0.9em', marginLeft: '6px'}}>
                       ({realName})
                     </span>}
                   </span>
+                  
+                  {/* STATUS IKONIT */}
+                  <span style={{ marginLeft: '10px' }}>
+                    {isTester && <span title="Beta Tester" style={{ marginRight: '5px' }}>👑</span>}
+                    {isBanned && <span title="BANNED">🚫</span>}
+                  </span>
+
                   {!hasPlayer && <span className="tag-warning">Ei pelaajaa</span>}
                 </div>
                 {hasPlayer && <div className="char-score">⭐ {currentXp}</div>}
@@ -130,6 +197,50 @@ const AdminGuests = ({ characters, guests }) => {
 
               {isOpen && hasPlayer && (
                 <div className="char-body">
+                  
+                  {/* UUSI: ACCESS CONTROL PANEL */}
+                  <div className="access-control-panel" style={{ 
+                      background: '#222', 
+                      padding: '10px', 
+                      marginBottom: '15px', 
+                      borderRadius: '5px',
+                      border: '1px solid #444',
+                      display: 'flex',
+                      gap: '15px',
+                      alignItems: 'center'
+                  }}>
+                    <strong style={{color: '#888', fontSize: '0.8rem'}}>OIKEUDET:</strong>
+                    
+                    <button 
+                      onClick={() => toggleTester(guestId, accessInfo.role)}
+                      style={{
+                        background: isTester ? 'gold' : '#333',
+                        color: isTester ? 'black' : 'white',
+                        border: '1px solid gold',
+                        padding: '5px 10px',
+                        cursor: 'pointer',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      {isTester ? '👑 TESTAAJA (ON)' : '👑 Tee testaajaksi'}
+                    </button>
+
+                    <button 
+                      onClick={() => toggleBan(guestId, isBanned)}
+                      style={{
+                        background: isBanned ? 'red' : '#333',
+                        color: 'white',
+                        border: '1px solid red',
+                        padding: '5px 10px',
+                        cursor: 'pointer',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      {isBanned ? '🚫 BANNED (ON)' : '🚫 Bannaa käyttäjä'}
+                    </button>
+                  </div>
+
+                  {/* VANHA: PISTEET JA LOGIT */}
                   <div className="action-presets">
                     <button className="btn-preset pos" onClick={() => applyPreset(5, '🕵️ Löysi vihjeen')}>+5 Vihje</button>
                     <button className="btn-preset pos" onClick={() => applyPreset(10, '🧩 Ratkaisi tehtävän')}>+10 Tehtävä</button>
@@ -144,8 +255,6 @@ const AdminGuests = ({ characters, guests }) => {
                   </div>
 
                   <div className="char-history">
-                    {/* Logitaulukko, jossa näkyy myös koodi kuten aiemmin... */}
-                    {/* Lyhennetty tässä vastauksessa tilan säästämiseksi, logiikka sama */}
                     <table className="history-table">
                        <tbody>
                          {logs.filter(l => l.guest_id === guestId).slice(0, 10).map(log => (

@@ -1,0 +1,60 @@
+/* src/pages/LiveWall/components/GridFlight.css */
+
+/* NÄYTTÄMÖ */
+.grid-flight-scene {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  perspective: 1200px; /* Syvyysvaikutelma */
+  overflow: hidden;
+  background: #000; /* Musta avaruus */
+  z-index: 10;
+}
+
+/* 3D MAAILMA (Kamera) */
+.grid-world {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 100%; height: 100%;
+  /* TÄMÄ ON KRIITTISIN RIVI: */
+  transform-style: preserve-3d; 
+  transform-origin: center center;
+  transition: transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* YKSITTÄINEN KORTTI */
+.grid-card-container {
+  position: absolute;
+  /* Pakotetaan kortti keskelle ruutua, jotta transformit toimivat origosta */
+  left: 50%; top: 50%;
+  width: 650px; height: 550px; 
+  margin-left: -325px; margin-top: -275px; /* Keskitetään pivot-piste */
+  
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  transition: opacity 1s, filter 1s;
+  
+  /* Oletuksena hieman himmeä */
+  opacity: 0.3; 
+  filter: blur(2px) grayscale(80%);
+}
+
+/* AKTIIVINEN KORTTI (Edessä) */
+.grid-card-container.active {
+  opacity: 1;
+  filter: none;
+  z-index: 1000; /* Varmistetaan että tämä on päällimmäisenä */
+}
+
+/* --- MATRIX GRID LATTIA (VISUAALINEN LISÄ) --- */
+.grid-floor {
+  position: absolute;
+  width: 4000px; height: 4000px;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%) rotateX(90deg) translateZ(-400px);
+  background-image: 
+    linear-gradient(rgba(0, 255, 65, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 65, 0.2) 1px, transparent 1px);
+  background-size: 100px 100px;
+  opacity: 0.3;
+  pointer-events: none;
+}

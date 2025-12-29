@@ -16,6 +16,7 @@ import './mobile-universal.css'
 import AntheroPage from './pages/AntheroPage';
 import ScotlandYardGame from './game/scotlandyard';
 import EmailViewer from './components/EmailViewer';
+import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   return (
     <div className="App">
@@ -31,7 +32,12 @@ function App() {
   <Route path="/lippu/:id" element={<TicketPage />} />
   {/* UUSI REITTI */}
           <Route path="/live" element={<LiveWall />} />
-          <Route path="/agent" element={<AgentPage />} />
+       {/* PELIREITIT (Vaatii vähintään LOBBY tai LIVE) */}
+           <Route path="/agent" element={
+              <ProtectedRoute minPhase="LIVE">
+                <AgentPage />
+              </ProtectedRoute>
+           } />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/leaderboard" element={<HeistLeaderboard />} />
           <Route path="/personal-stats" element={<HeistPersonalScoreboard />} />

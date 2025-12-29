@@ -10,32 +10,28 @@ import ChatOverlay from './ChatOverlay';
 import PollTakeover from './PollTakeover';
 import StatsTakeoverLogic from './components/StatsTakeover/StatsTakeoverLogic'; 
 import FlashMissionOverlay from './FlashMissionOverlay'; 
+import IntelTicker from './components/IntelTicker'; // Varmista että tämä on tuotu!
 
-// --- TYYLIT ---
 import './LiveWall.css';
 
-// --- 1. OPTIMOINTI: MEMOIZOIDUT TAUSTAT ---
-// Estää WebGL:n uudelleenlatauksen kun kuva vaihtuu
 const MemoizedKaleidoscope = React.memo(Kaleidoscope);
 const MemoizedElectricWave = React.memo(ElectricWave);
 const MemoizedChatOverlay = React.memo(ChatOverlay);
 
 function LiveWall() {
-  // --- TILA (STATE) ---
   const [queue, setQueue] = useState([]);       
   const [currentPost, setCurrentPost] = useState(null); 
   const [history, setHistory] = useState([]);   
   const [allCharacters, setAllCharacters] = useState([]); 
   
-  // OHJAUSTILAT
   const [liveState, setLiveState] = useState({ mode: 'FEED', broadcast_message: '' });
   const [activeFlash, setActiveFlash] = useState(null);
 
   const timerRef = useRef(null);
   const isTransitioning = useRef(false);
 
-  // --- APUFUNKTIO: ENRICH POSTS ---
   const enrichPosts = async (posts) => {
+    // (Pidetään tämä funktio ennallaan)
     const enriched = await Promise.all(posts.map(async (post) => {
       if (!post.guest_id) {
         return { ...post, displayName: 'Anonyymi', authors: [{ name: 'Vieras', image: null }] };
@@ -60,16 +56,16 @@ function LiveWall() {
   // --- 1. ALUSTUS ---
   useEffect(() => {
     const fetchInitialData = async () => {
-      // Hahmot
       const { data: chars } = await supabase.from('characters').select('id, name, avatar_url, xp, role');
       if (chars) setAllCharacters(chars);
 
-      // Kuvat - Vain hyväksytyt
+      // KORJAUS 1: Haetaan vain kuvat, EI announcementteja
       const { data: posts } = await supabase
         .from('live_posts')
         .select('*')
         .eq('is_deleted', false)
         .eq('is_visible', true)
+        .neq('type', 'announcement') // <--- TÄMÄ ESTÄÄ TEKSTIN JOUTUMISTA KARUSELLIIN
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -79,7 +75,6 @@ function LiveWall() {
         setHistory(enriched.slice(1, 16)); 
       }
 
-      // State & Flash
       const { data: state } = await supabase.from('live_state').select('*').eq('id', 1).maybeSingle();
       if (state) setLiveState(state);
       const { data: flash } = await supabase.from('flash_missions').select('*').eq('status', 'active').maybeSingle();
@@ -93,17 +88,20 @@ function LiveWall() {
     const postSub = supabase.channel('lw-posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_posts' }, async (payload) => {
         
+        // KORJAUS 2: Jos tyyppi on announcement, ÄLÄ tee mitään tässä (Ticker hoitaa sen)
+        if (payload.new && payload.new.type === 'announcement') {
+            return; 
+        }
+
         // INSERT: Uusi kuva
         if (payload.eventType === 'INSERT') {
            if (!payload.new.is_deleted && payload.new.is_visible) {
               const [enriched] = await enrichPosts([payload.new]);
               
-              // 2. OPTIMOINTI: JONON RAJOITUS
-              // Jos jono on yli 10 pitkä, älä lisää enempää (tai poista vanhin), jotta muisti ei lopu floodissa.
               setQueue(prev => {
                 if (prev.some(p => p.id === enriched.id)) return prev;
                 const newQueue = [...prev, enriched];
-                return newQueue.length > 15 ? newQueue.slice(-15) : newQueue; // Pidä vain 15 uusinta jonossa
+                return newQueue.length > 15 ? newQueue.slice(-15) : newQueue; 
               });
            }
         }
@@ -111,7 +109,6 @@ function LiveWall() {
         // UPDATE: Poisto / Piilotus
         if (payload.eventType === 'UPDATE') {
           const shouldRemove = payload.new.is_deleted === true || payload.new.is_visible === false;
-          // KORJAUS: Jos kuva tulee takaisin näkyviin (is_visible muuttuu trueksi)
           const shouldAdd = !payload.new.is_deleted && payload.new.is_visible;
 
           if (shouldRemove) {
@@ -121,11 +118,9 @@ function LiveWall() {
           } 
           
           if (shouldAdd) {
-             // Tarkistetaan onko se jo jonossa tai historiassa, jos ei -> lisätään jonoon
              const [enriched] = await enrichPosts([payload.new]);
              setQueue(prev => {
                 if (prev.some(p => p.id === enriched.id)) return prev;
-                // Tarkistetaan onko historiassa tai nykyinen
                 return [...prev, enriched]; 
              });
           }
@@ -150,7 +145,7 @@ function LiveWall() {
     };
   }, []);
 
-  // --- 3. KARUSELLI ---
+  // --- 3. KARUSELLI (Pidetään ennallaan) ---
   useEffect(() => {
     if (liveState.mode !== 'FEED' || activeFlash) return;
 
@@ -159,7 +154,6 @@ function LiveWall() {
       let nextPost = null;
       let isFromQueue = false;
 
-      // Logiikka: Jos jonossa on tavaraa, otetaan sieltä. Jos ei, otetaan satunnainen historiasta.
       if (queue.length > 0) {
         nextPost = queue[0];
         isFromQueue = true;
@@ -170,47 +164,35 @@ function LiveWall() {
 
       if (nextPost) {
         isTransitioning.current = true;
-        
-        // Päivitetään historia ja jono
         if (currentPost) {
           setHistory(prev => {
-            // Poistetaan duplikaatit historiasta ja pidetään max 15
             const cleanPrev = prev.filter(p => p.id !== nextPost.id && p.id !== currentPost.id);
             return [currentPost, ...cleanPrev].slice(0, 15);
           });
         }
-        
         if (isFromQueue) {
           setQueue(prev => prev.slice(1));
         }
-
         setCurrentPost(nextPost);
-        
-        // 3. OPTIMOINTI: Vapautetaan muistia pakottamalla transition loppu
         setTimeout(() => {
            isTransitioning.current = false;
         }, 1000); 
       }
     };
 
-    // Jos jonoa on paljon, nopeampi tahti (5s). Jos hiljaista, hitaampi (12s).
     const intervalTime = queue.length > 2 ? 5000 : 12000;
-    
     timerRef.current = setInterval(nextSlide, intervalTime);
     return () => clearInterval(timerRef.current);
   }, [queue, history, currentPost, liveState, activeFlash]);
 
-  // --- RENDERÖINTI ---
   return (
     <div className="jc-live-wall">
-      {/* KÄYTETÄÄN MEMOIZOITUA TAUSTAA */}
       <div className="jc-gl-background" style={{ zIndex: 0 }}>
         <MemoizedKaleidoscope />
       </div>
       
       <MemoizedElectricWave />
       
-      {/* 1. FEED */}
       <div style={{opacity: (liveState.mode === 'FEED' && !activeFlash) ? 1 : 0, transition: 'opacity 0.5s', pointerEvents: 'none'}}>
          <ConstellationHistory history={history} />
          <div className="jc-stage-center">
@@ -220,12 +202,10 @@ function LiveWall() {
 
       <div className="jc-live-logo"><h1>JC 50</h1><span>LIVE FEED</span></div>
 
-      {/* 2. CHAT */}
       <div style={{position:'relative', zIndex:60}}>
         <MemoizedChatOverlay />
       </div>
 
-      {/* 3. OVERLAYS */}
       <StatsTakeoverLogic isActive={liveState.mode === 'STATS'} characters={allCharacters} />
       <PollTakeover />
       
@@ -234,6 +214,9 @@ function LiveWall() {
            <div className="jc-broadcast-text">{liveState.broadcast_message}</div>
         </div>
       )}
+
+      {/* UUSI TICKER TÄSSÄ */}
+      <IntelTicker />
 
       <FlashMissionOverlay mission={activeFlash} />
 

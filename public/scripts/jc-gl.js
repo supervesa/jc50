@@ -1,4 +1,4 @@
-// public/scripts/jc-gl.js
+      // public/scripts/jc-gl.js
 // "Neon Gatsby V3: Kaleidoscopic Dream & Soft Blur" Edition
 
 (() => {

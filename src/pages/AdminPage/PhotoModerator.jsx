@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { 
   Eye, EyeOff, Trash2, AlertTriangle, 
-  Layers, Eraser, User, Clock, ShieldAlert, RefreshCw, CheckCircle 
+  Layers, Eraser, User, Clock, ShieldAlert, RefreshCw, CheckCircle,
+  Megaphone, Zap, Trophy, Target, Radio // Uudet ikonit tickereille
 } from 'lucide-react';
 
 // DEBUG TILA POIS PÄÄLTÄ
@@ -61,7 +62,7 @@ const PhotoModerator = () => {
 
     switch (activeTab) {
       case 'ALERTS': 
-        // KORJAUS: Näytetään vain ne, jotka EIVÄT ole vielä näkyvissä (eli vaativat hyväksyntää)
+        // Näytetään vain ne, jotka EIVÄT ole vielä näkyvissä (eli vaativat hyväksyntää)
         list = rawPosts.filter(p => !p.is_deleted && !p.is_visible && p.flag_type);
         break;
       case 'LIVE': 
@@ -69,9 +70,7 @@ const PhotoModerator = () => {
         list = rawPosts.filter(p => p.is_visible && !p.is_deleted);
         break;
       case 'HIDDEN': 
-        // Piilotetut ilman lippua (tai manuaalisesti piilotetut, joissa lippu poistettu)
-        // Jos haluat nähdä myös liputetut mutta piilotetut täällä, poista tuo !p.flag_type ehto.
-        // Mutta pidetään selkeyden vuoksi erillään.
+        // Piilotetut ilman lippua
         list = rawPosts.filter(p => !p.is_visible && !p.is_deleted && !p.flag_type);
         break;
       case 'DELETED': 
@@ -84,7 +83,6 @@ const PhotoModerator = () => {
     return list.sort(sortByPriority);
   }, [rawPosts, activeTab]);
 
-  // KORJAUS: Lasketaan hälytykseksi vain ne, jotka ovat piilossa
   const alertCount = rawPosts.filter(p => !p.is_deleted && !p.is_visible && p.flag_type).length;
 
   // --- 3. TOIMINNOT ---
@@ -94,28 +92,17 @@ const PhotoModerator = () => {
     const newVisible = !post.is_visible;
     let updates = { is_visible: newVisible };
 
-    // LOGIIKKA: Jos ollaan julkaisemassa (newVisible === true) 
-    // JA nykyinen viesti on tyhjä (sensuroitu) 
-    // JA meillä on tallessa alkuperäinen viesti...
     if (newVisible && !post.message && post.original_message) {
        updates.message = post.original_message;
        updates.original_message = null; 
        updates.flag_type = null;        
     }
 
-    // Jos vapautetaan Flood-kuva, poistetaan lippu, jotta se ei jää kummittelemaan
     if (newVisible && post.flag_type === 'flood') {
        updates.flag_type = null; 
     }
-    
-    // HUOM: Flash ja Mission -lippuja EI poisteta automaattisesti, 
-    // jotta ne näkyvät violetilla "LIVE"-listalla. 
-    // Mutta ne katoavat ALERTS-listalta, koska is_visible muuttuu trueksi.
 
-    // Optimistinen päivitys UI:hin
     setRawPosts(prev => prev.map(p => p.id === post.id ? { ...p, ...updates } : p));
-
-    // Tietokantaan
     await supabase.from('live_posts').update(updates).eq('id', post.id);
   };
 
@@ -173,6 +160,15 @@ const PhotoModerator = () => {
     await supabase.from('live_posts').update({ is_visible: false }).eq('guest_id', guestId);
   };
 
+  // --- APU: Hae ikoni Ticker-tyypeille ---
+  const getTickerDetails = (msg) => {
+    if (!msg) return { icon: <Megaphone size={24}/>, color: '#fff' };
+    if (msg.includes('XP')) return { icon: <Zap size={24}/>, color: '#ffd700' };
+    if (msg.includes('TASON') || msg.includes('Milestone')) return { icon: <Trophy size={24}/>, color: '#00ff41' };
+    if (msg.includes('SUORITTI')) return { icon: <Target size={24}/>, color: '#ff4444' };
+    return { icon: <Megaphone size={24}/>, color: '#00e7ff' };
+  };
+
   // --- RENDERÖINTI ---
 
   return (
@@ -180,7 +176,7 @@ const PhotoModerator = () => {
       
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
         <ShieldAlert size={28} color="var(--magenta)" />
-        <h2 style={{ margin: 0, color: 'white' }}>PHOTO MODERATION DECK</h2>
+        <h2 style={{ margin: 0, color: 'white' }}>MODERATION DECK</h2>
       </div>
 
       {/* --- KONTROLLIPALKKI --- */}
@@ -212,41 +208,47 @@ const PhotoModerator = () => {
         </div>
       </div>
 
-      {/* --- BATCH ACTIONS (Vain Alerts-tabilla) --- */}
+      {/* --- BATCH ACTIONS --- */}
       {activeTab === 'ALERTS' && filteredList.some(p => p.flag_type === 'flood') && (
         <div style={{marginBottom: '20px', padding: '10px', background: 'rgba(0, 231, 255, 0.1)', border: '1px solid #00e7ff', borderRadius: '6px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-          <span style={{color:'#00e7ff', fontWeight:'bold', fontSize:'0.9rem'}}>🌊 Karanteenissa on Flood-kuvia. Tarkista yksitellen tai hyväksy kaikki.</span>
+          <span style={{color:'#00e7ff', fontWeight:'bold', fontSize:'0.9rem'}}>🌊 Karanteenissa on Flood-kuvia.</span>
           <button 
             onClick={approveAllFloods}
             style={{background:'#002a33', color:'#00e7ff', border:'1px solid #00e7ff', padding:'6px 12px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', display:'flex', alignItems:'center', gap:'6px'}}
           >
-            <CheckCircle size={16}/> Hyväksy kaikki Floodit
+            <CheckCircle size={16}/> Hyväksy kaikki
           </button>
         </div>
       )}
 
       {/* --- GRID --- */}
       {loading ? (
-        <div style={{ padding: '20px', color: '#888' }}>Ladataan kuvavirtaa...</div>
+        <div style={{ padding: '20px', color: '#888' }}>Ladataan virtaa...</div>
       ) : filteredList.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: '#666', border: '2px dashed #444', borderRadius: '8px' }}>
-          Ei kuvia tässä näkymässä.
+          Ei sisältöä tässä näkymässä.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '15px' }}>
           {filteredList.map(post => {
             const isToxic = post.flag_type === 'toxic';
             const isFlood = post.flag_type === 'flood';
-            // KORJAUS: Näytetään myös flash ja mission -badget
             const isFlash = post.flag_type === 'flash';
             const isMission = post.flag_type === 'mission_proof';
+            
+            // Tunnistetaan Ticker (Announcement)
+            const isAnnouncement = post.type === 'announcement';
+            const tickerDetails = isAnnouncement ? getTickerDetails(post.message) : null;
 
             return (
               <div 
                 key={post.id} 
                 style={{
                   background: '#222', 
-                  border: isToxic ? '2px solid #ff3333' : isFlood ? '2px solid #00e7ff' : (isMission || isFlash) ? '2px solid #9b59b6' : '1px solid #333',
+                  // Jos on Ticker, käytetään sen väriä reunassa. Muuten status-värit.
+                  border: isAnnouncement 
+                    ? `2px dashed ${tickerDetails.color}` 
+                    : isToxic ? '2px solid #ff3333' : isFlood ? '2px solid #00e7ff' : (isMission || isFlash) ? '2px solid #9b59b6' : '1px solid #333',
                   borderRadius: '8px',
                   overflow: 'hidden',
                   position: 'relative',
@@ -254,90 +256,97 @@ const PhotoModerator = () => {
                 }}
               >
                 
-                {/* VAROITUS-BADGET */}
+                {/* VAROITUS-BADGET (Kuvat) */}
                 <div style={{ position: 'absolute', top: 5, left: 5, display: 'flex', flexDirection: 'column', gap: 5, zIndex: 10 }}>
-                  {isToxic && (
-                    <span style={{ background: '#ff3333', color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <AlertTriangle size={14}/> TEKSTI SENSUROITU
-                    </span>
-                  )}
-                  {isFlood && (
-                    <span style={{ background: '#00e7ff', color: '#000', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Layers size={14}/> FLOOD (AUTO-HIDE)
-                    </span>
-                  )}
-                  {isFlash && (
-                    <span style={{ background: '#e67e22', color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                       ⚡ FLASH SUORITUS
-                    </span>
-                  )}
-                  {isMission && (
-                    <span style={{ background: '#9b59b6', color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ShieldAlert size={14}/> SALAINEN TEHTÄVÄ
-                    </span>
-                  )}
+                  {isToxic && <span style={{ background: '#ff3333', color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}><AlertTriangle size={14}/> SENSUROITU</span>}
+                  {isFlood && <span style={{ background: '#00e7ff', color: '#000', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}><Layers size={14}/> FLOOD</span>}
+                  {isFlash && <span style={{ background: '#e67e22', color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>⚡ FLASH</span>}
+                  {isMission && <span style={{ background: '#9b59b6', color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}><ShieldAlert size={14}/> MISSION</span>}
                 </div>
 
-                {/* KUVA & INFO */}
+                {/* SISÄLTÖALUE: Erotellaan Kuva vs Ticker */}
                 <div style={{ display: 'flex', height: '140px' }}>
-                  <div style={{ width: '120px', flexShrink: 0, background: '#000' }}>
-                    <img src={post.image_url} alt="Post" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                  <div style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    
-                    <div style={{ fontSize: '0.8rem', color: '#888', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <User size={12} /> {post.sender_name || 'Anonyymi'}
-                    </div>
-
-                    {/* TEKSTI ALUE */}
-                    <div style={{ flex: 1, overflowY: 'auto', margin: '5px 0' }}>
-                      {/* Jos Toxic, näytetään alkuperäinen himmeällä */}
-                      {isToxic && post.original_message ? (
-                        <div>
-                          <div style={{fontSize:'0.75rem', color:'#ff5555', fontWeight:'bold'}}>ALKUPERÄINEN:</div>
-                          <div style={{fontSize:'0.9rem', color:'#888', fontStyle:'italic'}}>"{post.original_message}"</div>
+                  
+                  {isAnnouncement ? (
+                    // A. TICKER LAYOUT (Ei kuvaa)
+                    <>
+                      <div style={{ width: '100px', flexShrink: 0, background: '#111', display:'flex', alignItems:'center', justifyContent:'center', borderRight:'1px solid #333', color: tickerDetails.color }}>
+                         {tickerDetails.icon}
+                      </div>
+                      <div style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#1a1a1a' }}>
+                        <div style={{ fontSize: '0.7rem', color: tickerDetails.color, fontWeight:'bold', textTransform:'uppercase', marginBottom:'4px' }}>
+                          <Radio size={12} style={{verticalAlign:'middle'}}/> INTEL TICKER
                         </div>
-                      ) : (
-                        <div style={{ fontSize: '0.95rem', color: '#fff' }}>"{post.message}"</div>
-                      )}
-                    </div>
+                        <div style={{ fontSize: '0.9rem', color: '#fff', fontFamily:'monospace', lineHeight:'1.2' }}>
+                          {post.message}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#555', marginTop: '8px' }}>
+                          {new Date(post.created_at).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // B. PHOTO LAYOUT (Vanha)
+                    <>
+                      <div style={{ width: '120px', flexShrink: 0, background: '#000' }}>
+                        {post.image_url ? (
+                          <img src={post.image_url} alt="Post" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#444'}}>No Img</div>
+                        )}
+                      </div>
+                      <div style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#888', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <User size={12} /> {post.sender_name || 'Anonyymi'}
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', margin: '5px 0' }}>
+                          {isToxic && post.original_message ? (
+                            <div>
+                              <div style={{fontSize:'0.75rem', color:'#ff5555', fontWeight:'bold'}}>ALKUPERÄINEN:</div>
+                              <div style={{fontSize:'0.9rem', color:'#888', fontStyle:'italic'}}>"{post.original_message}"</div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '0.95rem', color: '#fff' }}>"{post.message}"</div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#555' }}>
+                          {new Date(post.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
-                    <div style={{ fontSize: '0.7rem', color: '#555' }}>
-                      {new Date(post.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </div>
-                  </div>
                 </div>
 
-                {/* TOIMINTANAPIT */}
+                {/* TOIMINTANAPIT (Samat molemmille, paitsi Caption Eraser) */}
                 <div style={{ display: 'flex', borderTop: '1px solid #333' }}>
                   
-                  {/* A. TOXIC PALAUTUS (Näytetään jos toxic) */}
+                  {/* A. TOXIC PALAUTUS */}
                   {isToxic && activeTab !== 'DELETED' ? (
                      <button
                         onClick={() => restoreText(post)}
                         style={{ flex: 1, padding: '10px', background: '#2a1111', border: 'none', borderRight: '1px solid #333', cursor: 'pointer', color: '#ff5555', fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: 5 }}
-                        title="Hyväksy alkuperäinen teksti"
                      >
                         <RefreshCw size={18} /> Palauta teksti
                      </button>
                   ) : (
-                    /* B. NORMAALI NÄKYVYYS / FLOOD VAPAUTUS */
+                    /* B. NÄKYVYYS */
                     activeTab !== 'DELETED' && (
                       <button 
                         onClick={() => toggleVisibility(post)}
-                        style={{ flex: 1, padding: '10px', background: post.is_visible ? '#222' : (isFlood ? '#002a33' : '#2a2a2a'), border: 'none', borderRight: '1px solid #333', cursor: 'pointer', color: post.is_visible ? '#00ff41' : (isFlood ? '#00e7ff' : '#ffaa00'), fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: 5 }}
+                        style={{ flex: 1, padding: '10px', background: post.is_visible ? '#222' : '#2a2a2a', border: 'none', borderRight: '1px solid #333', cursor: 'pointer', color: post.is_visible ? '#00ff41' : '#ffaa00', fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: 5 }}
                       >
-                        {post.is_visible ? <><Eye size={18}/> Piilota</> : (isFlood ? <><CheckCircle size={18}/> Julkaise</> : <><EyeOff size={18}/> Näytä</>)}
+                        {post.is_visible ? <><Eye size={18}/> Piilota</> : <><EyeOff size={18}/> Näytä</>}
                       </button>
                     )
                   )}
 
-                  {/* C. TEKSTIN POISTO (Jos ei ole jo tyhjä) */}
-                  {post.message && !isToxic && activeTab !== 'DELETED' && (
+                  {/* C. TEKSTIN POISTO (Ei näytetä Tickereille, koska niissä viesti on koko sisältö) */}
+                  {!isAnnouncement && post.message && !isToxic && activeTab !== 'DELETED' && (
                     <button 
                       onClick={() => clearCaption(post.id)}
                       style={{ width: '40px', background: '#222', border: 'none', borderRight: '1px solid #333', cursor: 'pointer', color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      title="Poista teksti manuaalisesti"
+                      title="Tyhjennä kuvateksti"
                     >
                       <Eraser size={18} />
                     </button>
@@ -355,7 +364,7 @@ const PhotoModerator = () => {
                     <button 
                       onClick={() => softDelete(post.id)}
                       style={{ width: '50px', background: '#2a1111', border: 'none', cursor: 'pointer', color: '#ff3333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      title="Siirrä roskakoriin"
+                      title="Roskakoriin"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -366,7 +375,7 @@ const PhotoModerator = () => {
                 {isFlood && activeTab !== 'DELETED' && (
                    <div style={{borderTop:'1px solid #333', padding:'5px', background:'#00111a'}}>
                       <button onClick={() => hideAllFromGuest(post.guest_id, post.sender_name)} style={{width:'100%', background:'transparent', border:'none', color:'#00e7ff', fontSize:'0.7rem', cursor:'pointer'}}>
-                         Piilota kaikki tältä käyttäjältä
+                         Piilota kaikki käyttäjältä
                       </button>
                    </div>
                 )}
