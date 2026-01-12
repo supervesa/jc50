@@ -1,11 +1,10 @@
-// tiedosto: src/pages/AgentPage/AgentPage.jsx
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import './AgentPage.css';
 
 // HOOKS
 import { useAgentData } from './hooks/useAgentData';
+import { useGameConfig } from '../../hooks/useGameConfig'; // UUSI HOOK
 
 // COMPONENTS
 import AgentHeader from './AgentHeader'; 
@@ -15,10 +14,11 @@ import AgentChat from './components/AgentChat';
 import AgentMissions from './components/AgentMissions';
 import VaultTab from './VaultTab';     
 import RewardOverlay from './RewardOverlay'; 
+import IntroOverlay from '../../components/IntroOverlay'; // LISÄTTY INTRO
 
 // MODAALIT
 import HeistPersonalScoreboard from './HeistPersonalScoreboard';
-import HeistLeaderboard from '../../components/leader/HeistLeaderboard'; // Kytketty nyt oikeaan tiedostoon
+import HeistLeaderboard from '../../components/leader/HeistLeaderboard'; 
 
 import { Home, MessageSquare, Briefcase, Lock, Unlock } from 'lucide-react';
 
@@ -29,9 +29,15 @@ const AgentPage = () => {
   const [activeTab, setActiveTab] = useState('HOME');
   const [showPersonalScoreboard, setShowPersonalScoreboard] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  
+  // LISÄTTY: Intron tilanhallinta
+  const [showIntro, setShowIntro] = useState(true);
+
+  // 1. HAE PELIVAIHE
+  const { chatOpen, missionsOpen, loading: configLoading } = useGameConfig(guestId);
 
   const {
-    loading, 
+    loading: dataLoading, 
     identity, 
     characterMap, 
     chatHistory, 
@@ -54,7 +60,20 @@ const AgentPage = () => {
     submitCode,
   } = useAgentData(guestId);
 
-  if (loading) return <div className="ap-loading">LADATAAN...</div>;
+  // 2. SISÄLLÖN VARTIJA (Content Guard)
+  // Jos käyttäjä on välilehdellä, joka ei ole auki, palauta kotiin
+  useEffect(() => {
+    if (activeTab === 'MISSIONS' && !missionsOpen) setActiveTab('HOME');
+    if (activeTab === 'VAULT' && !missionsOpen) setActiveTab('HOME');
+    if (activeTab === 'CHAT' && !chatOpen) setActiveTab('HOME');
+  }, [activeTab, missionsOpen, chatOpen]);
+
+  // LISÄTTY: Näytetään intro ensin (kestää vähintään 1.6s)
+  if (showIntro) {
+    return <IntroOverlay mode="agent" onComplete={() => setShowIntro(false)} />;
+  }
+
+  if (dataLoading || configLoading) return <div className="ap-loading">LADATAAN...</div>;
   if (!guestId || !identity) return <div className="ap-error">VIRHEELLINEN ID</div>;
 
   return (
@@ -79,7 +98,6 @@ const AgentPage = () => {
         <RewardOverlay data={rewardData} onClose={() => setRewardData(null)} />
       )}
 
-      {/* MODAALI: Omat tilastot */}
       {showPersonalScoreboard && (
         <HeistPersonalScoreboard 
           guestId={guestId} 
@@ -87,31 +105,36 @@ const AgentPage = () => {
         />
       )}
 
-      {/* MODAALI: Globaali Leaderboard (Kytketty nyt oikein) */}
       {showLeaderboard && (
         <div className="modal-overlay" style={{ zIndex: 2000 }}>
            <HeistLeaderboard onClose={() => setShowLeaderboard(false)} />
         </div>
       )}
 
-{/* 3. NAVIGAATIO (Palautettu metallinen tyyli) */}
+      {/* 3. NAVIGAATIO: EHDOLINEN RENDERÖINTI */}
       <div className="ap-tabs">
         <button className={activeTab === 'HOME' ? 'active' : ''} onClick={() => setActiveTab('HOME')}>
           <Home size={18} /> <span>KOTI</span>
         </button>
 
-        <button className={activeTab === 'CHAT' ? 'active' : ''} onClick={() => setActiveTab('CHAT')}>
-          <MessageSquare size={18} /> <span>CHAT</span>
-        </button>
+        {chatOpen && (
+          <button className={activeTab === 'CHAT' ? 'active' : ''} onClick={() => setActiveTab('CHAT')}>
+            <MessageSquare size={18} /> <span>CHAT</span>
+          </button>
+        )}
 
-        <button className={activeTab === 'MISSIONS' ? 'active' : ''} onClick={() => setActiveTab('MISSIONS')}>
-          <Briefcase size={18} /> <span>TEHTÄVÄT</span>
-        </button>
+        {missionsOpen && (
+          <>
+            <button className={activeTab === 'MISSIONS' ? 'active' : ''} onClick={() => setActiveTab('MISSIONS')}>
+              <Briefcase size={18} /> <span>TEHTÄVÄT</span>
+            </button>
 
-        <button className={activeTab === 'VAULT' ? 'active' : ''} onClick={() => setActiveTab('VAULT')}>
-          {isVaultActive ? <Unlock size={18} /> : <Lock size={18} />} 
-          <span>{isVaultActive ? 'AUKI' : 'HOLVI'}</span>
-        </button>
+            <button className={activeTab === 'VAULT' ? 'active' : ''} onClick={() => setActiveTab('VAULT')}>
+              {isVaultActive ? <Unlock size={18} /> : <Lock size={18} />} 
+              <span>{isVaultActive ? 'AUKI' : 'HOLVI'}</span>
+            </button>
+          </>
+        )}
       </div>
 
       <div className="ap-content">
@@ -126,10 +149,12 @@ const AgentPage = () => {
             onOpenLeaderboard={() => setShowLeaderboard(true)}
             hasVoted={hasVoted}
             onVote={handleVote}
+            // Välitetään tieto dashboardille, jotta se osaa piilottaa "Seuraava tehtävä" -boksin Hype-viikolla
+            missionsOpen={missionsOpen} 
           />
         )}
 
-        {activeTab === 'CHAT' && (
+        {chatOpen && activeTab === 'CHAT' && (
           <AgentChat 
             guestId={guestId}
             chatHistory={chatHistory}
@@ -141,7 +166,7 @@ const AgentPage = () => {
           />
         )}
 
-        {activeTab === 'MISSIONS' && (
+        {missionsOpen && activeTab === 'MISSIONS' && (
           <AgentMissions 
             missions={visibleMissions} 
             completedIds={completedMissionIds} 
@@ -154,10 +179,9 @@ const AgentPage = () => {
           />
         )}
 
-        {activeTab === 'VAULT' && (
+        {missionsOpen && activeTab === 'VAULT' && (
           <VaultTab guestId={guestId} isGameActive={isVaultActive} />
         )}
-
       </div>
     </div>
   );

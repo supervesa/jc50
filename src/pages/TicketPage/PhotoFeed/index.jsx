@@ -6,6 +6,7 @@ import '../TicketPage.css';
 
 import { PhotoStudio } from './PhotoStudio';
 import { PhotoHistory } from './PhotoHistory';
+import { useGameConfig } from '../../AgentPage/hooks/useGameConfig'; // Korjattu polku
 
 function PhotoFeed() {
   // --- STATES ---
@@ -18,6 +19,10 @@ function PhotoFeed() {
   const [identityId, setIdentityId] = useState(null);
   const [myPhotos, setMyPhotos] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // --- UUSI: HAETAAN PELIN TILA ---
+  // Tämä rivi korjaa ReferenceError: Can't find variable: phaseValue -virheen
+  const { phaseValue } = useGameConfig(identityId);
 
   // --- 1. TUNNISTA KÄYTTÄJÄ ---
   useEffect(() => {
@@ -128,7 +133,7 @@ function PhotoFeed() {
   };
 
   // --- ACTIONS (DELETE, SHARE, DOWNLOAD) ---
- const handleSoftDelete = async (photoId) => {
+  const handleSoftDelete = async (photoId) => {
     // 1. Optimistic Update: Poistetaan kuva näkyvistä heti ilman varmistusta
     setMyPhotos(prev => prev.filter(p => p.id !== photoId));
 
@@ -194,6 +199,7 @@ function PhotoFeed() {
         onSend={handlePost}
         uploading={uploading}
         uploadSuccess={showSuccess}
+        phaseValue={phaseValue} // Kytketään Sentinel-logiikka
       />
     );
   }

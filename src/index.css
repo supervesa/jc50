@@ -1073,3 +1073,52 @@ table tr:hover {
 .jc-card::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
+
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  background: transparent;
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -1px;
+}
+
+.neon-text-cyan {
+  color: #00e7ff;
+  text-shadow: 0 0 15px #00e7ff;
+}
+
+.neon-text-red {
+  color: #ff003c;
+  text-shadow: 0 0 15px #ff003c;
+}
+
+.access-locked-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 25px;
+  border: 1px solid #ff003c;
+  color: #ff003c;
+  border-radius: 30px;
+  font-family: monospace;
+  background: rgba(255, 0, 60, 0.1);
+}
+
+/* Sykkivä efekti sisäänpääsynapille */
+.active-pulse {
+  animation: pulse-cyan 2s infinite;
+}
+
+@keyframes pulse-cyan {
+  0% { box-shadow: 0 0 0 0 rgba(0, 231, 255, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(0, 231, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 231, 255, 0); }
+}

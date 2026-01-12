@@ -22,30 +22,50 @@ function App() {
     <div className="App">
       <Header />
       <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/relaatiopuu" element={<RelationshipMap />} />
-          <Route path="/lataa-kuva" element={<UploadPhoto />} />
-          <Route path="/salaisuus" element={<SecretPage />} />
-          {/* Muuta path haluamaksesi, esim "/hallinta" tai "/admin" */}
-  <Route path="/salaisuus" element={<SecretPage />} />
+     <Routes>
+  {/* --- VAIHE 0: AINA AUKI (EARLY ACCESS) --- */}
+  <Route path="/" element={<Home />} />
   <Route path="/lippu/:id" element={<TicketPage />} />
-  {/* UUSI REITTI */}
-          <Route path="/live" element={<LiveWall />} />
-       {/* PELIREITIT (Vaatii vähintään LOBBY tai LIVE) */}
-           <Route path="/agent" element={
-              <ProtectedRoute minPhase="LIVE">
-                <AgentPage />
-              </ProtectedRoute>
-           } />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/leaderboard" element={<HeistLeaderboard />} />
-          <Route path="/personal-stats" element={<HeistPersonalScoreboard />} />
-   <Route path="/wall/:guestId?" element={<PhotoWall />} />
-   <Route path="/anthero" element={<AntheroPage />} />
-        <Route path="/game" element={<ScotlandYardGame />} />
-        <Route path="/viesti" element={<EmailViewer />} />
-        </Routes>
+  <Route path="/live" element={<LiveWall />} />
+  <Route path="/wall/:guestId?" element={<PhotoWall />} />
+  
+  <Route path="/relaatiopuu" element={<RelationshipMap />} />
+  <Route path="/lataa-kuva" element={<UploadPhoto />} />
+  <Route path="/salaisuus" element={<SecretPage />} />
+  <Route path="/anthero" element={<AntheroPage />} />
+  <Route path="/viesti" element={<EmailViewer />} />
+
+  {/* --- VAIHE 1: HYPE WEEK (CHAT AUKI) --- */}
+  {/* Vaatii vähintään tason 1, jotta pääsee edes agenttisivulle */}
+  <Route path="/agent" element={
+    <ProtectedRoute minPhase="HYPE_WEEK">
+      <AgentPage />
+    </ProtectedRoute>
+  } />
+
+  {/* --- VAIHE 2: SHOWTIME (PELI KÄYNNISSÄ) --- */}
+  {/* Nämä sivut liittyvät suoraan pelimekaniikkaan */}
+  <Route path="/leaderboard" element={
+    <ProtectedRoute minPhase="SHOWTIME">
+      <HeistLeaderboard />
+    </ProtectedRoute>
+  } />
+  
+  <Route path="/personal-stats" element={
+    <ProtectedRoute minPhase="SHOWTIME">
+      <HeistPersonalScoreboard />
+    </ProtectedRoute>
+  } />
+
+  <Route path="/game" element={
+    <ProtectedRoute minPhase="SHOWTIME">
+      <ScotlandYardGame />
+    </ProtectedRoute>
+  } />
+
+  {/* ADMIN */}
+  <Route path="/admin" element={<AdminPage />} />
+</Routes>
       </main>
       <Footer />
     </div>

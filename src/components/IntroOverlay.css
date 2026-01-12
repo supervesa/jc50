@@ -1,0 +1,104 @@
+/* --- YHTEISET PERUSTYYLIT --- */
+.sentinel-intro-overlay {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important;
+  width: 100vw !important; height: 100vh !important;
+  z-index: 2147483647 !important; 
+  background-color: #0b0b10 !important;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: all;
+}
+
+/* --- TICKET MODE: GATSBY CONCIERGE --- */
+.mode-ticket {
+  background: radial-gradient(circle at center, #1a1a24 0%, #050508 100%) !important;
+}
+
+/* Art Deco -kuviointi taustalle */
+.mode-ticket .art-deco-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l30 30-30 30L0 30z' fill='%23D4AF37' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+.mode-ticket .terminal-text {
+  font-family: "Josefin Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #D4AF37;
+  text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+  font-size: 1.1rem;
+}
+
+.mode-ticket .intro-icon-wrapper {
+  background: rgba(18, 18, 24, 0.8) !important;
+  border: 2px solid #D4AF37;
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.15), inset 0 0 20px rgba(212, 175, 55, 0.1);
+  padding: 30px;
+}
+
+.mode-ticket .status-segment.active {
+  background: linear-gradient(90deg, #D4AF37, #FF00E5);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+}
+
+/* --- AGENT MODE: SENTINEL --- */
+.mode-agent .scanner-line {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 4px;
+  background: #00ff41;
+  box-shadow: 0 0 15px #00ff41;
+  opacity: 0.8;
+  z-index: 5;
+  animation: scanMove 2.0s linear infinite;
+}
+
+/* --- YHTEISET ANIMAATIOT JA RAKENNE --- */
+.intro-content { position: relative; text-align: center; z-index: 10; }
+
+.intro-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+  margin-bottom: 30px;
+  color: var(--theme-color);
+  transition: all 0.5s ease;
+}
+
+.pulse-ring {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 2px solid var(--theme-color);
+  border-radius: 50%;
+  animation: introPulse 2.0s ease-out infinite;
+}
+
+@keyframes introPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.terminal-text-wrapper {
+  height: 40px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.system-status-bar { display: flex; gap: 12px; justify-content: center; margin-top: 40px; }
+.status-segment { width: 40px; height: 2px; background: rgba(255,255,255,0.05); border-radius: 1px; transition: all 0.4s ease; }
+
+@keyframes scanMove { 0% { top: -5%; } 100% { top: 105%; } }
+
+.sentinel-intro-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.noise-bg {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23g)" opacity="0.02" fill="black"/></svg>');
+  opacity: 0.4;
+}

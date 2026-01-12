@@ -9,24 +9,98 @@ const PhotoWall = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // --- LAUSEGENERAATTORI ---
+  const getStoryPhrase = (id, isPlural) => {
+    const phrases = [
+      isPlural ? "Tämän hetken ikuistivat" : "Tämän hetken ikuisti",
+      isPlural ? "Tämän jaon tarjosivat" : "Tämän jaon tarjosi",
+      isPlural ? "Tämän palasen juhlaa tallensivat" : "Tämän palasen juhlaa tallensi",
+      isPlural ? "Linssin takana häärivät" : "Linssin takana hääri",
+      isPlural ? "Muistoksi meille poimivat" : "Muistoksi meille poimi",
+      isPlural ? "Juhlahumun vangitsivat" : "Juhlahumun vangitsi",
+      isPlural ? "Tämän tunnelman nappasivat" : "Tämän tunnelman nappasi",
+      isPlural ? "Vilinän keskeltä tallensivat" : "Vilinän keskeltä tallensi",
+      isPlural ? "Tämän muiston jakoivat" : "Tämän muiston jakoi",
+      isPlural ? "Hetken pysäyttivät" : "Hetken pysäytti"
+    ];
+    // Käytetään id:tä valitsemaan listasta aina sama lause samalle kuvalle
+    const index = Math.abs(id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % phrases.length;
+    return phrases[index];
+  };
+
+  const enrichPosts = async (posts) => {
+    const enriched = await Promise.all(posts.map(async (post) => {
+      if (!post.guest_id) {
+        return { 
+          ...post, 
+          guestNames: 'Anonyymi', 
+          characterNames: 'Vieras', 
+          authors: [{ name: 'Vieras', image: null }],
+          storyPhrase: getStoryPhrase(post.id, false)
+        };
+      }
+      try {
+        const { data: characters } = await supabase
+          .from('characters')
+          .select('name, role, avatar_url')
+          .eq('assigned_guest_id', post.guest_id);
+
+        const { data: guestData } = await supabase
+          .from('guests')
+          .select('name')
+          .eq('id', post.guest_id)
+          .single();
+
+        const realName = guestData?.name || 'Vieras';
+        const isPlural = characters && characters.length > 1;
+
+        if (characters && characters.length > 0) {
+          const authors = characters.map(c => ({ name: c.name, image: c.avatar_url, role: c.role }));
+          const combinedCharacterNames = characters.map(c => c.name).join(' & ');
+          
+          return { 
+            ...post, 
+            guestNames: realName, 
+            characterNames: combinedCharacterNames, 
+            authors: authors,
+            storyPhrase: getStoryPhrase(post.id, isPlural)
+          };
+        }
+        
+        return { 
+          ...post, 
+          guestNames: realName, 
+          characterNames: realName, 
+          authors: [{ name: realName, image: null }],
+          storyPhrase: getStoryPhrase(post.id, false)
+        };
+      } catch (err) {
+        console.error("Enrich error:", err);
+        return post;
+      }
+    }));
+    return enriched;
+  };
+
   const fetchPhotos = async () => {
-    // Haetaan kuvat live_posts-taulusta
-    // SUODATUS: Ei poistettuja, ja pitää olla visible
+    // Varmistetaan että haetaan vain kuvat, ei muita tehtäviä
     const { data, error } = await supabase
       .from('live_posts')
       .select(`
         *,
         comments (count)
       `)
-      .eq('status', 'approved') // Vain hyväksytyt
-      .eq('is_deleted', false)  // UUSI: Ei poistettuja
-      .eq('is_visible', true)   // UUSI: Vain näkyvät
+      .eq('status', 'approved')
+      .eq('is_deleted', false)
+      .eq('is_visible', true)
+      .eq('type', 'photo') 
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Virhe haettaessa kuvia:', error);
     } else {
-      const formattedData = data.map(post => ({
+      const enrichedData = await enrichPosts(data);
+      const formattedData = enrichedData.map(post => ({
         ...post,
         url: post.image_url, 
         caption: post.message,
@@ -39,16 +113,10 @@ const PhotoWall = () => {
 
   useEffect(() => {
     fetchPhotos();
-    
-    // Polling: Päivitetään seinä 10s välein
     const interval = setInterval(fetchPhotos, 10000);
-
-    // REALTIME LISTENER: Kuuntelee muutoksia (esim. admin piilottaa kuvan)
     const channel = supabase
       .channel('public:live_posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_posts' }, (payload) => {
-        // Jos tulee uusi kuva tai päivitys (esim. piilotus), haetaan lista uusiksi
-        console.log('Muutos havaittu:', payload);
         fetchPhotos();
       })
       .subscribe();
@@ -61,35 +129,17 @@ const PhotoWall = () => {
 
   return (
     <div id="photo-wall" className="wall-container">
-      
-      {/* --- UUSI STICKY HEADER --- */}
       <div className="wall-sticky-header">
-        {/* Takaisin-nappi (vie edelliseen näkymään / upload-sivulle) */}
-        <button 
-          className="nav-btn" 
-          onClick={() => window.history.back()}
-          aria-label="Takaisin"
-        >
+        <button className="nav-btn" onClick={() => window.history.back()} aria-label="Takaisin">
           <ArrowLeft size={24} />
         </button>
-        
-        {/* Otsikot keskellä */}
         <div className="header-titles">
-          <h1 className="jc-h1">Juhlafeed</h1>
+          <h1 className="jc-h1">Kymppiseinä</h1>
           <p>Jaa parhaat palat!</p>
         </div>
-
-        {/* Ylös-nappi */}
-        <button 
-          className="nav-btn" 
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          aria-label="Sivun alkuun"
-        >
-          <ArrowUp size={24} />
-        </button>
+  
       </div>
 
-      {/* --- SISÄLTÖ --- */}
       {loading ? (
         <div style={{textAlign:'center', marginTop: 100, color: '#666', fontStyle: 'italic'}}>
           Ladataan muistoja...
@@ -97,9 +147,7 @@ const PhotoWall = () => {
       ) : (
         <div className="polaroid-grid">
           {photos.map((photo, index) => {
-            // Arvotaan pieni kääntö elävyyden vuoksi
             const rotation = index % 2 === 0 ? '-1.5deg' : '1.5deg';
-
             return (
               <div 
                 key={photo.id} 
@@ -107,27 +155,41 @@ const PhotoWall = () => {
                 style={{ transform: `rotate(${rotation})` }}
                 onClick={() => setSelectedPhoto(photo)}
               >
-                <img 
-                   src={photo.url} 
-                   alt="Postaus" 
-                   className="polaroid-img" 
-                   loading="lazy" 
-                />
+                {/* YLÄKULMAN BY-BADGE */}
+                <div className="photo-by-badge">
+                  <div className="avatar-stack">
+                    {photo.authors?.map((auth, i) => (
+                      <div key={i} className="mini-avatar">
+                        {auth.image ? (
+                          <img src={auth.image} alt={auth.name} />
+                        ) : (
+                          <div className="avatar-placeholder">{auth.name.charAt(0)}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <span className="guest-real-name">by {photo.guestNames}</span>
+                </div>
+
+                <img src={photo.url} alt="Postaus" className="polaroid-img" loading="lazy" />
                 
                 <div className="polaroid-caption">
-                  {photo.caption || '#juhlat'}
+                  {/* UUSI TUSSIFONTTI TÄSSÄ */}
+                  {photo.caption && <div className="main-message">{photo.caption}</div>}
+                  
+                  {/* ALAREUNAN TARINALLINEN SIGNEERAUS */}
+                  <div className="story-credit">
+                    <span className="phrase-part">{photo.storyPhrase}</span>
+                    <span className="character-name-highlight">{photo.characterNames}</span>
+                  </div>
                 </div>
 
                 <div className="polaroid-badges">
                   {(photo.hot_count || 0) > 0 && (
-                    <div className="badge hot">
-                      <Flame size={12} fill="#fff" /> {photo.hot_count}
-                    </div>
+                    <div className="badge hot"><Flame size={12} fill="#fff" /> {photo.hot_count}</div>
                   )}
                   {(photo.comment_count || 0) > 0 && (
-                    <div className="badge comments">
-                      <MessageCircle size={12} /> {photo.comment_count}
-                    </div>
+                    <div className="badge comments"><MessageCircle size={12} /> {photo.comment_count}</div>
                   )}
                 </div>
               </div>
@@ -136,12 +198,8 @@ const PhotoWall = () => {
         </div>
       )}
 
-      {/* --- OVERLAY (MODAL) --- */}
       {selectedPhoto && (
-        <PhotoViewOverlay 
-          photo={selectedPhoto} 
-          onClose={() => setSelectedPhoto(null)} 
-        />
+        <PhotoViewOverlay photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Lisätty useNavigate siivousta varten
 import { supabase } from '../../lib/supabaseClient';
 import './TicketPage.css';
 
@@ -9,9 +9,14 @@ import CharacterCard from './CharacterCard';
 import GuestInfo from './GuestInfo';
 import PhotoFeed from './PhotoFeed';
 import CharacterAcceptance from './CharacterAcceptance';
+import IntroOverlay from '../../components/IntroOverlay'; 
+
+// Hookit
+import { useGameConfig } from '../AgentPage/hooks/useGameConfig'; // Haetaan maailman tila
 
 function TicketPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   
   // --- TILAT ---
   const [guest, setGuest] = useState(null);
@@ -25,7 +30,12 @@ function TicketPage() {
   const [activeTab, setActiveTab] = useState('IDENTITY'); 
   const [photoMessage, setPhotoMessage] = useState(''); 
 
-  // --- 1. DATAHAKU ---
+  const [showIntro, setShowIntro] = useState(true);
+
+  // HAETAAN MAAILMAN TILA (Sentinel-logiikkaa varten)
+  const { phaseValue } = useGameConfig(id);
+
+  // --- 1. DATAHAKU & LEIMAUS ---
   const fetchData = async () => {
     if (!id || id.length < 20) {
       setErrorMsg("Linkki virheellinen.");
@@ -42,8 +52,12 @@ function TicketPage() {
         .eq('id', id)
         .single();
 
-      if (guestError) throw guestError;
+      if (guestError || !guestData) throw guestError;
+      
       setGuest(guestData);
+
+      // LEIMAUS: Tallennetaan ID localstorageen
+      localStorage.setItem('jc_ticket_id', id);
 
       // Haetaan hahmot
       const { data: charData, error: charError } = await supabase
@@ -53,13 +67,21 @@ function TicketPage() {
 
       if (!charError && charData) {
         setMyCharacters(charData);
+        // TALLENNETAAN NIMI: Personointia varten etusivulle
+        if (charData.length > 0) {
+          localStorage.setItem('jc_username', charData[0].name);
+        }
       }
 
       fetchMyPhotos(id);
 
     } catch (err) {
-      console.error(err);
+      console.error("Lippuvirhe:", err);
       setErrorMsg("Lippua ei löytynyt.");
+      
+      // SIIVOUS: Jos ID on viallinen, poistetaan se muistista
+      localStorage.removeItem('jc_ticket_id');
+      localStorage.removeItem('jc_username');
     } finally {
       setLoading(false);
     }
@@ -70,6 +92,7 @@ function TicketPage() {
       .from('live_posts')
       .select('*')
       .eq('guest_id', guestId)
+      .eq('is_deleted', false) // Varmistetaan että poistetut eivät näy
       .order('created_at', { ascending: false });
     if (data) setMyPhotos(data);
   };
@@ -78,15 +101,13 @@ function TicketPage() {
     fetchData();
   }, [id]);
 
-  // --- SPLIT TOIMINTO (LAAJENNETTU: Linkitys + Loki) ---
+  // --- SPLIT TOIMINTO ---
   const handleActivateSpouse = async (spouseEmail) => {
     if (!guest || !guest.spouse_name) return;
 
-    // 1. Etsi Avecin hahmo
     const spouseChar = myCharacters.find(c => c.is_spouse_character);
-    if (!spouseChar) throw new Error("Avecin hahmoa ei löydy tai se on jo siirretty.");
+    if (!spouseChar) throw new Error("Avecin hahmoa ei löydy.");
 
-    // 2. Luo uusi vieras
     const { data: newGuest, error: createError } = await supabase
       .from('guests')
       .insert({
@@ -100,7 +121,6 @@ function TicketPage() {
 
     if (createError) throw createError;
 
-    // 3. Siirrä hahmo
     const { error: moveError } = await supabase
       .from('characters')
       .update({ assigned_guest_id: newGuest.id })
@@ -108,37 +128,22 @@ function TicketPage() {
 
     if (moveError) throw moveError;
 
-    // --- UUSI VAIHE 4: LUO LINKITYS (GUEST_SPLITS) ---
-    const { error: splitError } = await supabase
-      .from('guest_splits')
-      .insert({
-        parent_guest_id: guest.id,        // Matti
-        child_guest_id: newGuest.id,      // Teppo
-        transferred_character_id: spouseChar.id, // Reino
+    // Linkitys ja lokitus
+    await supabase.from('guest_splits').insert({
+        parent_guest_id: guest.id,
+        child_guest_id: newGuest.id,
+        transferred_character_id: spouseChar.id,
         original_spouse_name: guest.spouse_name
-      });
+    });
     
-    if (splitError) console.error("Virhe linkityksen luonnissa:", splitError);
-
-    // --- UUSI VAIHE 5: KIRJAA LOKI (SYSTEM_LOGS) ---
-    const { error: logError } = await supabase
-      .from('system_logs')
-      .insert({
+    await supabase.from('system_logs').insert({
         event_type: 'GUEST_SPLIT',
         target_id: guest.id,
-        description: `Vieras ${guest.name} aktivoi avecin ${guest.spouse_name} (Uusi ID: ${newGuest.id})`,
-        snapshot_data: { 
-          parent_name: guest.name,
-          child_name: newGuest.name,
-          character_moved: spouseChar.name 
-        }
-      });
+        description: `Vieras ${guest.name} aktivoi avecin ${guest.spouse_name}`,
+        snapshot_data: { parent_name: guest.name, child_name: newGuest.name, character_moved: spouseChar.name }
+    });
 
-    if (logError) console.error("Virhe lokituksessa:", logError);
-
-    // 6. Päivitä paikallinen tila
     setMyCharacters(prev => prev.filter(c => c.id !== spouseChar.id));
-
     return newGuest.id;
   };
 
@@ -147,21 +152,15 @@ function TicketPage() {
     try {
       setUploading(true);
       if (!event.target.files || event.target.files.length === 0) return;
-
       const file = event.target.files[0];
       const fileName = `${charId}-${Date.now()}.${file.name.split('.').pop()}`;
-
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
-
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
-
       const { error: updateError } = await supabase.from('characters').update({ avatar_url: publicUrl }).eq('id', charId);
       if (updateError) throw updateError;
-
       alert("Profiilikuva päivitetty!");
       fetchData(); 
-
     } catch (error) {
       alert("Virhe: " + error.message);
     } finally {
@@ -169,19 +168,17 @@ function TicketPage() {
     }
   };
 
+  // Huom: Käytetään nyt PhotoStudioon integroitua metodia PhotoFeedissä, 
+  // mutta pidetään tämä varalla jos feedissä on suora upload.
   const uploadPartyPhoto = async (event) => {
     try {
       setUploading(true);
       if (!event.target.files || event.target.files.length === 0) return;
-
       const file = event.target.files[0];
-      const fileName = `${guest.id}-${Date.now()}.${file.name.split('.').pop()}`; // Kuvat juureen
-
+      const fileName = `${guest.id}-${Date.now()}.${file.name.split('.').pop()}`;
       const { error: uploadError } = await supabase.storage.from('party-photos').upload(fileName, file);
       if (uploadError) throw uploadError;
-
       const { data: { publicUrl } } = supabase.storage.from('party-photos').getPublicUrl(fileName);
-
       const { error: dbError } = await supabase.from('live_posts').insert({
           guest_id: guest.id,
           sender_name: guest.name,
@@ -189,11 +186,8 @@ function TicketPage() {
           message: photoMessage
         });
       if (dbError) throw dbError;
-
-      alert("Kuva lähetetty seinälle!");
       setPhotoMessage(''); 
       fetchMyPhotos(guest.id); 
-
     } catch (error) {
       alert("Virhe: " + error.message);
     } finally {
@@ -202,10 +196,15 @@ function TicketPage() {
   };
 
   const deletePhoto = async (photoId) => {
-    if(!window.confirm("Poistetaanko kuva?")) return;
-    await supabase.from('live_posts').delete().eq('id', photoId);
+    await supabase.from('live_posts').update({ is_deleted: true }).eq('id', photoId);
     fetchMyPhotos(guest.id);
   };
+
+  // --- RENDERÖINTI ---
+
+  if (showIntro) {
+    return <IntroOverlay mode="ticket" onComplete={() => setShowIntro(false)} />;
+  }
 
   if (loading) return <div className="ticket-wrapper ticket-loading">Ladataan...</div>;
   if (errorMsg) return <div className="ticket-wrapper ticket-error">{errorMsg}</div>;
@@ -225,7 +224,7 @@ function TicketPage() {
             <section className="jc-card medium mb-2 ticket-loading" style={{ opacity: 0.7 }}>
               <div style={{ fontSize: '3rem' }}>🎭</div>
               <h3>Hahmoa ei vielä roolitettu</h3>
-              <p>Odota hetki, Admin tekee taikojaan...</p>
+              <p>Sentinel analysoi profiiliasi...</p>
             </section>
           ) : (
             myCharacters.map(char => (
@@ -237,8 +236,7 @@ function TicketPage() {
               />
             ))
           )}
-          {/* --- UUSI KOMPONENTTI TÄSSÄ --- */}
-          {/* Näytetään vain jos hahmoja on löytynyt */}
+
           {myCharacters.length > 0 && (
             <CharacterAcceptance 
                guestId={id} 
@@ -248,8 +246,8 @@ function TicketPage() {
 
           <GuestInfo 
             guest={guest}
-            myCharacters={myCharacters} // VÄLITETÄÄN HAHMOT
-            onActivateSpouse={handleActivateSpouse} // VÄLITETÄÄN FUNKTIO
+            myCharacters={myCharacters}
+            onActivateSpouse={handleActivateSpouse}
             onSave={() => alert("Ota yhteys järjestäjään muutoksissa.")}
           />
         </>
@@ -257,12 +255,9 @@ function TicketPage() {
 
       {activeTab === 'PHOTO' && (
         <PhotoFeed 
-          myPhotos={myPhotos}
-          photoMessage={photoMessage}
-          setPhotoMessage={setPhotoMessage}
-          onUpload={uploadPartyPhoto}
-          onDelete={deletePhoto}
-          uploading={uploading}
+          identityId={id}
+          identityName={guest?.name}
+          phaseValue={phaseValue} // VÄLITETÄÄN SENTINEL-TILA
         />
       )}
 

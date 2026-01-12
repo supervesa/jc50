@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import AdminSocial from './AdminSocial';
 
-// HUOM: Ota vastaan myös 'guests' prop
 const AdminGuests = ({ characters, guests }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [scores, setScores] = useState({});
@@ -10,9 +9,8 @@ const AdminGuests = ({ characters, guests }) => {
   
   // UUSI: Tila vieraskohtaisille oikeuksille (Sidecar data)
   const [accessControlMap, setAccessControlMap] = useState({});
-
-  const [showUnassigned, setShowUnassigned] = useState(false);
   
+  const [showUnassigned, setShowUnassigned] = useState(false);
   const [points, setPoints] = useState(0);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +18,6 @@ const AdminGuests = ({ characters, guests }) => {
   if (!characters) return <div className="admin-container">Ladataan hahmoja...</div>;
 
   // --- 1. LUODAAN NIMI-HAKUKARTTA ---
-  // Tämä muuttaa guests-listan muotoon: { 'uuid-123': 'Matti Meikäläinen' }
   const guestMap = useMemo(() => {
     if (!guests) return {};
     return guests.reduce((acc, g) => {
@@ -88,7 +85,6 @@ const AdminGuests = ({ characters, guests }) => {
 
   const applyPreset = (xp, text) => { setPoints(xp); setReason(text); };
 
-  // --- PISTEIDEN LÄHETYS ---
   const sendPoints = async (guestId) => {
     if (!guestId) return alert("Virhe: Ei pelaajaa.");
     if (!reason) return alert("Syy vaaditaan!");
@@ -118,6 +114,7 @@ const AdminGuests = ({ characters, guests }) => {
   const toggleTester = async (guestId, currentRole) => {
     const newRole = currentRole === 'tester' ? 'guest' : 'tester';
     
+    // Upsert: Luo rivi jos ei ole, päivitä jos on
     const { error } = await supabase
       .from('guest_access_control')
       .upsert({ 
@@ -126,7 +123,6 @@ const AdminGuests = ({ characters, guests }) => {
       });
       
     if (error) alert("Virhe roolin vaihdossa: " + error.message);
-    // Realtime hoitaa UI-päivityksen
   };
 
   const toggleBan = async (guestId, currentBanStatus) => {
@@ -144,9 +140,7 @@ const AdminGuests = ({ characters, guests }) => {
   return (
     <div className="char-admin-container">
       
-      {/* Välitetään myös guestMap AdminSocialille */}
       <AdminSocial characters={characters} guestMap={guestMap} />
-
       <hr className="section-divider" />
       
       <div className="admin-header-row">
@@ -164,7 +158,6 @@ const AdminGuests = ({ characters, guests }) => {
           const isOpen = expandedId === char.id;
           const currentXp = (hasPlayer && scores[guestId]) ? scores[guestId] : 0;
           
-          // HAETAAN OIKEA NIMI KARTASTA
           const realName = guestMap[guestId] || 'Tuntematon';
 
           // HAETAAN OIKEUDET KARTASTA (UUSI)
@@ -176,7 +169,6 @@ const AdminGuests = ({ characters, guests }) => {
             <div key={char.id} className={`char-card ${isOpen ? 'open' : ''} ${!hasPlayer ? 'disabled' : ''} ${isBanned ? 'banned-card' : ''}`}>
               <div className="char-header" onClick={() => hasPlayer && toggleExpand(char.id)}>
                 <div className="char-info">
-                  {/* TÄSSÄ SE TAIKA TAPAHTUU: Hahmo (Oikea nimi) + Statusikonit */}
                   <span className="char-name">
                     {char.name} 
                     {hasPlayer && <span style={{color: '#888', fontWeight: 'normal', fontSize: '0.9em', marginLeft: '6px'}}>
@@ -198,49 +190,53 @@ const AdminGuests = ({ characters, guests }) => {
               {isOpen && hasPlayer && (
                 <div className="char-body">
                   
-                  {/* UUSI: ACCESS CONTROL PANEL */}
-                  <div className="access-control-panel" style={{ 
-                      background: '#222', 
-                      padding: '10px', 
+                  {/* UUSI: SIDECAR CONTROL PANEL */}
+                  <div style={{ 
+                      background: '#1a1a1a', 
+                      padding: '15px', 
                       marginBottom: '15px', 
                       borderRadius: '5px',
-                      border: '1px solid #444',
+                      border: '1px solid #333',
                       display: 'flex',
-                      gap: '15px',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
                   }}>
-                    <strong style={{color: '#888', fontSize: '0.8rem'}}>OIKEUDET:</strong>
-                    
-                    <button 
-                      onClick={() => toggleTester(guestId, accessInfo.role)}
-                      style={{
-                        background: isTester ? 'gold' : '#333',
-                        color: isTester ? 'black' : 'white',
-                        border: '1px solid gold',
-                        padding: '5px 10px',
-                        cursor: 'pointer',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      {isTester ? '👑 TESTAAJA (ON)' : '👑 Tee testaajaksi'}
-                    </button>
+                    <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                        <span style={{color:'#666', fontSize:'0.8rem', fontWeight:'bold'}}>ACCESS LEVEL:</span>
+                        <button 
+                        onClick={() => toggleTester(guestId, accessInfo.role)}
+                        style={{
+                            background: isTester ? 'gold' : '#333',
+                            color: isTester ? 'black' : 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                            borderRadius: '4px',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem'
+                        }}
+                        >
+                        {isTester ? '👑 BETA TESTAAJA (ON)' : '👑 TEE TESTAAJAKSI'}
+                        </button>
+                    </div>
 
                     <button 
                       onClick={() => toggleBan(guestId, isBanned)}
                       style={{
                         background: isBanned ? 'red' : '#333',
                         color: 'white',
-                        border: '1px solid red',
-                        padding: '5px 10px',
+                        border: 'none',
+                        padding: '6px 12px',
                         cursor: 'pointer',
-                        borderRadius: '4px'
+                        borderRadius: '4px',
+                        fontSize: '0.8rem'
                       }}
                     >
-                      {isBanned ? '🚫 BANNED (ON)' : '🚫 Bannaa käyttäjä'}
+                      {isBanned ? '🚫 BANNED (ON)' : '🚫 BANNAA KÄYTTÄJÄ'}
                     </button>
                   </div>
 
-                  {/* VANHA: PISTEET JA LOGIT */}
+                  {/* PISTEET JA LOGIT */}
                   <div className="action-presets">
                     <button className="btn-preset pos" onClick={() => applyPreset(5, '🕵️ Löysi vihjeen')}>+5 Vihje</button>
                     <button className="btn-preset pos" onClick={() => applyPreset(10, '🧩 Ratkaisi tehtävän')}>+10 Tehtävä</button>
@@ -257,7 +253,7 @@ const AdminGuests = ({ characters, guests }) => {
                   <div className="char-history">
                     <table className="history-table">
                        <tbody>
-                         {logs.filter(l => l.guest_id === guestId).slice(0, 10).map(log => (
+                         {logs.filter(l => l.guest_id === guestId).slice(0, 5).map(log => (
                            <tr key={log.id}>
                              <td className="td-time">{new Date(log.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
                              <td className="td-reason">{log.custom_reason}</td>

@@ -1,0 +1,151 @@
+/* =========================================
+   OVERLAY (MODAL) TYYLIT
+   ========================================= */
+
+.overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.98);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    animation: overlayFadeIn 0.2s ease-out;
+}
+
+.overlay-header {
+    height: 60px;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 20px;
+    flex-shrink: 0; /* Estää kutistumisen */
+}
+
+/* Sisältöalue joka rullaa */
+.overlay-content {
+    flex: 1;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Kuva-alue */
+.overlay-image-wrapper {
+    width: 100%;
+    position: relative;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 250px;
+    flex-shrink: 0;
+}
+
+.overlay-img {
+    max-width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
+    display: block;
+}
+
+/* Hype-liekki kuvan päällä */
+.hype-fab {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.hype-count { color: #111; font-weight: 800; font-size: 1rem; }
+
+/* Kommenttiosio */
+.comments-section {
+    padding: 25px 20px 120px 20px; /* Alapadding antaa tilaa syöttöpalkille */
+    width: 100%;
+}
+
+.comment-item {
+    margin-bottom: 18px;
+    border-left: 2px solid var(--turquoise);
+    padding-left: 12px;
+}
+
+.comment-author {
+    font-weight: 800;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    color: var(--turquoise);
+}
+
+.comment-text {
+    font-size: 1rem;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Alareunan syöttöpalkki */
+.comment-input-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #0a0a0a;
+    padding: 15px;
+    padding-bottom: calc(15px + env(safe-area-inset-bottom));
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 100;
+}
+
+.comment-input {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 25px;
+    padding: 12px 20px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+}
+
+.comment-input:focus { border-color: var(--magenta); }
+
+.btn-send {
+    background: var(--magenta);
+    border: none;
+    color: white;
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+}
+
+.btn-close {
+    background: var(--magenta);
+    border: none;
+    color: white;
+    width: 40px; height: 40px; border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+
+@keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 768px) {
+    .overlay-img { max-height: 50vh; }
+    .overlay-content { width: 100%; }
+}
