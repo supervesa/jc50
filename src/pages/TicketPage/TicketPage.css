@@ -1732,27 +1732,19 @@ html {
   color: #00ff41;
 }
 
-/* TÄMÄ ON TURVALLINEN VERSIO */
-
 .studio-overlay {
-  /* Studio peittää koko ruudun VAIN kun se on auki */
   position: fixed;
-  inset: 0; /* Sama kuin top:0, left:0, right:0, bottom:0 */
+  inset: 0;
   z-index: 2000;
   background-color: #121212;
   display: flex;
   flex-direction: column;
-  
-  /* Estää rullauksen valumisen taustalla olevalle sivulle iOS:lla */
-  overscroll-behavior: contain;
-  /* Varmistaa, että studio pysyy paikoillaan */
-  height: 100vh;
-  height: 100dvh;
+  height: 100dvh; /* Dynaaminen korkeus iOS:lle */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .studio-workspace {
-  /* RAJOITETAAN touch-action VAIN työtilaan, ei koko bodyyn */
-  touch-action: none; 
   flex-grow: 1;
   display: flex;
   justify-content: center;
@@ -1760,6 +1752,22 @@ html {
   background: #000;
   position: relative;
   overflow: hidden;
+  /* Pakotetaan selain olemaan rullaamatta */
+  touch-action: none !important; 
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-/* Kaikki muu sivun rullaus toimii nyt normaalisti! */
+.studio-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  /* Grafiikkakiihdytys päälle */
+  will-change: transform, filter;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.caption-input, .text-input-modern {
+  font-size: 16px !important; /* Estää iOS auto-zoomin */
+}
