@@ -25,13 +25,16 @@ export function PhotoStudio({
   
   const isDragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
+  const dragTargetRef = useRef(null); // iOS vakautta varten
 
   const [toolInputText, setToolInputText] = useState('');
   const [photoMessage, setPhotoMessage] = useState(''); 
   const [processedBlob, setProcessedBlob] = useState(null); 
   
   const canvasRef = useRef(null);
+  const workspaceRef = useRef(null);
   const imgRef = useRef(null); 
+  const renderRequested = useRef(false);
 
   // --- Alustus ---
   useEffect(() => {
@@ -45,15 +48,18 @@ export function PhotoStudio({
         setActiveFrameId('none');
         setActiveFilterId('none');
         setPhotoMessage('');
-        drawCanvas();
+        requestCanvasDraw();
       };
       img.src = imageSrc;
     }
   }, [imageSrc]);
 
-  // --- Piirtologiikka ---
+  // --- Piirtologiikka (Optimoitu iOS:lle) ---
   const drawCanvas = () => {
-    if (!imgRef.current || !canvasRef.current) return;
+    if (!imgRef.current || !canvasRef.current) {
+        renderRequested.current = false;
+        return;
+    }
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const img = imgRef.current;
@@ -71,7 +77,7 @@ export function PhotoStudio({
     let renderW, renderH, offsetX, offsetY;
     const aspect = img.width / img.height;
     if (aspect > 1) {
-      renderH = size; renderW = size * aspect;
+      renderW = size * aspect; renderH = size;
       offsetX = -(renderW - size) / 2 + bgPan.x;
       offsetY = 0 + bgPan.y;
     } else {
@@ -119,43 +125,34 @@ export function PhotoStudio({
         }
     }
 
-    canvas.toBlob((blob) => setProcessedBlob(blob), 'image/jpeg', 0.9);
+    canvas.toBlob((blob) => {
+        setProcessedBlob(blob);
+        renderRequested.current = false;
+    }, 'image/jpeg', 0.9);
+  };
+
+  const requestCanvasDraw = () => {
+    if (!renderRequested.current) {
+      renderRequested.current = true;
+      window.requestAnimationFrame(drawCanvas);
+    }
   };
 
   useEffect(() => { 
-    const timer = setTimeout(() => drawCanvas(), 50); 
-    return () => clearTimeout(timer);
+    requestCanvasDraw();
   }, [activeFrameId, activeFilterId, bgPan, overlays, dragTarget, phaseValue]);
 
-  // --- Muokkaustoiminnot ---
-  const addOverlay = (type, content) => {
-    if (!content) return;
-    const newId = Date.now();
-    setOverlays(prev => [...prev, { id: newId, type, content, x: 540, y: 540 }]);
-    setDragTarget(newId);
-    if (type === 'text') setToolInputText('');
-  };
-
-  // KORJATTU: Poisto reagoi välittömästi tilaan
-  const removeSelectedOverlay = (e) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    if (dragTarget && dragTarget !== 'bg') {
-      setOverlays(current => current.filter(o => o.id !== dragTarget));
-      setDragTarget(null);
-    }
-  };
-
-  // --- Raahaus ---
+  // --- Raahauslogiikka ---
   const getCanvasCoords = (clientX, clientY) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const scale = 1080 / rect.width;
     return { x: (clientX - rect.left) * scale, y: (clientY - rect.top) * scale };
   };
 
-  const handleStart = (e) => { 
+  const handleStart = (e) => {
+    // Estetään sivun rullaus iOS:lla heti alussa
+    if (e.cancelable) e.preventDefault();
+    
     const pt = e.touches ? e.touches[0] : e; 
     const coords = getCanvasCoords(pt.clientX, pt.clientY);
     isDragging.current = true;
@@ -166,29 +163,81 @@ export function PhotoStudio({
       const item = overlays[i];
       const dx = coords.x - item.x;
       const dy = coords.y - item.y;
-      // Etäisyys tarkistus (tarran koko on n. 150px)
       if (Math.sqrt(dx*dx + dy*dy) < 100) { hitId = item.id; break; }
     }
-    setDragTarget(hitId || 'bg');
+    
+    const target = hitId || 'bg';
+    setDragTarget(target);
+    dragTargetRef.current = target;
   };
 
   const handleMove = (e) => { 
     if(!isDragging.current) return;
+    
+    // TÄRKEÄ iOS:lle: Estetään sivun rullaus liikkeen aikana
     if (e.cancelable) e.preventDefault();
+    
     const pt = e.touches ? e.touches[0] : e; 
     const pos = getCanvasCoords(pt.clientX, pt.clientY);
     const dx = pos.x - lastPos.current.x;
     const dy = pos.y - lastPos.current.y;
     
-    if (dragTarget === 'bg') {
+    if (dragTargetRef.current === 'bg') {
       setBgPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-    } else if (dragTarget && dragTarget !== 'bg') {
-      setOverlays(prev => prev.map(item => item.id === dragTarget ? { ...item, x: item.x + dx, y: item.y + dy } : item));
+    } else if (dragTargetRef.current && dragTargetRef.current !== 'bg') {
+      setOverlays(prev => prev.map(item => 
+        item.id === dragTargetRef.current ? { ...item, x: item.x + dx, y: item.y + dy } : item
+      ));
     }
     lastPos.current = pos;
   };
 
-  const endDrag = () => { isDragging.current = false; };
+  const endDrag = () => { 
+    isDragging.current = false; 
+    dragTargetRef.current = null;
+  };
+
+  // --- iOS TOUCH INTERCEPTOR (RATKAISEE WOBBLEN) ---
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+
+    // Pakotetaan ei-passiiviset kuuntelijat iOS Safarille
+    const touchOptions = { passive: false };
+    
+    workspace.addEventListener('touchstart', handleStart, touchOptions);
+    workspace.addEventListener('touchmove', handleMove, touchOptions);
+    workspace.addEventListener('touchend', endDrag, touchOptions);
+    workspace.addEventListener('touchcancel', endDrag, touchOptions);
+
+    return () => {
+      workspace.removeEventListener('touchstart', handleStart);
+      workspace.removeEventListener('touchmove', handleMove);
+      workspace.removeEventListener('touchend', endDrag);
+      workspace.removeEventListener('touchcancel', endDrag);
+    };
+  }, [overlays, bgPan]); // Uudelleenliitos kun tila muuttuu, jotta closuret pysyvät tuoreina
+
+  // --- Muokkaustoiminnot ---
+  const addOverlay = (type, content) => {
+    if (!content) return;
+    const newId = Date.now();
+    setOverlays(prev => [...prev, { id: newId, type, content, x: 540, y: 540 }]);
+    setDragTarget(newId);
+    if (type === 'text') setToolInputText('');
+  };
+
+  const removeSelectedOverlay = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (dragTarget && dragTarget !== 'bg') {
+      setOverlays(current => current.filter(o => o.id !== dragTarget));
+      setDragTarget(null);
+      dragTargetRef.current = null;
+    }
+  };
 
   const handleSendClick = () => {
     if (processedBlob) onSend(processedBlob, photoMessage);
@@ -215,14 +264,18 @@ export function PhotoStudio({
           </div>
       ) : (
         <>
-          <div className="studio-workspace"
-            onMouseDown={handleStart} onMouseMove={handleMove} onMouseUp={endDrag} onMouseLeave={endDrag}
-            onTouchStart={handleStart} onTouchMove={handleMove} onTouchEnd={endDrag}
+          <div 
+            className="studio-workspace"
+            ref={workspaceRef}
+            onMouseDown={handleStart} 
+            onMouseMove={handleMove} 
+            onMouseUp={endDrag} 
+            onMouseLeave={endDrag}
+            style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
           >
               <div className="canvas-wrapper">
                 <canvas ref={canvasRef} className="studio-canvas" />
                 
-                {/* POISTONAPPI - Käyttää onMouseDownia nopeaan poistoon */}
                 <button 
                   className={`delete-hint-overlay ${dragTarget && dragTarget !== 'bg' ? 'visible' : ''}`}
                   onMouseDown={removeSelectedOverlay}
