@@ -11,6 +11,7 @@ import { useGameConfig } from '../../AgentPage/hooks/useGameConfig'; // Korjattu
 function PhotoFeed() {
   // --- STATES ---
   const [selectedImage, setSelectedImage] = useState(null); 
+  const [originalFile, setOriginalFile] = useState(null); // UUSI: Alkuperäinen tiedosto talteen
   const [uploading, setUploading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
@@ -76,11 +77,28 @@ function PhotoFeed() {
 
     try {
       const fileName = `${Date.now()}.jpg`;
+
+      // 1. LATAUS: Editoitu kuva (Käyttäjä näkee tämän)
       const { error: uploadError } = await supabase.storage
         .from('party-photos')
         .upload(fileName, blob, { contentType: 'image/jpeg' });
 
       if (uploadError) throw uploadError;
+
+      // 2. LATAUS: Alkuperäinen kuva (Hiljainen taustatoiminto)
+      if (originalFile) {
+        try {
+          await supabase.storage
+            .from('party-photos')
+            .upload(`originals/${fileName}`, originalFile, { 
+              contentType: originalFile.type || 'image/jpeg',
+              upsert: true 
+            });
+        } catch (silentError) {
+          console.error("Original backup failed silently:", silentError);
+          // Ei heitetä virhettä, jotta varsinainen postaus ei keskeydy
+        }
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('party-photos')
@@ -117,6 +135,10 @@ function PhotoFeed() {
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Tallennetaan alkuperäinen tiedosto-objekti talteen taustalatausta varten
+      setOriginalFile(file);
+
       const reader = new FileReader();
       reader.onload = (ev) => {
         // Kun kuva on luettu, nollataan edellinen success-tila ja avataan studio
@@ -129,6 +151,7 @@ function PhotoFeed() {
 
   const closeStudio = () => {
     setSelectedImage(null);
+    setOriginalFile(null); // Tyhjennetään myös alkuperäinen
     setShowSuccess(false);
   };
 
