@@ -12,39 +12,36 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- LOGIIKKA (PÄIVITETTY HAKEMAAN UUSIN RIVI) ---
+  // --- 1. LOGIIKKA: STATUKSEN HAKU JA REALTIME-PÄIVITYS ---
   useEffect(() => {
     if (!guestId) return;
 
     const fetchStatus = async () => {
-      // MUUTOS: Haetaan aikajärjestyksessä uusin rivi (created_at descending),
-      // jotta nähdään viimeisin tila, vaikka historiassa olisi vanhoja rivejä.
+      // Haetaan uusin rivi, jotta nähdään feedback-syklin nykyinen vaihe
       const { data } = await supabase
         .from('character_feedback')
         .select('status')
         .eq('guest_id', guestId)
-        .order('created_at', { ascending: false }) // Uusin ensin
+        .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle(); // Turvallisempi kuin .single() jos rivejä on nolla tai useita
+        .maybeSingle();
 
       if (data) setSavedStatus(data.status);
       setLoading(false);
     };
     fetchStatus();
 
-    // MUUTOS: Kuunnellaan kaikkia tapahtumia ('*'), eli myös INSERT.
-    // Kun vieras lähettää uuden viestin, se on INSERT-tapahtuma.
+    // Kuunnellaan kaikkia muutoksia (INSERT ja UPDATE)
     const channel = supabase.channel(`feedback:${guestId}`)
       .on(
         'postgres_changes', 
         { 
-          event: '*', // Kuuntelee: INSERT, UPDATE, DELETE
+          event: '*', 
           schema: 'public', 
           table: 'character_feedback', 
           filter: `guest_id=eq.${guestId}`
         }, 
         (payload) => {
-          // Jos uusi rivi luodaan tai vanhaa päivitetään, otetaan uusi status talteen
           if (payload.new && payload.new.status) {
             setSavedStatus(payload.new.status);
           }
@@ -55,28 +52,48 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
     return () => supabase.removeChannel(channel);
   }, [guestId]);
 
+  // --- 2. TOIMINNOT: HYVÄKSYNTÄ JA PALAUTE ---
   const handleAccept = async () => {
     setIsSubmitting(true);
-    // Koska guest_id:llä ei ole unique-rajoitetta, tämä luo uuden rivin historiaan (mikä on ok).
-    const { error } = await supabase.from('character_feedback').upsert({ guest_id: guestId, status: 'accepted', message: null });
-    if (!error) { setSavedStatus('accepted'); setViewState('idle'); }
+    const { error } = await supabase.from('character_feedback').upsert({ 
+      guest_id: guestId, 
+      status: 'accepted', 
+      message: null 
+    });
+    if (!error) { 
+      setSavedStatus('accepted'); 
+      setViewState('idle'); 
+    }
     setIsSubmitting(false);
   };
 
   const handleSendFeedback = async () => {
     if (!message.trim()) return;
     setIsSubmitting(true);
-    // Tämä luo uuden rivin pinon päälle tilalla 'pending_feedback'
-    const { error } = await supabase.from('character_feedback').upsert({ guest_id: guestId, status: 'pending_feedback', message: message });
-    if (!error) { setSavedStatus('pending_feedback'); setViewState('idle'); setMessage(''); }
+    
+    // Luodaan uusi rivi tilalla 'pending_feedback'
+    const { error } = await supabase.from('character_feedback').insert({ 
+      guest_id: guestId, 
+      status: 'pending_feedback', 
+      message: message 
+    });
+
+    if (!error) { 
+      setSavedStatus('pending_feedback'); 
+      setViewState('idle'); // TÄRKEÄ: Sulkee lomakkeen ja palauttaa päänäkymään
+      setMessage(''); 
+    } else {
+      console.error("Lähetysvirhe:", error);
+      alert("Viestin lähetys epäonnistui. Yritä uudelleen.");
+    }
     setIsSubmitting(false);
   };
 
   if (loading) return null;
 
-  // --- NÄKYMÄT ---
+  // --- 3. NÄKYMÄT (Priorisoidaan statuksen mukaan) ---
 
-  // 1. HYVÄKSYTTY
+  // A. HYVÄKSYTTY (Lopullinen tila)
   if (savedStatus === 'accepted') {
     return (
       <div className="jc-card status-accepted">
@@ -91,11 +108,11 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
     );
   }
 
-  // 2. KIRJOITUSTILA
+  // B. KIRJOITUSTILA (Lomake auki)
   if (viewState === 'writing') {
     return (
-      <div className="jc-card status-writing">
-        <h3 className="jc-h2" style={{color:'var(--turquoise)', display:'flex', gap:'10px'}}>
+      <div className="jc-card status-writing medium" style={{ marginBottom: '2rem' }}>
+        <h3 className="jc-h2" style={{color:'var(--turquoise)', display:'flex', gap:'10px', alignItems: 'center'}}>
           <MessageCircleQuestion /> Mikä mietityttää?
         </h3>
         <textarea
@@ -104,13 +121,21 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
           placeholder="Kirjoita viestisi..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          style={{marginBottom:'1rem'}}
+          style={{ 
+            width: '100%', 
+            marginBottom: '1rem', 
+            background: 'rgba(0,0,0,0.3)', 
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#fff',
+            padding: '10px',
+            borderRadius: '8px'
+          }}
         />
         <div style={{display:'flex', gap:'10px'}}>
-          <button className="jc-btn outline" onClick={() => setViewState('idle')} disabled={isSubmitting}>
+          <button className="jc-cta ghost" onClick={() => setViewState('idle')} disabled={isSubmitting} style={{ flex: 1 }}>
             <X size={18} /> Peruuta
           </button>
-          <button className="jc-btn secondary" onClick={handleSendFeedback} disabled={isSubmitting || !message.trim()}>
+          <button className="jc-cta primary" onClick={handleSendFeedback} disabled={isSubmitting || !message.trim()} style={{ flex: 2 }}>
              <Send size={18} style={{marginRight:5}}/> Lähetä
           </button>
         </div>
@@ -118,135 +143,167 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
     );
   }
 
-  // 3. PERUSTILA (Idle / Pending / Resolved)
+  // C. PERUSTILA (Idle / Pending / Resolved)
   const isPending = savedStatus === 'pending_feedback';
   const isResolved = savedStatus === 'resolved';
 
   return (
-  <div className={`jc-card medium ${isPending ? 'status-pending' : ''}`} style={{ marginBottom: '2rem', position: 'relative' }}>
-    
-    {/* INFO / VAROITUSLAATIKOT - Yhtenäistetty AvecSplitCardin kanssa */}
-    
-    {isPending && (
-      <div className="ca-notice pending ca-row" style={{ 
-        background: 'rgba(212, 175, 55, 0.05)', 
-        borderLeft: '4px solid var(--plasma-gold)',
-        padding: '15px',
-        borderRadius: '8px',
-        display: 'flex',
-        gap: '15px',
-        marginBottom: '1.5rem'
-      }}>
-        <Clock size={24} color="var(--plasma-gold)" style={{flexShrink:0}} />
-        <div>
-          <strong style={{ color: 'var(--plasma-gold)', textTransform: 'uppercase', letterSpacing: '1px' }}>Viesti lähetetty</strong>
-          <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
-            Odotamme vastausta järjestäjiltä. Saat tiedon kun asia on käsitelty.
-          </div>
-        </div>
-      </div>
-    )}
-
-    {isResolved && (
-      <div className="ca-notice resolved ca-row" style={{ 
-        background: 'rgba(0, 231, 255, 0.05)', 
-        borderLeft: '4px solid var(--turquoise)',
-        padding: '15px',
-        borderRadius: '8px',
-        display: 'flex',
-        gap: '15px',
-        marginBottom: '1.5rem'
-      }}>
-        <CheckCircle size={24} color="var(--turquoise)" style={{flexShrink:0}} />
-        <div>
-          <strong style={{ color: 'var(--turquoise)', textTransform: 'uppercase', letterSpacing: '1px' }}>Asia käsitelty!</strong>
-          <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
-            Admin on merkinnyt pyyntösi valmiiksi. Jos olet tyytyväinen, voit nyt hyväksyä hahmon.
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Normaalit huomiot - Puhdistettu ja terävöitetty */}
-    {!isPending && !isResolved && (
-      <>
-        <div className="ca-meta" style={{ 
-          display: 'flex', 
-          gap: '12px', 
-          marginBottom: '1.5rem', 
-          padding: '12px',
-          background: 'rgba(255,255,255,0.02)',
+    <div className={`jc-card medium ${isPending ? 'status-pending' : ''}`} style={{ marginBottom: '2rem', position: 'relative' }}>
+      
+      {/* INFO / VAROITUSLAATIKOT */}
+      
+      {isPending && (
+        <div className="ca-notice pending ca-row" style={{ 
+          background: 'rgba(212, 175, 55, 0.05)', 
+          borderLeft: '4px solid var(--plasma-gold)',
+          padding: '15px',
           borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.05)'
+          display: 'flex',
+          gap: '15px',
+          marginBottom: '1.5rem'
         }}>
-          <Sparkles size={20} color="var(--plasma-gold)" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: '0.8rem', color: 'var(--muted)', lineHeight: '1.4' }}>
-            Hahmot ovat tekoälyn generoimia fiktiivisiä rooleja hauskanpitoon, eikä niiden ole tarkoitus loukata. 
-            Kaikki yhtäläisyydet todellisuuteen ovat sattumaa (tai algoritmin huumoria).
-          </span>
-        </div>
-
-        {characterCount > 1 && (
-          <div className="ca-notice warning ca-row" style={{ 
-            background: 'rgba(255, 0, 229, 0.05)', 
-            borderLeft: '4px solid var(--magenta)',
-            padding: '15px',
-            borderRadius: '8px',
-            display: 'flex',
-            gap: '15px',
-            marginBottom: '1.5rem',
-            boxShadow: '0 0 20px rgba(255, 0, 229, 0.1)'
-          }}>
-            <Users size={24} color="var(--magenta)" style={{flexShrink:0}} />
-            <div>
-              <strong style={{ color: 'var(--magenta)', textTransform: 'uppercase', letterSpacing: '1px' }}>Huomio pariskunnat!</strong>
-              <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
-                Hallinnoit nyt molempia hahmoja. Jos painat "Hyväksy", lukitset molemmat itsellesi. 
-                Jos haluatte pelata erillisillä puhelimilla, tee <strong>Split</strong> sivun alareunasta <em>ennen</em> hyväksyntää.
-              </div>
+          <Clock size={24} color="var(--plasma-gold)" style={{flexShrink:0}} />
+          <div>
+            <strong style={{ color: 'var(--plasma-gold)', textTransform: 'uppercase', letterSpacing: '1px' }}>Viesti lähetetty</strong>
+            <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
+              Odotamme vastausta järjestäjiltä. Saat tiedon kun asia on käsitelty.
             </div>
           </div>
+        </div>
+      )}
+
+      {isResolved && (
+        <div className="ca-notice resolved ca-row" style={{ 
+          background: 'rgba(0, 231, 255, 0.05)', 
+          borderLeft: '4px solid var(--turquoise)',
+          padding: '15px',
+          borderRadius: '8px',
+          display: 'flex',
+          gap: '15px',
+          marginBottom: '1.5rem'
+        }}>
+          <CheckCircle size={24} color="var(--turquoise)" style={{flexShrink:0}} />
+          <div>
+            <strong style={{ color: 'var(--turquoise)', textTransform: 'uppercase', letterSpacing: '1px' }}>Asia käsitelty!</strong>
+            <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
+              Admin on merkinnyt pyyntösi valmiiksi. Jos olet tyytyväinen, voit nyt hyväksyä hahmon.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Normaalit huomiot (piilotetaan vain pending-tilassa tilan säästämiseksi) */}
+      {!isPending && (
+        <>
+          <div className="ca-meta" style={{ 
+            display: 'flex', 
+            gap: '12px', 
+            marginBottom: '1.5rem', 
+            padding: '12px',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.05)'
+          }}>
+            <Sparkles size={20} color="var(--plasma-gold)" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '0.8rem', color: 'var(--muted)', lineHeight: '1.4' }}>
+              Hahmot ovat tekoälyn generoimia fiktiivisiä rooleja hauskanpitoon, eikä niiden ole tarkoitus loukata. 
+              Kaikki yhtäläisyydet todellisuuteen ovat sattumaa (tai algoritmin huumoria).
+            </span>
+          </div>
+
+          {characterCount > 1 && (
+            <div className="ca-notice warning ca-row" style={{ 
+              background: 'rgba(255, 0, 229, 0.05)', 
+              borderLeft: '4px solid var(--magenta)',
+              padding: '15px',
+              borderRadius: '8px',
+              display: 'flex',
+              gap: '15px',
+              marginBottom: '1.5rem',
+              boxShadow: '0 0 20px rgba(255, 0, 229, 0.1)'
+            }}>
+              <Users size={24} color="var(--magenta)" style={{flexShrink:0}} />
+              <div>
+                <strong style={{ color: 'var(--magenta)', textTransform: 'uppercase', letterSpacing: '1px' }}>Huomio pariskunnat!</strong>
+                <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
+                  Hallinnoit nyt molempia hahmoja. Jos painat "Hyväksy", lukitset molemmat itsellesi. 
+                  Jos haluatte pelata erillisillä puhelimilla, tee <strong>Split</strong> sivun alareunasta <em>ennen</em> hyväksyntää.
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* TOIMINNOT */}
+      <div className="ca-center" style={{ textAlign: 'center' }}>
+        
+        {/* Hyväksy-painike näkyy vain jos viestiä ei ole odottamassa (isPending) */}
+        {!isPending && (
+          <>
+            <h3 className="jc-h2" style={{ marginBottom: '1.5rem', fontSize: '1.4rem' }}>
+              {isResolved ? 'Oletko nyt valmis?' : 'Miltä hahmo vaikuttaa?'}
+            </h3>
+            
+            <button 
+              className="jc-cta primary" 
+              style={{ 
+                width: '100%', 
+                padding: '1.2rem', 
+                fontSize: '1.1rem', 
+                marginBottom: '1rem', 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                gap: '10px' 
+              }}
+              onClick={handleAccept}
+              disabled={isSubmitting}
+            >
+              <ThumbsUp size={22} /> 
+              <span style={{ letterSpacing: '1px' }}>
+                {characterCount > 1 ? 'Hyväksymme hahmot' : 'Hyväksyn hahmon'}
+              </span>
+            </button>
+          </>
         )}
-      </>
-    )}
 
-    {/* TOIMINNOT */}
-    <div className="ca-center" style={{ textAlign: 'center' }}>
-      {!isPending && (
-         <h3 className="jc-h2" style={{ marginBottom: '1.5rem', fontSize: '1.4rem' }}>
-           {isResolved ? 'Oletko nyt valmis?' : 'Miltä hahmo vaikuttaa?'}
-         </h3>
-      )}
+        {/* Kysy-painike: 
+            - Piilotetaan kokonaan jos isPending (vain yksi viesti kerrallaan).
+            - Näkyy jos isIdle tai isResolved.
+        */}
+        {!isPending && (
+          <button 
+            className="jc-cta ghost" 
+            onClick={() => setViewState('writing')}
+            disabled={isSubmitting}
+            style={{ 
+              width: '100%', 
+              fontSize: '0.85rem', 
+              color: 'var(--muted)', 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              gap: '8px', 
+              border: 'none', 
+              background: 'transparent' 
+            }}
+          >
+            <MessageCircleQuestion size={16} />
+            {isResolved ? 'MINULLA ON VIELÄ KYSYTTÄVÄÄ' : 'MINULLA ON KYSYTTÄVÄÄ'}
+          </button>
+        )}
 
-      {/* Päätoiminto (Hyväksy) */}
-      {!isPending && (
-        <button 
-          className="jc-cta primary" 
-          style={{ width: '100%', padding: '1.2rem', fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
-          onClick={handleAccept}
-          disabled={isSubmitting}
-        >
-          <ThumbsUp size={22} /> 
-          <span style={{ letterSpacing: '1px' }}>
-            {characterCount > 1 ? 'Hyväksymme hahmot' : 'Hyväksyn hahmon'}
-          </span>
-        </button>
-      )}
+        {/* Jos odotetaan vastausta, näytetään vain ohjeteksti painikkeen sijaan */}
+        {isPending && (
+          <div style={{ marginTop: '10px', fontSize: '0.85rem', color: 'var(--muted)', fontStyle: 'italic' }}>
+            Toiminto lukittu, kunnes HQ vastaa viestiisi.
+          </div>
+        )}
+      </div>
 
-      {/* Sivutoiminto (Kysy) */}
-      <button 
-        className="jc-cta ghost" 
-        onClick={() => setViewState('writing')}
-        disabled={isSubmitting}
-        style={{ width: '100%', fontSize: '0.85rem', color: 'var(--muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', border: 'none', background: 'transparent' }}
-      >
-        <MessageCircleQuestion size={16} />
-        {isPending ? 'LÄHETÄ LISÄTIETOA / UUSI VIESTI' : 'MINULLA ON KYSYTTÄVÄÄ'}
-      </button>
     </div>
-
-  </div>
-);
+  );
 };
 
 export default CharacterAcceptance;
