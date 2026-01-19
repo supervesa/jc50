@@ -123,85 +123,130 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
   const isResolved = savedStatus === 'resolved';
 
   return (
-    <div className={`jc-card ${isPending ? 'status-pending' : ''}`}>
-      
-      {/* INFO / VAROITUSLAATIKOT */}
-      
-      {isPending && (
-        <div className="ca-notice pending ca-row">
-          <Clock size={24} style={{flexShrink:0}} />
-          <div>
-            <strong>Viesti lähetetty</strong>
-            <div style={{opacity:0.8}}>Odotamme vastausta järjestäjiltä. Saat tiedon kun asia on käsitelty.</div>
+  <div className={`jc-card medium ${isPending ? 'status-pending' : ''}`} style={{ marginBottom: '2rem', position: 'relative' }}>
+    
+    {/* INFO / VAROITUSLAATIKOT - Yhtenäistetty AvecSplitCardin kanssa */}
+    
+    {isPending && (
+      <div className="ca-notice pending ca-row" style={{ 
+        background: 'rgba(212, 175, 55, 0.05)', 
+        borderLeft: '4px solid var(--plasma-gold)',
+        padding: '15px',
+        borderRadius: '8px',
+        display: 'flex',
+        gap: '15px',
+        marginBottom: '1.5rem'
+      }}>
+        <Clock size={24} color="var(--plasma-gold)" style={{flexShrink:0}} />
+        <div>
+          <strong style={{ color: 'var(--plasma-gold)', textTransform: 'uppercase', letterSpacing: '1px' }}>Viesti lähetetty</strong>
+          <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
+            Odotamme vastausta järjestäjiltä. Saat tiedon kun asia on käsitelty.
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {isResolved && (
-        <div className="ca-notice resolved ca-row">
-          <CheckCircle size={24} style={{flexShrink:0}} />
-          <div>
-            <strong>Asia käsitelty!</strong>
-            <div style={{opacity:0.8}}>Admin on merkinnyt pyyntösi valmiiksi. Jos olet tyytyväinen, voit nyt hyväksyä hahmon.</div>
+    {isResolved && (
+      <div className="ca-notice resolved ca-row" style={{ 
+        background: 'rgba(0, 231, 255, 0.05)', 
+        borderLeft: '4px solid var(--turquoise)',
+        padding: '15px',
+        borderRadius: '8px',
+        display: 'flex',
+        gap: '15px',
+        marginBottom: '1.5rem'
+      }}>
+        <CheckCircle size={24} color="var(--turquoise)" style={{flexShrink:0}} />
+        <div>
+          <strong style={{ color: 'var(--turquoise)', textTransform: 'uppercase', letterSpacing: '1px' }}>Asia käsitelty!</strong>
+          <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
+            Admin on merkinnyt pyyntösi valmiiksi. Jos olet tyytyväinen, voit nyt hyväksyä hahmon.
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {/* Normaalit huomiot (piilotetaan jos ollaan pending/resolved tilan säästämiseksi) */}
-      {!isPending && !isResolved && (
-        <>
-          <div className="ca-meta">
-            <Sparkles size={16} color="var(--turquoise)" />
-            <span>Hahmot ovat tekoälyn generoimia fiktiivisiä rooleja hauskanpitoon, eikä niiden ole tarkoitus loukata. 
-            Kaikki yhtäläisyydet todellisuuteen ovat sattumaa (tai algoritmin huumoria).</span>
-          </div>
+    {/* Normaalit huomiot - Puhdistettu ja terävöitetty */}
+    {!isPending && !isResolved && (
+      <>
+        <div className="ca-meta" style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          marginBottom: '1.5rem', 
+          padding: '12px',
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.05)'
+        }}>
+          <Sparkles size={20} color="var(--plasma-gold)" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '0.8rem', color: 'var(--muted)', lineHeight: '1.4' }}>
+            Hahmot ovat tekoälyn generoimia fiktiivisiä rooleja hauskanpitoon, eikä niiden ole tarkoitus loukata. 
+            Kaikki yhtäläisyydet todellisuuteen ovat sattumaa (tai algoritmin huumoria).
+          </span>
+        </div>
 
-          {characterCount > 1 && (
-            <div className="ca-notice warning ca-row">
-              <Users size={24} style={{flexShrink:0}} />
-              <div>
-                <strong>Huomio pariskunnat!</strong>
-                <div style={{opacity:0.8}}>Hallinnoit nyt molempia hahmoja. Jos painat "Hyväksy", lukitset molemmat itsellesi. 
-                  Jos haluatte pelata erillisillä puhelimilla, tee <strong>Split</strong> sivun alareunasta <em>ennen</em> hyväksyntää.</div>
+        {characterCount > 1 && (
+          <div className="ca-notice warning ca-row" style={{ 
+            background: 'rgba(255, 0, 229, 0.05)', 
+            borderLeft: '4px solid var(--magenta)',
+            padding: '15px',
+            borderRadius: '8px',
+            display: 'flex',
+            gap: '15px',
+            marginBottom: '1.5rem',
+            boxShadow: '0 0 20px rgba(255, 0, 229, 0.1)'
+          }}>
+            <Users size={24} color="var(--magenta)" style={{flexShrink:0}} />
+            <div>
+              <strong style={{ color: 'var(--magenta)', textTransform: 'uppercase', letterSpacing: '1px' }}>Huomio pariskunnat!</strong>
+              <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
+                Hallinnoit nyt molempia hahmoja. Jos painat "Hyväksy", lukitset molemmat itsellesi. 
+                Jos haluatte pelata erillisillä puhelimilla, tee <strong>Split</strong> sivun alareunasta <em>ennen</em> hyväksyntää.
               </div>
             </div>
-          )}
-        </>
+          </div>
+        )}
+      </>
+    )}
+
+    {/* TOIMINNOT */}
+    <div className="ca-center" style={{ textAlign: 'center' }}>
+      {!isPending && (
+         <h3 className="jc-h2" style={{ marginBottom: '1.5rem', fontSize: '1.4rem' }}>
+           {isResolved ? 'Oletko nyt valmis?' : 'Miltä hahmo vaikuttaa?'}
+         </h3>
       )}
 
-      {/* TOIMINNOT */}
-      <div className="ca-center">
-        {!isPending && (
-           <h3 className="ca-title">{isResolved ? 'Oletko nyt valmis?' : 'Miltä hahmo vaikuttaa?'}</h3>
-        )}
-
-        {/* Päätoiminto (Hyväksy) - Piilossa vain jos Pending */}
-        {!isPending && (
-          <button 
-            className="jc-btn primary" 
-            style={{width:'100%', padding:'1rem', fontSize:'1.1rem'}}
-            onClick={handleAccept}
-            disabled={isSubmitting}
-          >
-            <ThumbsUp size={20} style={{marginRight:10}} /> 
-            {characterCount > 1 ? 'Hyväksymme hahmot' : 'Hyväksyn hahmon'}
-          </button>
-        )}
-
-        {/* Sivutoiminto (Kysy) */}
+      {/* Päätoiminto (Hyväksy) */}
+      {!isPending && (
         <button 
-          className="jc-btn ghost" 
-          onClick={() => setViewState('writing')}
+          className="jc-cta primary" 
+          style={{ width: '100%', padding: '1.2rem', fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
+          onClick={handleAccept}
           disabled={isSubmitting}
-          style={{fontSize:'0.9rem', color:'var(--muted)'}}
         >
-          <MessageCircleQuestion size={16} style={{marginRight:5}} />
-          {isPending ? 'Lähetä lisätietoa / uusi viesti' : 'Minulla on kysyttävää'}
+          <ThumbsUp size={22} /> 
+          <span style={{ letterSpacing: '1px' }}>
+            {characterCount > 1 ? 'Hyväksymme hahmot' : 'Hyväksyn hahmon'}
+          </span>
         </button>
-      </div>
+      )}
 
+      {/* Sivutoiminto (Kysy) */}
+      <button 
+        className="jc-cta ghost" 
+        onClick={() => setViewState('writing')}
+        disabled={isSubmitting}
+        style={{ width: '100%', fontSize: '0.85rem', color: 'var(--muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', border: 'none', background: 'transparent' }}
+      >
+        <MessageCircleQuestion size={16} />
+        {isPending ? 'LÄHETÄ LISÄTIETOA / UUSI VIESTI' : 'MINULLA ON KYSYTTÄVÄÄ'}
+      </button>
     </div>
-  );
+
+  </div>
+);
 };
 
 export default CharacterAcceptance;

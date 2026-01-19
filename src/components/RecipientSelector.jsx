@@ -11,11 +11,18 @@ export default function RecipientSelector({
   const filtered = recipients.filter(r => showOnlyAssigned ? (r.guestName && r.guestName !== 'Ei nimeä') : true);
 
   const toggleAll = () => {
-    if (selectedIds.size === filtered.filter(r => r.isAllowed).length) {
+    const allowedInView = filtered.filter(r => r.isAllowed);
+    if (selectedIds.size === allowedInView.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.filter(r => r.isAllowed).map(r => r.id)));
+      setSelectedIds(new Set(allowedInView.map(r => r.id)));
     }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return `${d.getDate()}.${d.getMonth() + 1}. klo ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
   return (
@@ -26,7 +33,7 @@ export default function RecipientSelector({
             type="checkbox" 
             checked={showOnlyAssigned} 
             onChange={e => setShowOnlyAssigned(e.target.checked)} 
-          /> Poista käyttämättömät hahmot (vain varatut)
+          /> Piilota tyhjät hahmot (vain varatut)
         </label>
         <button onClick={toggleAll} className="jc-btn small outline">Valitse kaikki sallitut</button>
       </div>
@@ -37,12 +44,17 @@ export default function RecipientSelector({
             <th style={{ padding: '10px' }}>VALITSE</th>
             <th>HAHMO / VIERAS</th>
             <th>OSOITE</th>
+            <th>VIIMEISIN LÄHETYS</th>
             <th>STATUS</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map(r => (
-            <tr key={r.id} style={{ opacity: r.isAllowed ? 1 : 0.3, borderBottom: '1px solid #222' }}>
+            <tr key={r.id} style={{ 
+              opacity: r.isAllowed ? 1 : 0.4, 
+              borderBottom: '1px solid #222',
+              background: r.lastLog?.status === 'sent' ? 'rgba(0, 255, 0, 0.02)' : 'transparent'
+            }}>
               <td style={{ padding: '10px' }}>
                 {r.isAllowed ? (
                   <input 
@@ -56,9 +68,28 @@ export default function RecipientSelector({
                   />
                 ) : '🚫'}
               </td>
-              <td><strong>{r.characterName}</strong><br/><small>{r.guestName}</small></td>
-              <td>{r.email || 'Puuttuu'}</td>
-              <td style={{ fontSize: '0.7rem' }}>{r.isAllowed ? '✅ SALLITTU' : '🔒 TESTITILA'}</td>
+              <td>
+                <strong style={{ color: 'var(--turquoise)' }}>{r.characterName}</strong>
+                <br/>
+                <small style={{ color: 'var(--cream)' }}>{r.guestName}</small>
+              </td>
+              <td style={{ fontSize: '0.85rem' }}>{r.email || 'Puuttuu'}</td>
+              <td style={{ fontSize: '0.75rem' }}>
+                {r.lastLog ? (
+                  <div>
+                    <span style={{ color: 'var(--lime)' }}>{r.lastLog.template_name}</span>
+                    <br/>
+                    <span style={{ color: '#666' }}>{formatDate(r.lastLog.sent_at)}</span>
+                  </div>
+                ) : (
+                  <span style={{ color: '#444' }}>- Ei lähetetty -</span>
+                )}
+              </td>
+              <td style={{ fontSize: '0.7rem' }}>
+                {r.isAllowed ? (
+                   r.lastLog?.status === 'sent' ? '✅ LÄHETETTY' : '📩 VALMIS'
+                ) : '🔒 TESTITILA'}
+              </td>
             </tr>
           ))}
         </tbody>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // Lisätty useNavigate siivousta varten
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import './TicketPage.css';
 
@@ -10,9 +10,10 @@ import GuestInfo from './GuestInfo';
 import PhotoFeed from './PhotoFeed';
 import CharacterAcceptance from './CharacterAcceptance';
 import IntroOverlay from '../../components/IntroOverlay'; 
+import AvecSplitCard from './components/AvecSplitCard'; // UUSI EROTETTU KOMPONENTTI
 
 // Hookit
-import { useGameConfig } from '../AgentPage/hooks/useGameConfig'; // Haetaan maailman tila
+import { useGameConfig } from '../AgentPage/hooks/useGameConfig'; 
 
 function TicketPage() {
   const { id } = useParams();
@@ -32,7 +33,7 @@ function TicketPage() {
 
   const [showIntro, setShowIntro] = useState(true);
 
-  // HAETAAN MAAILMAN TILA (Sentinel-logiikkaa varten)
+  // HAETAAN MAAILMAN TILA
   const { phaseValue } = useGameConfig(id);
 
   // --- 1. DATAHAKU & LEIMAUS ---
@@ -55,8 +56,6 @@ function TicketPage() {
       if (guestError || !guestData) throw guestError;
       
       setGuest(guestData);
-
-      // LEIMAUS: Tallennetaan ID localstorageen
       localStorage.setItem('jc_ticket_id', id);
 
       // Haetaan hahmot
@@ -67,7 +66,6 @@ function TicketPage() {
 
       if (!charError && charData) {
         setMyCharacters(charData);
-        // TALLENNETAAN NIMI: Personointia varten etusivulle
         if (charData.length > 0) {
           localStorage.setItem('jc_username', charData[0].name);
         }
@@ -78,8 +76,6 @@ function TicketPage() {
     } catch (err) {
       console.error("Lippuvirhe:", err);
       setErrorMsg("Lippua ei löytynyt.");
-      
-      // SIIVOUS: Jos ID on viallinen, poistetaan se muistista
       localStorage.removeItem('jc_ticket_id');
       localStorage.removeItem('jc_username');
     } finally {
@@ -92,7 +88,7 @@ function TicketPage() {
       .from('live_posts')
       .select('*')
       .eq('guest_id', guestId)
-      .eq('is_deleted', false) // Varmistetaan että poistetut eivät näy
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
     if (data) setMyPhotos(data);
   };
@@ -101,7 +97,7 @@ function TicketPage() {
     fetchData();
   }, [id]);
 
-  // --- SPLIT TOIMINTO ---
+  // --- HERKKÄ SPLIT TOIMINTO (EI MUUTETTU) ---
   const handleActivateSpouse = async (spouseEmail) => {
     if (!guest || !guest.spouse_name) return;
 
@@ -128,7 +124,6 @@ function TicketPage() {
 
     if (moveError) throw moveError;
 
-    // Linkitys ja lokitus
     await supabase.from('guest_splits').insert({
         parent_guest_id: guest.id,
         child_guest_id: newGuest.id,
@@ -168,39 +163,10 @@ function TicketPage() {
     }
   };
 
-  // Huom: Käytetään nyt PhotoStudioon integroitua metodia PhotoFeedissä, 
-  // mutta pidetään tämä varalla jos feedissä on suora upload.
-  const uploadPartyPhoto = async (event) => {
-    try {
-      setUploading(true);
-      if (!event.target.files || event.target.files.length === 0) return;
-      const file = event.target.files[0];
-      const fileName = `${guest.id}-${Date.now()}.${file.name.split('.').pop()}`;
-      const { error: uploadError } = await supabase.storage.from('party-photos').upload(fileName, file);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('party-photos').getPublicUrl(fileName);
-      const { error: dbError } = await supabase.from('live_posts').insert({
-          guest_id: guest.id,
-          sender_name: guest.name,
-          image_url: publicUrl,
-          message: photoMessage
-        });
-      if (dbError) throw dbError;
-      setPhotoMessage(''); 
-      fetchMyPhotos(guest.id); 
-    } catch (error) {
-      alert("Virhe: " + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const deletePhoto = async (photoId) => {
     await supabase.from('live_posts').update({ is_deleted: true }).eq('id', photoId);
     fetchMyPhotos(guest.id);
   };
-
-  // --- RENDERÖINTI ---
 
   if (showIntro) {
     return <IntroOverlay mode="ticket" onComplete={() => setShowIntro(false)} />;
@@ -220,6 +186,7 @@ function TicketPage() {
 
       {activeTab === 'IDENTITY' && (
         <>
+          {/* 1. HAHMOKORTIT */}
           {myCharacters.length === 0 ? (
             <section className="jc-card medium mb-2 ticket-loading" style={{ opacity: 0.7 }}>
               <div style={{ fontSize: '3rem' }}>🎭</div>
@@ -237,6 +204,16 @@ function TicketPage() {
             ))
           )}
 
+          {/* 2. AVECIN EROTUS (Nostettu hahmojen alle) */}
+          {guest && (
+            <AvecSplitCard 
+              guest={guest} 
+              myCharacters={myCharacters} 
+              onActivateSpouse={handleActivateSpouse} 
+            />
+          )}
+
+          {/* 3. HAHMON HYVÄKSYNTÄ */}
           {myCharacters.length > 0 && (
             <CharacterAcceptance 
                guestId={id} 
@@ -244,10 +221,9 @@ function TicketPage() {
             />
           )}
 
+          {/* 4. OMAT TIEDOT (Viimeisenä) */}
           <GuestInfo 
             guest={guest}
-            myCharacters={myCharacters}
-            onActivateSpouse={handleActivateSpouse}
             onSave={() => alert("Ota yhteys järjestäjään muutoksissa.")}
           />
         </>
@@ -257,7 +233,7 @@ function TicketPage() {
         <PhotoFeed 
           identityId={id}
           identityName={guest?.name}
-          phaseValue={phaseValue} // VÄLITETÄÄN SENTINEL-TILA
+          phaseValue={phaseValue} 
         />
       )}
 

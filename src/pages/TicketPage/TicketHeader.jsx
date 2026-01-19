@@ -9,74 +9,90 @@ import { useGameConfig } from '../../hooks/useGameConfig';
 function TicketHeader({ id, activeTab, setActiveTab }) {
   const wallLink = id ? `/wall/${id}` : '/wall';
 
-  // 1. KORJATTU DESTRUKTUROINTI: Haetaan kaikki tarvittavat muuttujat hookista
+  // 1. Haetaan konfiguraatio
   const { 
     phaseValue, 
     isTester, 
     loading 
   } = useGameConfig(id);
 
-  // 2. PÄIVITETTY LOGIIKKA:
-  // showAgentButton: Nappi näkyy heti kun vaihe on HYPE_WEEK (>=1) tai jos käyttäjä on testaaja.
+  // 2. PÄIVITETTY LOGIIKKA
+  
+  // A. Agentti-nappi: Näkyy HYPE_WEEK (1) tai SHOWTIME (2) vaiheissa, tai testaajilla.
+  // Tyyli: Plasma Gold (#D4AF37)
   const showAgentButton = !loading && (phaseValue >= 1 || isTester);
   
-  // isEarlyAccess: Näytetään teaser ("Alustetaan") vain kun vaihe on 0 (EARLY_ACCESS / TICKET_ONLY).
-  const isEarlyAccess = !loading && phaseValue === 0 && !isTester;
+  // B. Live Wall -nappi: Näkyy kun ollaan vielä alussa (0) eikä olla testaajia.
+  // Tyyli: Terävä Neon Magenta (#FF00E5)
+  const showLiveWallButton = !loading && phaseValue === 0 && !isTester;
 
   return (
     <header className="ticket-header-container">
       
       {/* Yläpalkki: Status & ID & Wall-linkki */}
       <div className="ticket-top-bar">
-        <div className="status-badge">
+        <div className="status-badge" style={{ color: '#D4AF37', borderColor: 'rgba(212,175,55,0.3)' }}>
           <ShieldCheck size={14} /> ACCESS GRANTED
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <Link to={wallLink} className="header-wall-link" title="Avaa Juhlafeed">
-            <Images size={16} /> <span>LIVE WALL</span>
+            <Images size={16} /> <span style={{ letterSpacing: '1px' }}>LIVE WALL</span>
           </Link>
         </div>
       </div>
 
-      <h2 className="jc-h2 ticket-main-title">DIGITAALINEN LIPPU</h2>
+      <h2 className="jc-h2 ticket-main-title" style={{ textAlign: 'center' }}>DIGITAALINEN LIPPU</h2>
       
-      {/* HERO ACTION: Agentti-nappi (EHDOLINEN RENDERÖINTI) */}
-      {showAgentButton ? (
+      {/* --- PÄÄPAINIKE (HERO ACTION) --- */}
+
+      {showAgentButton && (
+        /* VAIHTOEHTO A: AGENTTI-KOMMUNIKAATTORI (Kulta/Plasma) */
         <div className="agent-hero-container">
-          <Link to={`/agent?id=${id}`} className="agent-hero-btn">
-            <div className="agent-icon-box">
+          <Link to={`/agent?id=${id}`} className="agent-hero-btn agent-active" style={{ borderColor: 'rgba(212,175,55,0.4)' }}>
+            <div className="agent-icon-box" style={{ color: '#D4AF37', borderColor: '#D4AF37' }}>
               <Smartphone size={32} />
-              <div className="ping-ring"></div>
+              <div className="ping-ring" style={{ borderColor: '#D4AF37' }}></div>
             </div>
             <div className="agent-text-box">
-              <span className="agent-label">YHTEYS MUODOSTETTU</span>
-              <span className="agent-action">AVAA SALAINEN KOMMUNIKAATTORI</span>
+              <span className="agent-label" style={{ color: '#D4AF37' }}>YHTEYS MUODOSTETTU</span>
+              <span className="agent-action">AVAA KOMMUNIKAATTORI</span>
             </div>
-            <ScanLine className="scan-icon" size={20} />
+            <ScanLine className="scan-icon" size={20} style={{ color: '#D4AF37' }} />
           </Link>
         </div>
-      ) : isEarlyAccess ? (
-        /* VAIHE 0 (EARLY ACCESS) TEASER - Näytetään ennen kuin kommunikaattori aktivoituu */
-        <div className="agent-hero-container" style={{opacity: 0.7}}>
-          <div className="agent-hero-btn" style={{background: '#1a1a1a', borderColor: '#333', cursor: 'default'}}>
-             <div className="agent-icon-box">
-               <Smartphone size={32} color="#555" />
-             </div>
-             <div className="agent-text-box">
-               <span className="agent-label" style={{color: '#666'}}>JÄRJESTELMÄ ALUSTAA...</span>
-               <span className="agent-action" style={{color: '#888'}}>ODOTA YHTEYDEN MUODOSTUSTA</span>
-             </div>
-          </div>
-        </div>
-      ) : (
-        /* Ei näytetä mitään jos vaihe on määrittelemätön tai loading */
-        null
       )}
 
-      {/* NAVIGAATIO: Segmented Control */}
+      {showLiveWallButton && (
+        /* VAIHTOEHTO B: VALOKUVASEINÄ / LIVE WALL (Neon Magenta) */
+        <div className="agent-hero-container">
+          <Link 
+            to={wallLink} 
+            className="agent-hero-btn wall-active" 
+            style={{ 
+              borderColor: 'rgba(255, 0, 229, 0.5)', 
+              background: 'rgba(255, 0, 229, 0.03)',
+              boxShadow: '0 0 30px rgba(255, 0, 229, 0.15)'
+            }}
+          >
+            <div className="agent-icon-box" style={{ color: '#FF00E5', borderColor: '#FF00E5' }}>
+              <Images size={32} />
+              <div className="ping-ring" style={{ borderColor: '#FF00E5' }}></div>
+            </div>
+            <div className="agent-text-box">
+              <span className="agent-label" style={{ color: '#FF00E5', fontWeight: '800' }}>VALOKUVASEINÄ</span>
+              <span className="agent-action" style={{ color: '#EAFBFF' }}>AVAA LIVE WALL</span>
+            </div>
+            <div className="scan-icon" style={{ color: '#FF00E5' }}>
+               <Camera size={20} />
+            </div>
+          </Link>
+        </div>
+      )}
+
+      {/* --- NAVIGAATIO: Segmented Control --- */}
       <div className="ticket-nav-wrapper">
-        <div className="ticket-nav-pill">
+        <div className="ticket-nav-pill" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <button 
             onClick={() => setActiveTab('IDENTITY')}
             className={`nav-segment ${activeTab === 'IDENTITY' ? 'active' : ''}`}
