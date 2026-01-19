@@ -8,8 +8,9 @@ const AvecSplitCard = ({ guest, myCharacters, onActivateSpouse }) => {
   const [createdLink, setCreatedLink] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Jos ei ole avecia tai hahmo on jo siirretty, ei näytetä mitään tai näytetään kuittaus
-  if (!guest.brings_spouse && !spouseCharacter) return null;
+  // KORJATTU LOGIIKKA: Kortti näytetään vain vieraille, jotka ovat tuoneet seuralaisen.
+  // Tämä estää sen, että irrotettu seuralainen (brings_spouse: false) näkee kortin omalla sivullaan.
+  if (!guest.brings_spouse) return null;
 
   const handleActivate = async () => {
     if (!window.confirm(`Luodaanko profiili nimelle "${guest.spouse_name}"?`)) return;
@@ -50,8 +51,10 @@ const AvecSplitCard = ({ guest, myCharacters, onActivateSpouse }) => {
   return (
     <div className="jc-card medium mb-2" style={{ borderLeft: '4px solid #FF00E5' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-        <Smartphone color="#FF00E5" size={24} />
-        <h3 className="jc-h2" style={{ margin: 0 }}>Seuralaisen aktivointi</h3>
+        <div className="flex center">
+          <Smartphone color="#FF00E5" size={24} style={{ marginRight: '10px' }} />
+          <h3 className="jc-h2" style={{ margin: 0 }}>Seuralaisen aktivointi</h3>
+        </div>
       </div>
 
       {createdLink ? (
