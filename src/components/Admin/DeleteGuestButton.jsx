@@ -1,25 +1,18 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 
 const DeleteGuestButton = ({ guest, onSuccess, className, style }) => {
   const [loading, setLoading] = useState(false);
 
   /**
-   * TÄRKEÄ FUNKTIO: archiveAndCleanup
-   * 1. Hakee kaiken datan talteen (Snapshot).
-   * 2. Tallentaa Snapshotin lokiin.
-   * 3. Suorittaa "Soft Delete" kuville ja hahmoille.
-   * 4. Suorittaa "Hard Delete" estäville riippuvuuksille.
-   * 5. Poistaa lopulta vieraan.
+   * archiveAndCleanup
+   * Suorittaa yhden vieraan poiston, arkistoinnin ja hahmon vapautuksen.
    */
   const archiveAndCleanup = async (targetId, targetName) => {
-    console.log(`[ARCHIVE & DELETE] Aloitetaan prosessi ID:lle: ${targetId} (${targetName})`);
+    console.log(`[ARCHIVE & DELETE] Aloitetaan: ${targetId} (${targetName})`);
 
-    // --- VAIHE 1: Tiedonkeruu (Snapshot) ---
-    // Haetaan rinnakkain kaikki data, joka ollaan tuhoamassa.
-    // Käytämme Promise.allSettled varmistaaksemme, että yksi virhe haussa ei kaada koko prosessia.
-    
+    // --- 1. TIEDONKERUU (Snapshot arkistoon) ---
     const fetchPromises = {
       feedback: supabase.from('character_feedback').select('*').eq('guest_id', targetId),
       votes: supabase.from('poll_votes').select('*').eq('guest_id', targetId),
@@ -27,73 +20,57 @@ const DeleteGuestButton = ({ guest, onSuccess, className, style }) => {
       missions: supabase.from('mission_log').select('*').eq('guest_id', targetId),
       flash: supabase.from('flash_responses').select('*').eq('guest_id', targetId),
       vault: supabase.from('vault_access').select('*').eq('guest_id', targetId),
-      photos_meta: supabase.from('live_posts').select('id, created_at, message, image_url').eq('guest_id', targetId), // Vain metadata
+      photos_meta: supabase.from('live_posts').select('id, created_at, message, image_url').eq('guest_id', targetId),
       guest_info: supabase.from('guests').select('*').eq('id', targetId).single()
     };
 
-    const snapshotResults = await Promise.all([
-      fetchPromises.feedback,
-      fetchPromises.votes,
-      fetchPromises.chats,
-      fetchPromises.missions,
-      fetchPromises.flash,
-      fetchPromises.vault,
-      fetchPromises.photos_meta,
-      fetchPromises.guest_info
+    const results = await Promise.all([
+      fetchPromises.feedback, fetchPromises.votes, fetchPromises.chats,
+      fetchPromises.missions, fetchPromises.flash, fetchPromises.vault,
+      fetchPromises.photos_meta, fetchPromises.guest_info
     ]);
 
-    // Rakennetaan siisti JSON-objekti arkistoon
     const snapshotData = {
       timestamp: new Date().toISOString(),
       reason: 'ADMIN_DELETE',
       guestName: targetName,
       guestId: targetId,
       backup: {
-        guestDetails: snapshotResults[7].data || null,
-        feedback: snapshotResults[0].data || [],
-        votes: snapshotResults[1].data || [],
-        chatMessages: snapshotResults[2].data || [],
-        missionLog: snapshotResults[3].data || [],
-        flashResponses: snapshotResults[4].data || [],
-        vaultAccess: snapshotResults[5].data || [],
-        photosMetadata: snapshotResults[6].data || []
+        guestDetails: results[7].data || null,
+        feedback: results[0].data || [],
+        votes: results[1].data || [],
+        chatMessages: results[2].data || [],
+        missionLog: results[3].data || [],
+        flashResponses: results[4].data || [],
+        vaultAccess: results[5].data || [],
+        photosMetadata: results[6].data || []
       }
     };
 
-    // --- VAIHE 2: Arkistointi Lokiin ---
-    // Tallennetaan data ENNEN poistoa. Jos tämä epäonnistuu, keskeytämme turvallisuussyistä.
+    // --- 2. ARKISTOINTI JÄRJESTELMÄLOKIIN ---
     const { error: logError } = await supabase.from('system_logs').insert({
       event_type: 'GUEST_DELETE_ARCHIVE',
       target_id: targetId,
-      description: `Vieras ${targetName} poistettu. Täysi data-arkisto tallennettu snapshot_data-kenttään.`,
+      description: `Vieras ${targetName} poistettu. Hahmo vapautettu ja data arkistoitu.`,
       snapshot_data: snapshotData
     });
 
-    if (logError) {
-      console.error("Loki epäonnistui:", logError);
-      throw new Error(`Arkistointi epäonnistui: ${logError.message}. Poisto keskeytetty tietojen turvaamiseksi.`);
-    }
+    if (logError) throw new Error(`Arkistointi epäonnistui: ${logError.message}`);
 
-    // --- VAIHE 3: Soft Delete (Säilytettävä data) ---
-    
-    // 3.1 Kuvat: Piilotetaan ja katkaistaan linkki, jotta vieras voidaan poistaa
-    const { error: photoError } = await supabase
-      .from('live_posts')
-      .update({ is_deleted: true, guest_id: null }) 
-      .eq('guest_id', targetId);
-    if (photoError) throw new Error(`Virhe kuvien piilotuksessa: ${photoError.message}`);
-
-    // 3.2 Hahmo: Vapautetaan hahmo takaisin pooliin (assigned_guest_id = NULL)
+    // --- 3. HAHMON VAPAUTUS (KORJATTU) ---
+    // Asetetaan ID tyhjäksi, is_assigned falseksi JA status 'vapaa'
     const { error: charError } = await supabase
       .from('characters')
-      .update({ assigned_guest_id: null })
+      .update({ 
+        assigned_guest_id: null, 
+        is_assigned: false,
+        status: 'vapaa' 
+      })
       .eq('assigned_guest_id', targetId);
-    if (charError) throw new Error(`Virhe hahmon vapautuksessa: ${charError.message}`);
 
+    if (charError) console.error("Hahmon vapautus epäonnistui:", charError);
 
-    // --- VAIHE 4: Hard Delete (Estävät riippuvuudet) ---
-    // Nämä taulut estävät vieraan poiston (Foreign Key). Poistamme ne rinnakkain nopeuden vuoksi.
-    
+    // --- 4. RIIPPUVUUKSIEN POISTO (Hard Delete) ---
     const deletionPromises = [
       supabase.from('character_feedback').delete().eq('guest_id', targetId),
       supabase.from('poll_votes').delete().eq('guest_id', targetId),
@@ -102,76 +79,59 @@ const DeleteGuestButton = ({ guest, onSuccess, className, style }) => {
       supabase.from('flash_responses').delete().eq('guest_id', targetId),
       supabase.from('push_subscriptions').delete().eq('guest_id', targetId),
       supabase.from('vault_access').delete().eq('guest_id', targetId),
-      // Linkitykset (Split)
       supabase.from('guest_splits').delete().or(`parent_guest_id.eq.${targetId},child_guest_id.eq.${targetId}`)
     ];
 
-    const deleteResults = await Promise.all(deletionPromises);
-    
-    // Tarkistetaan onko virheitä
-    const errors = deleteResults.filter(r => r.error);
-    if (errors.length > 0) {
-      console.error("Virheitä riippuvuuksien poistossa:", errors);
-      throw new Error(`Siivous epäonnistui ${errors.length} taulun kohdalla. Tarkista konsoli.`);
-    }
+    await Promise.all(deletionPromises);
 
-    // --- VAIHE 5: Vieraan poisto (Final Kill) ---
-    const { error: deleteError } = await supabase
-      .from('guests')
-      .delete()
-      .eq('id', targetId);
+    // 4.1 Kuvien linkityksen katkaisu (Soft delete metadataan)
+    await supabase.from('live_posts').update({ guest_id: null, is_deleted: true }).eq('guest_id', targetId);
 
-    if (deleteError) throw new Error(`Virhe itse vieraan poistossa: ${deleteError.message}`);
+    // --- 5. VIERAAN POISTO ---
+    const { error: deleteError } = await supabase.from('guests').delete().eq('id', targetId);
+    if (deleteError) throw new Error(`Vieraan poisto epäonnistui: ${deleteError.message}`);
   };
 
-
-  // --- UI-TOIMINTO ---
+  /**
+   * UI-Logiikka
+   */
   const handleDeleteClick = async () => {
-    // 1. Varoitukset
     let warning = `VAROITUS: Olet poistamassa vieraan: ${guest.name}\n\n`;
-    
-    if (guest.myChars && guest.myChars.length > 0) {
-        warning += `• Hahmo "${guest.myChars[0].name}" vapautuu takaisin peliin.\n`;
-    }
-    warning += `• Kaikki kuvat piilotetaan galleriasta.\n`;
-    warning += `• Chat-viestit, äänet ja tehtävät poistetaan.\n\n`;
-    warning += `Järjestelmä ottaa automaattisen varmuuskopion (Snapshot) poistettavista tiedoista lokiin.\n\n`;
+    warning += `• Hahmo vapautuu takaisin muiden valittavaksi.\n`;
+    warning += `• Kaikki viestit ja tehtävät poistetaan.\n`;
+    warning += `• Järjestelmä tekee automaattisen arkiston lokiin.\n\n`;
     warning += `Haluatko varmasti jatkaa?`;
 
     if (!window.confirm(warning)) return;
 
-    // 2. Avecin tarkistus
-    let deleteChildAlso = false;
-    if (guest.asParent) {
-        deleteChildAlso = window.confirm(
-            `HUOMIO: Tämä on päävieras (${guest.name}), jolla on linkitetty avec (${guest.linkedName}).\n\n` +
-            `Haluatko poistaa myös avecin samalla kerralla?\n` +
-            `OK = Poista molemmat\nCancel = Poista vain ${guest.name} (Avec jää ilman linkitystä)`
-        );
+    // TARKISTUS: Avec-poisto (isParent, childId ja childName tulevat GuestListin datasta)
+    let deleteAvecToo = false;
+    if (guest.isParent && guest.childId) {
+      deleteAvecToo = window.confirm(
+        `Vieraalla on linkitetty avec: ${guest.childName}.\n\nPoistetaanko myös avec samalla kerralla?`
+      );
     }
 
     setLoading(true);
 
     try {
-        // A. Jos poistetaan myös Avec (Child)
-        if (deleteChildAlso && guest.asParent) {
-            // Haetaan lapsen nimi UI:ta varten (jos saatavilla), muuten geneerinen
-            const childName = guest.linkedName || "Avec";
-            await archiveAndCleanup(guest.asParent.child_guest_id, childName);
-        }
+      // 1. Jos haluttiin poistaa avec, tehdään se ensin
+      if (deleteAvecToo && guest.childId) {
+        await archiveAndCleanup(guest.childId, guest.childName);
+      }
 
-        // B. Poistetaan valittu vieras (Pääkohde)
-        await archiveAndCleanup(guest.id, guest.name);
+      // 2. Poistetaan päävieras
+      await archiveAndCleanup(guest.id, guest.name);
 
-        alert("Poisto suoritettu onnistuneesti.\nTiedot arkistoitu järjestelmälokiin.");
-        
-        if (onSuccess) onSuccess();
+      alert("Poisto suoritettu onnistuneesti.\nHahmo on nyt vapaa ja tiedot on arkistoitu.");
+      
+      if (onSuccess) onSuccess();
 
     } catch (err) {
-        console.error("Critical Delete Error:", err);
-        alert("VIRHE POISTOSSA:\n" + err.message);
+      console.error("Critical Delete Error:", err);
+      alert("VIRHE POISTOSSA:\n" + err.message);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -185,12 +145,11 @@ const DeleteGuestButton = ({ guest, onSuccess, className, style }) => {
         display:'flex', 
         alignItems:'center', 
         justifyContent:'center', 
-        gap:'8px',
-        opacity: loading ? 0.7 : 1
+        gap:'8px'
       }}
     >
       {loading ? <Loader2 size={18} className="spin" /> : <Trash2 size={18} />}
-      {loading ? "Arkistoidaan & Poistetaan..." : "POISTA VIERAS"}
+      {loading ? "Arkistoidaan..." : "POISTA VIERAS"}
     </button>
   );
 };

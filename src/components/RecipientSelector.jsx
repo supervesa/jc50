@@ -11,11 +11,13 @@ export default function RecipientSelector({
   const filtered = recipients.filter(r => showOnlyAssigned ? (r.guestName && r.guestName !== 'Ei nimeä') : true);
 
   const toggleAll = () => {
-    const allowedInView = filtered.filter(r => r.isAllowed);
-    if (selectedIds.size === allowedInView.length) {
+    // MUUTOS: Valitaan kaikki suodatetut, ei välitetä isAllowed-kentästä
+    const allInView = filtered; 
+    
+    if (selectedIds.size === allInView.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(allowedInView.map(r => r.id)));
+      setSelectedIds(new Set(allInView.map(r => r.id)));
     }
   };
 
@@ -35,7 +37,7 @@ export default function RecipientSelector({
             onChange={e => setShowOnlyAssigned(e.target.checked)} 
           /> Piilota tyhjät hahmot (vain varatut)
         </label>
-        <button onClick={toggleAll} className="jc-btn small outline">Valitse kaikki sallitut</button>
+        <button onClick={toggleAll} className="jc-btn small outline">Valitse kaikki</button>
       </div>
 
       <table style={{ width: '100%', color: '#fff', borderCollapse: 'collapse' }}>
@@ -51,22 +53,21 @@ export default function RecipientSelector({
         <tbody>
           {filtered.map(r => (
             <tr key={r.id} style={{ 
-              opacity: r.isAllowed ? 1 : 0.4, 
+              opacity: 1, // MUUTOS: Aina täysi näkyvyys
               borderBottom: '1px solid #222',
               background: r.lastLog?.status === 'sent' ? 'rgba(0, 255, 0, 0.02)' : 'transparent'
             }}>
               <td style={{ padding: '10px' }}>
-                {r.isAllowed ? (
-                  <input 
-                    type="checkbox" 
-                    checked={selectedIds.has(r.id)} 
-                    onChange={() => {
-                      const n = new Set(selectedIds);
-                      if (n.has(r.id)) n.delete(r.id); else n.add(r.id);
-                      setSelectedIds(n);
-                    }} 
-                  />
-                ) : '🚫'}
+                {/* MUUTOS: Checkbox on aina näkyvissä, poistettu isAllowed-tarkistus */}
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.has(r.id)} 
+                  onChange={() => {
+                    const n = new Set(selectedIds);
+                    if (n.has(r.id)) n.delete(r.id); else n.add(r.id);
+                    setSelectedIds(n);
+                  }} 
+                />
               </td>
               <td>
                 <strong style={{ color: 'var(--turquoise)' }}>{r.characterName}</strong>
@@ -86,9 +87,8 @@ export default function RecipientSelector({
                 )}
               </td>
               <td style={{ fontSize: '0.7rem' }}>
-                {r.isAllowed ? (
-                   r.lastLog?.status === 'sent' ? '✅ LÄHETETTY' : '📩 VALMIS'
-                ) : '🔒 TESTITILA'}
+                {/* MUUTOS: Näytetään aina status, ei "TESTITILA" tekstiä */}
+                {r.lastLog?.status === 'sent' ? '✅ LÄHETETTY' : '📩 VALMIS'}
               </td>
             </tr>
           ))}

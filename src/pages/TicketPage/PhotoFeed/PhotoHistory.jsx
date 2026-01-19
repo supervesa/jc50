@@ -6,6 +6,12 @@ export function PhotoHistory({ photos, loading, onDelete, onShare, onDownload })
 
   if (!photos || (!loading && photos.length === 0)) return null;
 
+  // Lisätään vain tämä suodatus: haetaan vain rivit, joiden tyyppi on 'photo'
+  const onlyPhotos = photos.filter(photo => photo.type === 'photo');
+
+  // Jos kuvia ei ole suodatuksen jälkeen, ei näytetä mitään
+  if (onlyPhotos.length === 0) return null;
+
   return (
     <div className="my-photos-section" style={{ 
       marginTop: '10px', 
@@ -19,7 +25,7 @@ export function PhotoHistory({ photos, loading, onDelete, onShare, onDownload })
         gap: '4px',
         justifyContent: 'center' // Keskittää sarakkeet
       }}>
-        {photos.map(photo => (
+        {onlyPhotos.map(photo => (
           <div key={photo.id} style={{
             position: 'relative',
             aspectRatio: '1 / 1',

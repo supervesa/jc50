@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 import juice from 'juice'; // <--- KÄYTÄ TÄTÄ (ei require)
 
-const SAFETY_MODE = true; 
+const SAFETY_MODE = false; 
 
 // Haetaan sallitut sähköpostit ympäristömuuttujasta (Backend käyttää process.env)
 const ALLOWED_EMAILS = (process.env.VITE_SAFE_MODE_EMAILS || '')
