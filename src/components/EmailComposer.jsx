@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import RecipientSelector from './RecipientSelector';
 import VisualEditor from './VisualEditor';
+import EmailFilter from './EmailFilter'; // Uusi komponentti
+import AIPromptGenerator from './AIPromptGenerator';
 
+// Haetaan sallitut sähköpostit ympäristömuuttujasta (Vain frontend-valinnassa käytettäväksi)
 const SAFE_MODE_EMAILS = (import.meta.env.VITE_SAFE_MODE_EMAILS || '')
   .split(',')
   .map(email => email.trim().toLowerCase())
@@ -13,12 +16,15 @@ export default function EmailComposer({ initialRecipient }) {
   const [editorMode, setEditorMode] = useState('code'); // 'code' tai 'visual'
   const [loading, setLoading] = useState(true);
   
-  // DATA TILAT
+  // --- DATA TILAT ---
   const [recipients, setRecipients] = useState([]);
+  const [filteredRecipients, setFilteredRecipients] = useState([]); // Suodatettu lista
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [templates, setTemplates] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]); // Pelillinen data
+  const [emailLogs, setEmailLogs] = useState([]); // Lähetyshistoria
   
-  // VIESTIN TILAT
+  // --- VIESTIN TILAT ---
   const [subject, setSubject] = useState('');
   const [senderName, setSenderName] = useState('Vesa / J:CLUB');
   const [htmlContent, setHtmlContent] = useState('');
@@ -26,7 +32,7 @@ export default function EmailComposer({ initialRecipient }) {
   const [templateName, setTemplateName] = useState('');
   const [currentTemplateId, setCurrentTemplateId] = useState(null);
   
-  // UI TILAT
+  // --- UI TILAT ---
   const [autoSync, setAutoSync] = useState(true);
   const [showOnlyAssigned, setShowOnlyAssigned] = useState(true);
 
@@ -51,7 +57,7 @@ export default function EmailComposer({ initialRecipient }) {
           is_spouse_character, 
           pre_assigned_email, 
           assigned_guest_id, 
-          guests:assigned_guest_id(name, email, spouse_name)
+          guests:assigned_guest_id(id, name, email, spouse_name, brings_spouse)
         `)
         .order('name');
 
@@ -67,40 +73,53 @@ export default function EmailComposer({ initialRecipient }) {
         .select('*')
         .order('sent_at', { ascending: false });
 
-      // Käsitellään vastaanottajat
-      // SUODATUS: Otetaan vain päävieraat (is_spouse_character: false) jotta ei tule tuplarivejä
+      // 4. Haetaan Leaderboard-data (suodatusta varten)
+      const { data: lbData } = await supabase
+        .from('leaderboard')
+        .select('*');
+
+      setLeaderboard(lbData || []);
+      setEmailLogs(logs || []);
+
+      // KÄSITTELY: Luodaan rikastettu vastaanottajalista
       const processed = chars
-        ?.filter(char => char.is_spouse_character !== true) 
+        ?.filter(char => char.assigned_guest_id !== null) // KARSITAAN UN-ASSIGNED HAHMOT
         .map(char => {
           const guestData = Array.isArray(char.guests) ? char.guests[0] : char.guests;
           const email = (char.pre_assigned_email || guestData?.email)?.toLowerCase().trim();
           
-          // Etsitään viimeisin loki tälle hahmolle
-          const lastLog = logs?.find(l => l.character_id === char.id);
+          // Etsitään lokit tälle nimenomaiselle hahmolle
+          const charLogs = logs?.filter(l => l.character_id === char.id) || [];
+          const lastLog = charLogs.length > 0 ? charLogs[0] : null;
 
-          // Muodostetaan vierasnimi (lisätään avec jos löytyy)
-          let combinedGuestName = guestData?.name || 'Ei nimeä';
-          if (guestData?.spouse_name) {
-            combinedGuestName += ` & ${guestData.spouse_name}`;
+          // Nimen ratkaisu (Varmistetaan avec-tuki)
+          let finalDisplayName = guestData?.name || 'Ei nimeä';
+          if (char.is_spouse_character && guestData?.spouse_name) {
+            finalDisplayName = guestData.spouse_name;
           }
 
           return {
             id: char.id,
+            guestId: guestData?.id,
             characterName: char.name || char.role || 'Nimetön',
             role: char.role,
             backstory: char.backstory,
             secret_mission: char.secret_mission,
-            is_avec: char.is_spouse_character,
-            guestName: combinedGuestName,
+            guestName: finalDisplayName,
             email: email,
+            isSplit: !!char.is_spouse_character,
+            isShadow: guestData?.brings_spouse && !char.is_spouse_character,
             isAllowed: email && SAFE_MODE_EMAILS.includes(email),
-            lastLog: lastLog // Sisältää: status, sent_at, template_name
+            lastLog: lastLog,
+            lastLogTemplate: lastLog?.template_name,
+            lastLogDate: lastLog?.sent_at
           };
         }) || [];
 
       setRecipients(processed);
       setTemplates(tmpls || []);
       
+      // Asetetaan oletuspohja jos sellaista ei ole vielä valittu
       if (tmpls?.length > 0 && !currentTemplateId) {
         applyTemplate(tmpls[0]);
       }
@@ -132,6 +151,13 @@ export default function EmailComposer({ initialRecipient }) {
     }
   };
 
+  // LISÄYS: Mahdollistaa massavalinnat suodattimesta
+  const handleSmartSelect = (ids) => {
+    const newSelected = new Set(selectedIds);
+    ids.forEach(id => newSelected.add(id));
+    setSelectedIds(newSelected);
+  };
+
   const handleSend = async () => {
     const targets = Array.from(selectedIds);
     if (targets.length === 0) return alert('Valitse vastaanottajat ensin.');
@@ -154,7 +180,7 @@ export default function EmailComposer({ initialRecipient }) {
 
       if (response.ok) {
         alert('Viestit lähetetty onnistuneesti!');
-        fetchInitialData(); // Päivitetään lokitiedot listaan heti
+        fetchInitialData(); // Päivitetään historiadata heti
       } else {
         alert('Lähetys epäonnistui palvelimella.');
       }
@@ -175,7 +201,8 @@ export default function EmailComposer({ initialRecipient }) {
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px' }}>
-      
+      <AIPromptGenerator />
+      {/* TABS */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
         <button 
           className={`jc-btn ${activeTab === 'recipients' ? '' : 'outline'}`} 
@@ -197,16 +224,27 @@ export default function EmailComposer({ initialRecipient }) {
         </button>
       </div>
 
+      {/* 1. VASTAANOTTAJIEN HALLINTA */}
       {activeTab === 'recipients' && (
-        <RecipientSelector 
-          recipients={recipients} 
-          selectedIds={selectedIds} 
-          setSelectedIds={setSelectedIds}
-          showOnlyAssigned={showOnlyAssigned}
-          setShowOnlyAssigned={setShowOnlyAssigned}
-        />
+        <>
+          <EmailFilter 
+            recipients={recipients}
+            leaderboard={leaderboard}
+            emailLogs={emailLogs}
+            templateName={templateName}
+            subject={subject}
+            onFilterChange={setFilteredRecipients}
+            onSmartSelect={handleSmartSelect}
+          />
+          <RecipientSelector 
+            recipients={filteredRecipients} 
+            selectedIds={selectedIds} 
+            setSelectedIds={setSelectedIds}
+          />
+        </>
       )}
 
+      {/* 2. VIESTIN MUOKKAUS */}
       {activeTab === 'editor' && (
         <div className="jc-card fade-in">
           <div style={{ marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
@@ -316,6 +354,7 @@ export default function EmailComposer({ initialRecipient }) {
         </div>
       )}
 
+      {/* 3. LOPULLINEN ESIKATSELU JA LÄHETYS */}
       {activeTab === 'preview' && (
         <div className="jc-card fade-in">
           <div style={{ background: '#fff', padding: '0', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>
@@ -328,7 +367,7 @@ export default function EmailComposer({ initialRecipient }) {
           <div style={{ marginTop: '30px', padding: '20px', border: '1px solid var(--magenta)', borderRadius: '12px', textAlign: 'center' }}>
             <h3 style={{ color: 'var(--magenta)', margin: '0 0 10px 0' }}>VALMIS LÄHETETTÄVÄKSI?</h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '20px' }}>
-              Viesti lähetetään {selectedIds.size} valitulle ja sallitulle vastaanottajalle.
+              Viesti lähetetään {selectedIds.size} valitulle vastaanottajalle.
             </p>
             <button 
               className="jc-btn primary" 
