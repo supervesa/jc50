@@ -11,6 +11,7 @@ import PhotoFeed from './PhotoFeed';
 import CharacterAcceptance from './CharacterAcceptance';
 import IntroOverlay from '../../components/IntroOverlay'; 
 import AvecSplitCard from './components/AvecSplitCard'; // UUSI EROTETTU KOMPONENTTI
+import NexusTeaser from './NexusTeaser';
 
 // Hookit
 import { useGameConfig } from '../AgentPage/hooks/useGameConfig'; 
@@ -201,8 +202,18 @@ function TicketPage() {
                 onUploadAvatar={uploadAvatar} 
                 uploading={uploading} 
               />
+              
             ))
           )}
+          {/* --- NEXUS TEASER TÄHÄN --- */}
+          {/* Näytetään vain jos hahmo on jo olemassa */}
+          {myCharacters.length > 0 && (
+            <NexusTeaser 
+              ticketId={id} 
+              characterName={myCharacters[0].character_name} 
+            />
+          )}
+          
 
           {/* 2. AVECIN EROTUS (Nostettu hahmojen alle) */}
           {guest && (

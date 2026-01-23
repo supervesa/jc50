@@ -184,7 +184,7 @@
   function frame(now) {
     // 1. Määritä sivut, joilla WebGL on POIS PÄÄLTÄ
     // Lisää tähän listaan kaikki reitit, joilla haluat säästää akkua/tehoa
-    const disabledRoutes = ['/admin', '/agent', '/live', '/wall', '/leaderboard', '/personal-stats'];
+    const disabledRoutes = ['/admin', '/agent', '/live', '/wall', '/leaderboard', '/personal-stats', '/nexus', '/viesti'];
     const currentPath = window.location.pathname;
 
     // 2. Tarkista, alkaako nykyinen polku jollakin kielletyistä

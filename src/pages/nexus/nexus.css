@@ -1,0 +1,135 @@
+.nexus-grid-container { position: relative; width: 100%; min-height: 80vh; }
+.nexus-section { margin-bottom: 3rem; }
+.nexus-section-title { font-family: "Outfit", sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); border-left: 2px solid var(--turquoise); padding-left: 10px; margin-bottom: 1.5rem; }
+.nexus-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (min-width: 768px) { .nexus-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.nexus-card { background: rgba(5, 7, 10, 0.65); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.3s; position: relative; z-index: 5; }
+.nexus-card.focal { border-color: var(--magenta); box-shadow: 0 0 20px rgba(255, 0, 229, 0.2); }
+.nexus-card:hover { transform: translateY(-5px); border-color: var(--turquoise); }
+
+.nexus-avatar-container { width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin-bottom: 10px; border: 2px solid rgba(255,255,255,0.1); }
+.nexus-avatar { width: 100%; height: 100%; object-fit: cover; }
+.nexus-avatar-placeholder { width: 100%; height: 100%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; }
+.nexus-name { font-family: "Josefin Sans", sans-serif; font-size: 0.9rem; margin: 0; color: white; text-align: center; }
+.nexus-role { font-size: 0.7rem; color: var(--muted); text-align: center; }
+
+.nexus-svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.nexus-line { stroke-width: 2; stroke-linecap: round; opacity: 0.6; transition: all 0.5s ease; }
+
+/* RELATIONSHIP SPECIFIC LINES */
+.nexus-line-avec { stroke: var(--magenta); stroke-width: 3; opacity: 0.8; }
+.nexus-line-neighbor { stroke: var(--turquoise); stroke-dasharray: 5,5; opacity: 0.4; }
+.nexus-line-friend { stroke: var(--turquoise); stroke-width: 2; opacity: 0.6; }
+.nexus-line-rival { 
+  stroke: #ffcc00; 
+  stroke-width: 3; 
+  stroke-dasharray: 8, 12; 
+  opacity: 0.7; 
+  animation: dashmove 20s linear infinite; 
+}
+
+@keyframes dashmove {
+  from { stroke-dashoffset: 200; }
+  to { stroke-dashoffset: 0; }
+}
+
+.nexus-badge { position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.focal-tag { margin-top: 5px; font-size: 0.5rem; color: var(--magenta); font-weight: 800; display: flex; align-items: center; gap: 3px; }
+
+/* NEXUS MODAL PALAUTETUT TYYLIT */
+.nexus-modal-content {
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid var(--turquoise) !important;
+  padding: 2.5rem 1.5rem 1.5rem !important;
+}
+
+.nexus-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.2s;
+}
+
+.nexus-modal-close:hover {
+  color: var(--magenta);
+}
+
+.nexus-modal-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.nexus-modal-avatar-wrapper {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 1.2rem;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(45deg, var(--magenta), var(--turquoise));
+  box-shadow: 0 0 20px rgba(0, 231, 255, 0.2);
+}
+
+.nexus-modal-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--bg-deep);
+}
+
+.nexus-modal-role {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--turquoise);
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.nexus-relation-box {
+  background: rgba(0, 231, 255, 0.07);
+  border: 1px solid rgba(0, 231, 255, 0.2);
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.nexus-relation-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--turquoise);
+  margin-bottom: 0.6rem;
+}
+
+.nexus-context-text {
+  font-style: italic;
+  color: var(--laser-white);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.nexus-story-section {
+  text-align: left;
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+
+.nexus-modal-footer {
+  margin-top: 1rem;
+}
