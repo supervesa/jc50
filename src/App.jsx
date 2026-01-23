@@ -46,11 +46,7 @@ const currentUserGuestId = localStorage.getItem('my_guest_id');
           <Route path="/viesti" element={<EmailViewer />} />
 
           {/* --- VAIHE 1: HYPE WEEK (CHAT & NEXUS AUKI) --- */}
- <Route path="/nexus/:ticketId" element={
-  <ProtectedRoute minPhase="HYPE_WEEK">
-    <NexusPage />
-  </ProtectedRoute>
-          } />
+<Route path="/nexus/:ticketId" element={<NexusPage />} />
 
           <Route path="/agent" element={
             <ProtectedRoute minPhase="HYPE_WEEK">
