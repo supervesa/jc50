@@ -1,23 +1,21 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom'; // Lisätty useParams
 import { Share2, Users, ChevronRight } from 'lucide-react';
-// Tuodaan peli-konfiguraatio
 import { useGameConfig } from '../../hooks/useGameConfig'; 
 
-const NexusTeaser = ({ ticketId, characterName }) => {
-  // 1. Haetaan pelin vaihe ja testaaja-status
+const NexusTeaser = ({ characterName }) => {
+  // Haetaan ID suoraan URL:stä (sama 'id' kuin TicketPagella)
+  const { id } = useParams();
+
   const { 
     phaseValue, 
     isTester, 
     loading 
-  } = useGameConfig(ticketId);
+  } = useGameConfig(id);
 
-  // 2. Määritetään näkyvyys: 
-  // Näytetään jos ollaan Hype Weekissä (1) tai Showtime-vaiheessa (2)
-  // TAI jos kyseessä on betatestaaja vaiheesta riippumatta.
+  // Varmistetaan näkyvyys
   const isVisible = !loading && (phaseValue >= 1 || isTester);
 
-  // Jos ei oikeutta nähdä, palautetaan null (komponentti pysyy täysin näkymättömänä)
   if (!isVisible) return null;
 
   return (
@@ -36,8 +34,9 @@ const NexusTeaser = ({ ticketId, characterName }) => {
         </div>
       </div>
 
+      {/* Käytetään nyt varmasti oikeaa 'id' muuttujaa */}
       <Link 
-        to={`/nexus/${ticketId}`} 
+        to={`/nexus/${id}`} 
         className="jc-cta primary" 
         style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}
       >
