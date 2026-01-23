@@ -1,22 +1,33 @@
 import React from 'react';
-import { Link, useParams } from 'react-router-dom'; // Lisätty useParams
+import { Link, useParams } from 'react-router-dom';
 import { Share2, Users, ChevronRight } from 'lucide-react';
 import { useGameConfig } from '../../hooks/useGameConfig'; 
 
-const NexusTeaser = ({ characterName }) => {
-  // Haetaan ID suoraan URL:stä (sama 'id' kuin TicketPagella)
-  const { id } = useParams();
+const NexusTeaser = ({ characterName, id: propId }) => {
+  // 1. Yritetään hakea ID kaikilla mahdollisilla tavoilla
+  const params = useParams();
+  
+  // Katsotaan onko se 'id', 'ticketId' vai tuleeko se propseina
+  const finalId = propId || params.id || params.ticketId;
+
+  // DEBUG: Tämä näkyy selaimen konsolissa (F12)
+  console.log("🔗 NEXUS DEBUG: Löydetty ID:", finalId, "Params:", params);
 
   const { 
     phaseValue, 
     isTester, 
     loading 
-  } = useGameConfig(id);
+  } = useGameConfig(finalId);
 
-  // Varmistetaan näkyvyys
   const isVisible = !loading && (phaseValue >= 1 || isTester);
 
   if (!isVisible) return null;
+
+  // Jos ID:tä ei löydy vieläkään, piilotetaan nappi ettei se vie rikkinäiseen osoitteeseen
+  if (!finalId) {
+    console.error("❌ NEXUS ERROR: ID puuttuu kokonaan!");
+    return null;
+  }
 
   return (
     <div className="jc-card mt-2" style={{ padding: '1.2rem', position: 'relative' }}>
@@ -34,9 +45,8 @@ const NexusTeaser = ({ characterName }) => {
         </div>
       </div>
 
-      {/* Käytetään nyt varmasti oikeaa 'id' muuttujaa */}
       <Link 
-        to={`/nexus/${id}`} 
+        to={`/nexus/${finalId}`} 
         className="jc-cta primary" 
         style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}
       >
