@@ -618,3 +618,56 @@ display: none;
   border-radius: 10px;
   margin-bottom: 1.5rem;
 }
+/* --- LUKITTU KORTTI (GHOST/TEASER MOOD) --- */
+.nexus-page-wrapper .nexus-card-stack.is-locked {
+  opacity: 0.45;
+  filter: grayscale(1) contrast(0.8);
+  cursor: not-allowed !important;
+  pointer-events: none; /* Estää klikkauksen ja modaalin avaamisen */
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+/* Lukko-ikoni lukitun kortin päälle */
+.nexus-page-wrapper .nexus-card-stack.is-locked::after {
+  content: "🔒";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  opacity: 0.3;
+  z-index: 10;
+}
+
+.nexus-page-wrapper .nexus-card-stack.is-locked .avatar-stack {
+  filter: brightness(0.4) blur(1px);
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.nexus-page-wrapper .nexus-card-stack.is-locked .card-name-small {
+  color: var(--muted);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* --- LUKITTU HERO-ALUE --- */
+.nexus-page-wrapper .nexus-dossier-hero.is-locked-hero {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(10, 15, 25, 0.7);
+  box-shadow: none;
+}
+
+.nexus-page-wrapper .nexus-dossier-hero.is-locked-hero .dossier-img {
+  filter: grayscale(1) brightness(0.5);
+  border-color: var(--muted) !important;
+}
+
+/* --- STATUSTAGI LUKITULLE --- */
+.nexus-page-wrapper .status-badge.private {
+  background: rgba(80, 80, 80, 0.9);
+  color: #fff;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.1);
+}

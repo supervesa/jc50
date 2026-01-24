@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 /**
  * Gatekeeper-suodatin Nexuksen hahmoille.
- * Hallitsee näkyvyyttä pelin vaiheen, käyttäjän roolin ja hahmon statuksen mukaan.
+ * Palauttaa kaikki varatut (assigned) hahmot, mutta merkitsee ne lukituiksi tarvittaessa.
  */
 export const useGatekeeper = (allCharacters, feedbackData, gameConfig, originalCharId) => {
   
@@ -12,28 +12,34 @@ export const useGatekeeper = (allCharacters, feedbackData, gameConfig, originalC
     const { isTester, phase } = gameConfig;
     const isShowtime = phase === 'SHOWTIME';
 
-    // Lajitellaan palaute aikajärjestykseen (uusin ensin)
+    // Lajitellaan palaute aikajärjestykseen (uusin ensin), jotta poimitaan tuorein tila
     const sortedFeedback = feedbackData ? [...feedbackData].sort((a, b) => 
       new Date(b.created_at || 0) - new Date(a.created_at || 0)
     ) : [];
 
-    return allCharacters.filter(char => {
-      // 1. VARAUKSEN TARKISTUS
-      const isOccupied = !!char.assigned_guest_id || char.is_assigned === true;
-      if (!isOccupied) return false;
+    return allCharacters
+      .filter(char => {
+        // NÄYTETÄÄN VAIN VARATUT (Assigned) HAHMOT
+        return !!char.assigned_guest_id || char.is_assigned === true;
+      })
+      .map(char => {
+        // Tarkistetaan onko hahmo "julkinen" (Avatar + Accepted)
+        const hasAvatar = !!(char.avatar_url && char.avatar_url.trim() !== '');
+        const latestFeedback = sortedFeedback.find(f => f.guest_id === char.assigned_guest_id);
+        const isAccepted = latestFeedback?.status === 'accepted';
 
-      // 2. MASTER ACCESS & OMA HAHMO
-      if (isTester || isShowtime || char.id === originalCharId) return true;
+        // LUKITUS-LOGIIKKA
+        // Hahmo on auki katselijalle jos:
+        // 1. Hahmo on julkinen (Avatar + Accepted)
+        // 2. Katselija on testaaja tai peli on Showtime-vaiheessa
+        // 3. Kyseessä on katselijan oma hahmo
+        const isOpen = (hasAvatar && isAccepted) || isTester || isShowtime || char.id === originalCharId;
 
-      // 3. STANDARDI-SUODATUS
-      const hasAvatar = char.avatar_url && char.avatar_url.trim() !== '';
-      
-      // Etsitään TUOREIN palaute tälle vieraalle
-      const latestFeedback = sortedFeedback.find(f => f.guest_id === char.assigned_guest_id);
-      const isAccepted = latestFeedback?.status === 'accepted';
-
-      return hasAvatar && isAccepted;
-    });
+        return {
+          ...char,
+          isLocked: !isOpen
+        };
+      });
   }, [allCharacters, feedbackData, gameConfig, originalCharId]);
 
   return { filteredCharacters };

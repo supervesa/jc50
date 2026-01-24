@@ -55,19 +55,20 @@ export const useNexusLogic = (ticketId) => {
 
   const { filteredCharacters } = useGatekeeper(allCharacters, feedback, gameConfig, originalCharId);
 
-  const focalChar = allCharacters.find(c => c.id === currentFocusId);
-  const focalFeedback = feedback ? [...feedback]
+  const viewerChar = allCharacters.find(c => c.id === originalCharId);
+  const viewerFeedback = feedback ? [...feedback]
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-    .find(f => f.guest_id === focalChar?.assigned_guest_id) : null;
+    .find(f => f.guest_id === viewerChar?.assigned_guest_id) : null;
   
-  const isPublic = !!(focalChar?.avatar_url && focalFeedback?.status === 'accepted');
+  const isViewerPublic = !!(viewerChar?.avatar_url && viewerFeedback?.status === 'accepted');
 
+  const currentFocal = filteredCharacters.find(c => c.id === currentFocusId);
+  
   const findOfficialPartner = (charId, chars, splitList) => {
     const char = chars.find(c => c.id === charId);
     if (!char || !char.assigned_guest_id) return null;
     const split = splitList.find(s => 
-      s.parent_guest_id === char.assigned_guest_id || 
-      s.child_guest_id === char.assigned_guest_id
+      s.parent_guest_id === char.assigned_guest_id || s.child_guest_id === char.assigned_guest_id
     );
     if (!split) return null;
     const pId = split.parent_guest_id === char.assigned_guest_id ? split.child_guest_id : split.parent_guest_id;
@@ -75,33 +76,36 @@ export const useNexusLogic = (ticketId) => {
   };
 
   const spouse = findOfficialPartner(currentFocusId, filteredCharacters, splits);
-  const neighbors = [];
-  if (spouse) neighbors.push({ ...spouse, relationType: 'spouse' });
   
+  // RAKENNETAAN NAAPURIT (Avec + muut suhteet)
+  const neighbors = [];
+  
+  // 1. Lisätään avec jos sellainen on
+  if (spouse) {
+    neighbors.push({ ...spouse, relationType: 'spouse' });
+  }
+
+  // 2. Lisätään muut suhteet (Relationships-taulusta)
   const otherRels = filteredCharacters.filter(c => 
     c.id !== currentFocusId && (!spouse || c.id !== spouse.id) &&
-    relationships.some(r => 
-      (r.char1_id === currentFocusId && r.char2_id === c.id) || 
-      (r.char2_id === currentFocusId && r.char1_id === c.id)
-    )
+    relationships.some(r => (r.char1_id === currentFocusId && r.char2_id === c.id) || (r.char2_id === currentFocusId && r.char1_id === c.id))
   ).map(c => {
-    const r = relationships.find(rel => 
-      (rel.char1_id === currentFocusId && rel.char2_id === c.id) || 
-      (rel.char2_id === currentFocusId && rel.char1_id === c.id)
-    );
+    const r = relationships.find(rel => (rel.char1_id === currentFocusId && rel.char2_id === c.id) || (rel.char2_id === currentFocusId && rel.char1_id === c.id));
     return { ...c, relationType: r?.relation_type };
   });
 
   neighbors.push(...otherRels);
 
+  const usedIds = [currentFocusId, ...(spouse ? [spouse.id] : []), ...neighbors.map(n => n.id)];
+  const remaining = filteredCharacters.filter(c => !usedIds.includes(c.id));
+
   const clusterOthers = (chars, splitList) => {
     const done = new Set();
     const result = [];
-    const pool = [...chars].sort(() => Math.random() - 0.5);
-    pool.forEach(c => {
+    chars.forEach(c => {
       if (done.has(c.id)) return;
       const p = findOfficialPartner(c.id, filteredCharacters, splitList);
-      if (p && pool.find(x => x.id === p.id) && !done.has(p.id)) {
+      if (p && !done.has(p.id)) {
         result.push({ type: 'couple', members: [c, p] });
         done.add(c.id); done.add(p.id);
       } else {
@@ -112,13 +116,13 @@ export const useNexusLogic = (ticketId) => {
     return result;
   };
 
-  const usedIds = [currentFocusId, ...neighbors.map(n => n.id)];
-  const remaining = filteredCharacters.filter(c => !usedIds.includes(c.id));
-  const groupedOthers = clusterOthers(remaining, splits);
-
   return { 
-    focalChar, isPublic, isTester: gameConfig.isTester, neighbors, 
-    groupedOthers, loading: loading || gameConfig.loading, error, 
-    currentFocusId, setCurrentFocusId, originalCharId 
+    focalChar: currentFocal, 
+    isPublic: isViewerPublic, 
+    isTester: gameConfig.isTester, 
+    neighbors, 
+    groupedOthers: clusterOthers(remaining, splits), 
+    loading: loading || gameConfig.loading, 
+    error, currentFocusId, setCurrentFocusId, originalCharId 
   };
 };
