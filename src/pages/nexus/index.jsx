@@ -1,42 +1,108 @@
-import React, { useState } from 'react';
-import { useNexusLogic } from './useNexusLogic'; // NIMETTY TUONTI
-import NexusGrid from './NexusGrid';           // DEFAULT TUONTI
-import NexusModal from './NexusModal';         // DEFAULT TUONTI
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { useNexusLogic } from './useNexusLogic';
+import NexusGrid from './NexusGrid';
+import NexusModal from './NexusModal';
+import { RotateCcw, BookOpen, Lock } from 'lucide-react';
 import './nexus.css';
 
 const NexusPage = () => {
-  const { focalCharacter, neighbors, others, loading, error, setFocusId } = useNexusLogic();
+  const { ticketId } = useParams();
+  const topRef = useRef(null);
+  
+  const { 
+    focalChar, 
+    isPublic,
+    isTester,
+    neighbors, 
+    groupedOthers, 
+    loading, 
+    error, 
+    currentFocusId, 
+    setCurrentFocusId, 
+    originalCharId 
+  } = useNexusLogic(ticketId);
+
   const [selectedCharacter, setSelectedCharacter] = useState(null);
 
-  const handleSwitchFocus = (id) => {
-    setFocusId(id);
-    setSelectedCharacter(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  useEffect(() => {
+    if (currentFocusId && !loading) {
+      topRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [currentFocusId, loading]);
 
-  if (error) return <div className="jc-wrapper mt-2">Virhe haettaessa verkostoa: {error}</div>;
+  if (loading) return <div className="jc-wrapper mt-5 text-center neon-text-cyan">ALUSTETAAN NEURAALILINKKIÄ...</div>;
+  if (error) return <div className="jc-wrapper mt-5 text-center neon-text-magenta">HUOMIO: {error}</div>;
+
+  // Kartta näkyy vain, jos hahmo on julkinen TAI katselija on testeri
+  const canSeeMap = isPublic || isTester;
 
   return (
-    <div className="nexus-page-wrapper jc-wrapper">
-      <header style={{ textAlign: 'center', marginBottom: '2rem' }}>
+    <div className="nexus-page-wrapper jc-wrapper" ref={topRef}>
+      <header className="nexus-header">
         <h1 className="jc-h1">NEXUS</h1>
+        {currentFocusId !== originalCharId && (
+          <button className="nexus-reset-btn" onClick={() => setCurrentFocusId(originalCharId)}>
+            <RotateCcw size={14} /> PALAA OMAAN NÄKYMÄÄN
+          </button>
+        )}
       </header>
 
-      <NexusGrid 
-        focalCharacter={focalCharacter}
-        neighbors={neighbors}
-        others={others}
-        onCardClick={setSelectedCharacter}
-        loading={loading}
-      />
+      {focalChar && (
+        <div className="nexus-dossier-hero">
+          <div className="dossier-entry single-focal">
+            <div className="dossier-header-mini">
+              <div className="dossier-img-container">
+                <img 
+                  src={focalChar.avatar_url || "/api/placeholder/100/100"} 
+                  alt={focalChar.character_name} 
+                  className="dossier-img" 
+                />
+                <div className={`status-badge ${isPublic ? 'public' : 'private'}`}>
+                  {isPublic ? '● JULKINEN' : '● YKSITYINEN'}
+                </div>
+              </div>
+              <div className="dossier-meta">
+                <h3>{focalChar.character_name || focalChar.name}</h3>
+                <p className="status-note">
+                  {isPublic 
+                    ? "Yhteys vahvistettu. Kaikki näkevät sinut." 
+                    : "Yhteys muodostetaan. Vain sinä ja ylläpito näette tämän."}
+                </p>
+                <button className="dossier-pill-btn" onClick={() => setSelectedCharacter(focalChar)}>
+                  <BookOpen size={10} /> LUE TARINA
+                </button>
+              </div>
+            </div>
+            <p className="dossier-teaser">
+               {focalChar.backstory?.split(/[.!?]/).slice(0, 2).join('. ') + '...'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {canSeeMap ? (
+        <NexusGrid 
+          neighbors={neighbors} 
+          groupedOthers={groupedOthers} 
+          onCardClick={setCurrentFocusId} 
+          onDossierClick={setSelectedCharacter} 
+        />
+      ) : (
+        <div className="nexus-locked-overlay">
+          <div className="locked-content">
+            <Lock size={40} className="mb-3" />
+            <h2>VERKOSTO ON LUKITTU</h2>
+            <p>
+              Hahmosi neuraalilinkki on vielä keskeneräinen. <br />
+              Lataa avatar-kuva ja odota ylläpidon hyväksyntää avataksesi pääsyn Nexukseen.
+            </p>
+          </div>
+        </div>
+      )}
 
       {selectedCharacter && (
-        <NexusModal 
-          character={selectedCharacter}
-          onClose={() => setSelectedCharacter(null)}
-          onFocusSwitch={handleSwitchFocus}
-          isCurrentUser={focalCharacter && selectedCharacter.id === focalCharacter.id}
-        />
+        <NexusModal character={selectedCharacter} onClose={() => setSelectedCharacter(null)} />
       )}
     </div>
   );

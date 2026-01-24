@@ -1,40 +1,37 @@
 import React from 'react';
 import NexusCard from './NexusCard';
-import NexusLines from './NexusLines';
 
-const NexusGrid = ({ focalCharacter, neighbors, others, onCardClick, loading }) => {
-  if (loading) return <div className="nexus-loading center mt-2">Ladataan verkostoa...</div>;
-
+const NexusGrid = ({ neighbors, groupedOthers, onCardClick, onDossierClick }) => {
   return (
     <div className="nexus-grid-container">
-      {focalCharacter && (
-        <section className="nexus-section focal-section">
-          <div className="nexus-focal-wrapper">
-            <NexusCard character={focalCharacter} isFocal={true} onClick={onCardClick} />
-          </div>
-        </section>
-      )}
+      <section className="nexus-section">
+        <h2 className="nexus-section-title">SUORA VERKOSTO</h2>
+        <div className="nexus-main-grid">
+          {neighbors.map(char => (
+            <NexusCard 
+              key={char.id} 
+              character={char} 
+              relationType={char.relationType} 
+              onClick={onCardClick} 
+              onDossierClick={onDossierClick} 
+            />
+          ))}
+        </div>
+      </section>
 
-      {focalCharacter && neighbors.length > 0 && (
-        <NexusLines focalId={focalCharacter.id} neighbors={neighbors} />
-      )}
-
-      {neighbors.length > 0 && (
-        <section className="nexus-section connections-section">
-          <h2 className="nexus-section-title">Lähipiirisi</h2>
-          <div className="nexus-grid">
-            {neighbors.map(char => (
-              <NexusCard key={char.id} character={char} onClick={onCardClick} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="nexus-section others-section">
-        <h2 className="nexus-section-title">Muut juhlijat</h2>
-        <div className="nexus-grid">
-          {others.map(char => (
-            <NexusCard key={char.id} character={char} onClick={onCardClick} />
+      <section className="nexus-section">
+        <h2 className="nexus-section-title">MUUT JUHLIJAT</h2>
+        <div className="nexus-main-grid dense">
+          {groupedOthers.map((group, idx) => (
+            group.type === 'couple' ? (
+              <div key={`couple-${idx}`} className="nexus-group-island couple">
+                {group.members.map(char => (
+                  <NexusCard key={char.id} character={char} onClick={onCardClick} onDossierClick={onDossierClick} />
+                ))}
+              </div>
+            ) : (
+              <NexusCard key={group.members[0].id} character={group.members[0]} onClick={onCardClick} onDossierClick={onDossierClick} />
+            )
           ))}
         </div>
       </section>

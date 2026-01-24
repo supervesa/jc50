@@ -1,56 +1,43 @@
 import React from 'react';
-import { User, Heart, Home, Zap, Users, HelpCircle } from 'lucide-react';
+import { User, BookOpen } from 'lucide-react';
 
-const RELATION_CONFIG = {
-  avec: { Icon: Heart, color: '#ff4d4d' },
-  neighbor: { Icon: Home, color: '#4dabff' },
-  rival: { Icon: Zap, color: '#ffcc00' },
-  friend: { Icon: Users, color: '#4dff88' },
-  mystery: { Icon: HelpCircle, color: '#a6a6a6' },
-};
+const NexusCard = ({ character, onClick, onDossierClick, relationType }) => {
+  const name = character.character_name || character.name || "Tuntematon";
 
-const NexusCard = ({ character, isFocal, onClick }) => {
-  // Poimitaan molemmat nimivaihtoehdot
-  const { id, character_name, name, avatar_url, relationType } = character;
-  
-  const config = RELATION_CONFIG[relationType] || { Icon: null, color: 'transparent' };
-  const RelationIcon = config.Icon;
-  
-  // Käytetään sitä kumpaa löytyy (character_name tai name)
-  const displayName = character_name || name || "Nimetön hahmo";
+  const getBadgeLabel = (type) => {
+    const labels = {
+      'spouse': 'PUOLISO',
+      'avec': 'AVEC',
+      'friend': 'YSTÄVÄ',
+      'neighbor': 'NAAPURI',
+      'relative': 'SERKKU',
+      'business': 'BUSINESS'
+    };
+    return labels[type] || null;
+  };
+
+  const badgeLabel = getBadgeLabel(relationType);
 
   return (
-    <div 
-      className={`nexus-card ${isFocal ? 'focal' : ''}`}
-      onClick={() => onClick(character)}
-      data-character-id={id}
-    >
-      {!isFocal && RelationIcon && (
-        <div className="nexus-badge" style={{ backgroundColor: config.color }}>
-          <RelationIcon size={14} color="white" strokeWidth={3} />
+    <div className="nexus-card-stack" onClick={() => onClick(character.id)}>
+      {badgeLabel && (
+        <div className={`relation-tag-corner ${relationType}`}>
+          {badgeLabel}
         </div>
       )}
-
-      <div className="nexus-avatar-container">
-        {avatar_url ? (
-          <img src={avatar_url} alt={displayName} className="nexus-avatar" />
+      <div className="card-avatar-top">
+        {character.avatar_url ? (
+          <img src={character.avatar_url} alt={name} className="avatar-stack" />
         ) : (
-          <div className="nexus-avatar-placeholder"><User size={32} color="#555" /></div>
+          <div className="avatar-stack-placeholder"><User size={20} /></div>
         )}
       </div>
-
-      <div className="nexus-info">
-        <h3 className="nexus-name" style={{ fontWeight: 'bold', color: '#fff' }}>
-          {displayName}
-        </h3>
+      <div className="card-info-stack">
+        <span className="card-name-small">{name}</span>
       </div>
-
-      {isFocal && (
-        <div className="focal-tag">
-          <User size={10} />
-          <span>SINÄ</span>
-        </div>
-      )}
+      <button className="card-action-icon" onClick={(e) => { e.stopPropagation(); onDossierClick(character); }}>
+        <BookOpen size={12} />
+      </button>
     </div>
   );
 };

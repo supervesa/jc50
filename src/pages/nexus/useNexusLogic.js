@@ -1,127 +1,124 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { useGameConfig } from '../../hooks/useGameConfig';
+import { useGatekeeper } from './useGatekeeper';
 
-export const useNexusLogic = () => {
-  const { ticketId } = useParams();
-  const [characters, setCharacters] = useState([]);
-  const [relationships, setRelationships] = useState([]);
-  const [splits, setSplits] = useState([]);
+export const useNexusLogic = (ticketId) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [focusId, setFocusId] = useState(null);
+  const [allCharacters, setAllCharacters] = useState([]);
+  const [relationships, setRelationships] = useState([]);
+  const [splits, setSplits] = useState([]);
+  const [feedback, setFeedback] = useState([]);
+  const [currentFocusId, setCurrentFocusId] = useState(null);
+  const [originalCharId, setOriginalCharId] = useState(null);
+
+  const gameConfig = useGameConfig(ticketId);
 
   useEffect(() => {
-    const fetchNexusData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
+        if (!ticketId) throw new Error("ID puuttuu.");
 
-        const { data: feedbackData, error: fbError } = await supabase
-          .from('character_feedback')
-          .select('guest_id')
-          .eq('status', 'accepted');
-
-        if (fbError) throw fbError;
-        const acceptedIds = feedbackData.map(f => f.guest_id);
-
-        if (acceptedIds.length === 0) {
-          setCharacters([]);
-          setLoading(false);
-          return;
-        }
-
-        const [chars, rels, splitData] = await Promise.all([
-          supabase.from('characters').select('*').in('assigned_guest_id', acceptedIds),
+        const [charsRes, relsRes, splitsRes, feedbackRes] = await Promise.all([
+          supabase.from('characters').select('*'),
           supabase.from('character_relationships').select('*'),
-          supabase.from('guest_splits').select('*')
+          supabase.from('guest_splits').select('*'),
+          supabase.from('character_feedback').select('*')
         ]);
 
-        if (chars.error) throw chars.error;
-        if (rels.error) throw rels.error;
-        if (splitData.error) throw splitData.error;
+        if (charsRes.error) throw charsRes.error;
 
-        setCharacters(chars.data || []);
-        setRelationships(rels.data || []);
-        setSplits(splitData.data || []);
+        setAllCharacters(charsRes.data || []);
+        setRelationships(relsRes.data || []);
+        setSplits(splitsRes.data || []);
+        setFeedback(feedbackRes.data || []);
 
-        if (ticketId) {
-          // Jos samalla lipulla on kaksi hahmoa, valitaan ensimmäinen fokukseen oletuksena
-          const myChars = chars.data.filter(c => c.assigned_guest_id === ticketId);
-          if (myChars.length > 0) setFocusId(myChars[0].id);
-        }
+        const startChar = charsRes.data?.find(c => 
+          c.assigned_guest_id === ticketId || c.id === ticketId
+        );
+
+        if (!startChar) throw new Error("Hahmoa ei löytynyt.");
+
+        setOriginalCharId(startChar.id);
+        setCurrentFocusId(startChar.id);
+
       } catch (err) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchNexusData();
+    fetchData();
   }, [ticketId]);
 
-  const nexusNetwork = useMemo(() => {
-    if (!characters.length || !focusId) return { focalCharacter: null, neighbors: [], others: [] };
+  const { filteredCharacters } = useGatekeeper(allCharacters, feedback, gameConfig, originalCharId);
 
-    const focalCharacter = characters.find(c => c.id === focusId);
-    if (!focalCharacter) return { focalCharacter: null, neighbors: [], others: [] };
-    
-    const myGuestId = focalCharacter.assigned_guest_id;
-    
-    // 1. Haetaan käsin syötetyt relaatiot
-    let neighbors = relationships
-      .filter(rel => rel.char1_id === focusId || rel.char2_id === focusId)
-      .map(rel => {
-        const isFirst = rel.char1_id === focusId;
-        const targetId = isFirst ? rel.char2_id : rel.char1_id;
-        const targetChar = characters.find(c => c.id === targetId);
-        if (!targetChar) return null;
+  const focalChar = allCharacters.find(c => c.id === currentFocusId);
+  const focalFeedback = feedback ? [...feedback]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .find(f => f.guest_id === focalChar?.assigned_guest_id) : null;
+  
+  const isPublic = !!(focalChar?.avatar_url && focalFeedback?.status === 'accepted');
 
-        return {
-          ...targetChar,
-          relationType: rel.relation_type,
-          context: isFirst ? rel.context_1_to_2 : rel.context_2_to_1
-        };
-      }).filter(Boolean);
-
-    // 2. AUTOMAATTINEN LINKITYS
-    
-    // A) SAMAN LIPUN ALLA OLEVAT HAHMOT (Ei splitattu)
-    const sharedTicketPartner = characters.find(c => 
-      c.assigned_guest_id === myGuestId && c.id !== focalCharacter.id
+  const findOfficialPartner = (charId, chars, splitList) => {
+    const char = chars.find(c => c.id === charId);
+    if (!char || !char.assigned_guest_id) return null;
+    const split = splitList.find(s => 
+      s.parent_guest_id === char.assigned_guest_id || 
+      s.child_guest_id === char.assigned_guest_id
     );
+    if (!split) return null;
+    const pId = split.parent_guest_id === char.assigned_guest_id ? split.child_guest_id : split.parent_guest_id;
+    return chars.find(c => c.assigned_guest_id === pId);
+  };
 
-    if (sharedTicketPartner && !neighbors.find(n => n.id === sharedTicketPartner.id)) {
-      neighbors.push({
-        ...sharedTicketPartner,
-        relationType: 'avec',
-        context: `Jaatte saman pääkutsun. ${sharedTicketPartner.character_name || sharedTicketPartner.name} on kumppanisi, jonka kanssa saavuitte juhliin erottumattomana parina.`
-      });
-    }
+  const spouse = findOfficialPartner(currentFocusId, filteredCharacters, splits);
+  const neighbors = [];
+  if (spouse) neighbors.push({ ...spouse, relationType: 'spouse' });
+  
+  const otherRels = filteredCharacters.filter(c => 
+    c.id !== currentFocusId && (!spouse || c.id !== spouse.id) &&
+    relationships.some(r => 
+      (r.char1_id === currentFocusId && r.char2_id === c.id) || 
+      (r.char2_id === currentFocusId && r.char1_id === c.id)
+    )
+  ).map(c => {
+    const r = relationships.find(rel => 
+      (rel.char1_id === currentFocusId && rel.char2_id === c.id) || 
+      (rel.char2_id === currentFocusId && rel.char1_id === c.id)
+    );
+    return { ...c, relationType: r?.relation_type };
+  });
 
-    // B) SPLIT-LINKITYKSET (Eri liput, sama alkuperä)
-    const splitRow = splits.find(s => s.parent_guest_id === myGuestId || s.child_guest_id === myGuestId);
+  neighbors.push(...otherRels);
 
-    if (splitRow) {
-      const spouseGuestId = splitRow.parent_guest_id === myGuestId 
-        ? splitRow.child_guest_id 
-        : splitRow.parent_guest_id;
-
-      const spouseChar = characters.find(c => c.assigned_guest_id === spouseGuestId);
-
-      if (spouseChar && !neighbors.find(n => n.id === spouseChar.id)) {
-        neighbors.push({
-          ...spouseChar,
-          relationType: 'avec',
-          context: `Vaikka teillä on omat lippunne, saavuitte juhliin saman kutsun kautta. ${spouseChar.character_name || spouseChar.name} on kumppanisi tässä illassa.`
-        });
+  const clusterOthers = (chars, splitList) => {
+    const done = new Set();
+    const result = [];
+    const pool = [...chars].sort(() => Math.random() - 0.5);
+    pool.forEach(c => {
+      if (done.has(c.id)) return;
+      const p = findOfficialPartner(c.id, filteredCharacters, splitList);
+      if (p && pool.find(x => x.id === p.id) && !done.has(p.id)) {
+        result.push({ type: 'couple', members: [c, p] });
+        done.add(c.id); done.add(p.id);
+      } else {
+        result.push({ type: 'single', members: [c] });
+        done.add(c.id);
       }
-    }
+    });
+    return result;
+  };
 
-    const neighborIds = new Set(neighbors.map(n => n.id));
-    const others = characters.filter(c => c.id !== focusId && !neighborIds.has(c.id));
+  const usedIds = [currentFocusId, ...neighbors.map(n => n.id)];
+  const remaining = filteredCharacters.filter(c => !usedIds.includes(c.id));
+  const groupedOthers = clusterOthers(remaining, splits);
 
-    return { focalCharacter, neighbors, others };
-  }, [characters, relationships, splits, focusId]);
-
-  return { ...nexusNetwork, loading, error, setFocusId };
+  return { 
+    focalChar, isPublic, isTester: gameConfig.isTester, neighbors, 
+    groupedOthers, loading: loading || gameConfig.loading, error, 
+    currentFocusId, setCurrentFocusId, originalCharId 
+  };
 };
