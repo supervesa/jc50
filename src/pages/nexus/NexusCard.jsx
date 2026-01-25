@@ -9,11 +9,13 @@ const NexusCard = ({ character, onClick, onDossierClick, relationType }) => {
   const getBadgeLabel = (type) => {
     const labels = {
       'spouse': 'PUOLISO',
-      'avec': 'AVEC',
+      'avec': 'SEURALAINEN',
       'friend': 'YSTÄVÄ',
       'neighbor': 'NAAPURI',
-      'relative': 'SERKKU',
-      'business': 'BUSINESS'
+      'relative': 'SUKULAINEN',
+      'business': 'LIIKETUTTAVA',
+      'enemy':'KILPAILIJAT',
+      'lover': 'RAKASTAJA'
     };
     return labels[type] || null;
   };

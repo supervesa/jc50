@@ -1,179 +1,150 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import ControlDeck from './VisualMap/ControlDeck';
-import NetworkGraph from './VisualMap/NetworkGraph';
-import InfoSidecar from './VisualMap/InfoSidecar';
+import RelationList from './relationmanager/RelationList';
+import RelationForm from './relationmanager/RelationForm';
+import SplitManager from './relationmanager/SplitManager';
 
-function RelationManager({ characters, relationships, onUpdate }) {
-  // --- TILAT (VISUAALINEN) ---
-  const [activeView, setActiveView] = useState('ALL');
-  const [selectedNodeId, setSelectedNodeId] = useState(null);
+// Tyylit pääkonteinerille
+const styles = {
+  container: {
+    paddingBottom: '4rem',
+    color: '#eee',
+    maxWidth: '1200px',
+    margin: '0 auto'
+  },
+  tabMenu: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '20px',
+    borderBottom: '1px solid #333',
+    paddingBottom: '10px',
+    overflowX: 'auto' // Mobiili-scrollaus
+  },
+  tabBtn: (isActive) => ({
+    background: isActive ? 'var(--turquoise)' : 'transparent',
+    color: isActive ? '#000' : '#aaa',
+    border: isActive ? 'none' : '1px solid #333',
+    padding: '10px 20px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.2s'
+  })
+};
+
+function RelationManager({ characters = [] }) {
+  // --- STATE ---
+  const [activeTab, setActiveTab] = useState('list'); // 'list', 'create', 'splits'
+  const [relationships, setRelationships] = useState([]);
+  const [splits, setSplits] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  // UUSI: Zoom state (1 = 100%)
-  const [zoom, setZoom] = useState(1); 
+  // Muokkaustila: Jos tämä on asetettu, Form-komponentti on muokkausmoodissa
+  const [editingRelation, setEditingRelation] = useState(null);
 
-  // --- TILAT (MANUAALINEN TYÖKALU) ---
-  const [newRel, setNewRel] = useState({ char1_id: '', char2_id: '', description: '' });
-
-  // ... (getCharName -funktio ennallaan) ...
-  const getCharName = (id) => characters.find(c => c.id === id)?.name || 'Tuntematon';
-
-  // ... (graphData -logiikka ennallaan) ...
-  const graphData = useMemo(() => {
-    // ... kopioi tämä edellisestä vastauksesta (graphData logiikka) ...
-    // ... lyhennetty tässä tilan säästämiseksi ...
-    // Varmista että tässä on se korjattu "Vain Assigned" -suodatus!
-    const activeNodes = characters.filter(c => c.assigned_guest_id);
-    const activeIds = new Set(activeNodes.map(c => c.id));
-    let links = [];
-    
-    relationships.forEach(rel => {
-      if (activeIds.has(rel.char1_id) && activeIds.has(rel.char2_id)) {
-        links.push({ source: rel.char1_id, target: rel.char2_id, label: rel.description, type: 'manual', id: rel.id });
-      }
-    });
-
-    const guestMap = {};
-    activeNodes.forEach(c => {
-      if (!guestMap[c.assigned_guest_id]) guestMap[c.assigned_guest_id] = [];
-      guestMap[c.assigned_guest_id].push(c);
-    });
-    Object.values(guestMap).forEach(pair => {
-      if (pair.length === 2) links.push({ source: pair[0].id, target: pair[1].id, label: 'Avec', type: 'auto' });
-    });
-
-    let filteredLinks = links;
-    let filteredNodes = activeNodes.map(c => ({ ...c }));
-
-    if (activeView === 'LOVE') filteredLinks = links.filter(l => l.label.toLowerCase().match(/rakas|vaimo|mies|avec|pari/));
-    else if (activeView === 'WAR') filteredLinks = links.filter(l => l.label.toLowerCase().match(/viha|vihollinen|velka/));
-    else if (activeView === 'LONELY') {
-      const linkedIds = new Set();
-      links.forEach(l => { linkedIds.add(l.source); linkedIds.add(l.target); });
-      filteredNodes = filteredNodes.filter(n => !linkedIds.has(n.id));
-      filteredLinks = [];
-    }
-
-    if (activeView !== 'ALL' && activeView !== 'LONELY') {
-       const nodesInLinks = new Set();
-       filteredLinks.forEach(l => { nodesInLinks.add(l.source); nodesInLinks.add(l.target); });
-       filteredNodes = filteredNodes.filter(n => nodesInLinks.has(n.id));
-    }
-
-    return { nodes: filteredNodes, links: filteredLinks };
-  }, [characters, relationships, activeView]);
-
-  // ... (selectedCharacter logiikka ennallaan) ...
-  const selectedCharacter = useMemo(() => {
-    if (!selectedNodeId) return null;
-    const char = characters.find(c => c.id === selectedNodeId);
-    if (!char) return null;
-    const myLinks = [];
-    relationships.forEach(rel => {
-      if (rel.char1_id === char.id) myLinks.push({ label: rel.description, targetName: getCharName(rel.char2_id) });
-      if (rel.char2_id === char.id) myLinks.push({ label: `(Liittyy: ${rel.description})`, targetName: getCharName(rel.char1_id) });
-    });
-    return { ...char, links: myLinks };
-  }, [selectedNodeId, characters, relationships]);
-
-  // ... (createRelationship ja deleteRelationship funktiot ennallaan) ...
-  const createRelationship = async (e) => {
-    e.preventDefault();
-    if (newRel.char1_id === newRel.char2_id) return alert("Ei voi luoda suhdetta itsensä kanssa.");
+  // --- DATAN HAKU ---
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const { error } = await supabase.from('character_relationships').insert([newRel]);
-      if (error) throw error;
-      alert("Suhde luotu!");
-      setNewRel({ ...newRel, description: '' });
-      onUpdate(); 
-    } catch (err) { alert("Virhe: " + err.message); }
+      const [relRes, splitRes] = await Promise.all([
+        supabase.from('character_relationships').select('*'),
+        supabase.from('guest_splits').select('*')
+      ]);
+
+      if (relRes.error) throw relRes.error;
+      if (splitRes.error) throw splitRes.error;
+
+      setRelationships(relRes.data || []);
+      setSplits(splitRes.data || []);
+    } catch (err) {
+      console.error("Datan haku epäonnistui:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteRelationship = async (id) => {
-    if(!window.confirm("Poistetaanko tämä suhde?")) return;
-    try { await supabase.from('character_relationships').delete().eq('id', id); onUpdate(); } 
-    catch(err) { alert(err.message); }
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // --- HANDLERS ---
+  const handleEditClick = (rel) => {
+    setEditingRelation(rel);
+    setActiveTab('create'); // Siirry lomake-välilehdelle
+    // Scrollataan ylös mobiilissa
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRelation(null);
+    setActiveTab('list');
+  };
+
+  const handleSaveComplete = () => {
+    fetchData(); // Päivitä lista
+    setEditingRelation(null);
+    setActiveTab('list'); // Palaa listaan
   };
 
   return (
-    <div>
-      {/* --- OSA 1: VISUAALINEN KARTTA --- */}
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', height: '600px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden', background: '#050508', marginBottom: '3rem' }}>
-        <ControlDeck activeView={activeView} onSelectView={setActiveView} />
-        
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-          
-          <NetworkGraph 
-            nodes={graphData.nodes} 
-            links={graphData.links} 
-            selectedNodeId={selectedNodeId}
-            onSelectNode={(node) => setSelectedNodeId(node.id)}
-            zoomLevel={zoom} // UUSI PROP
+    <div style={styles.container}>
+      <h2 className="jc-h2" style={{ marginBottom: '1.5rem', borderBottom: '1px solid #444', paddingBottom: '1rem' }}>
+        Relaatioiden Hallinta
+      </h2>
+
+      {/* --- TAB NAVIGATION --- */}
+      <div style={styles.tabMenu}>
+        <button 
+          style={styles.tabBtn(activeTab === 'list')} 
+          onClick={() => { setActiveTab('list'); setEditingRelation(null); }}
+        >
+          LISTAUS ({relationships.length})
+        </button>
+        <button 
+          style={styles.tabBtn(activeTab === 'create')} 
+          onClick={() => setActiveTab('create')}
+        >
+          {editingRelation ? 'MUOKKAA YHTEYTTÄ' : 'LUO UUSI'}
+        </button>
+        <button 
+          style={styles.tabBtn(activeTab === 'splits')} 
+          onClick={() => setActiveTab('splits')}
+        >
+          AVEC LINKITYKSET
+        </button>
+      </div>
+
+      {/* --- CONTENT AREA --- */}
+      <div className="jc-tab-content">
+        {loading && <div style={{ padding: '20px', color: '#888' }}>Ladataan...</div>}
+
+        {!loading && activeTab === 'list' && (
+          <RelationList 
+            relationships={relationships} 
+            characters={characters} 
+            onEdit={handleEditClick}
+            onDelete={fetchData} // Päivitä poiston jälkeen
           />
+        )}
 
-          {/* ZOOM SLIDER (KELLUVA) */}
-          <div className="jc-zoom-controls">
-            <span className="small" style={{color:'var(--turquoise)'}}>ZOOM</span>
-            <input 
-              type="range" 
-              min="0.5" max="3" step="0.1" 
-              value={zoom} 
-              onChange={(e) => setZoom(parseFloat(e.target.value))}
-              className="jc-slider"
-            />
-            <span className="small" style={{width:'30px'}}>{Math.round(zoom * 100)}%</span>
-          </div>
+        {!loading && activeTab === 'create' && (
+          <RelationForm 
+            characters={characters}
+            editingRelation={editingRelation}
+            onCancel={handleCancelEdit}
+            onSave={handleSaveComplete}
+          />
+        )}
 
-          <InfoSidecar character={selectedCharacter} onClose={() => setSelectedNodeId(null)} />
-        </div>
+        {!loading && activeTab === 'splits' && (
+          <SplitManager 
+            splits={splits} 
+            characters={characters}
+            onUpdate={fetchData}
+          />
+        )}
       </div>
-
-      <h3 className="jc-h2" style={{borderBottom:'1px solid var(--turquoise)', paddingBottom:'0.5rem', marginBottom:'1.5rem'}}>Hallintatyökalut</h3>
-
-      {/* ... (Manuaalinen työkalu & Lista säilyvät ennallaan) ... */}
-      <div className="jc-card medium mb-2">
-        <h3 className="jc-h2" style={{fontSize:'1.5rem', marginTop:0}}>Luo uusi yhteys</h3>
-        <form onSubmit={createRelationship} className="jc-form">
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
-            <div className="jc-field">
-              <label>Hahmo 1 (Kuka)</label>
-              <select className="jc-select" value={newRel.char1_id} onChange={e => setNewRel({...newRel, char1_id: e.target.value})} required>
-                <option value="">Valitse...</option>
-                {characters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="jc-field">
-              <label>Hahmo 2 (Kenet tuntee)</label>
-              <select className="jc-select" value={newRel.char2_id} onChange={e => setNewRel({...newRel, char2_id: e.target.value})} required>
-                <option value="">Valitse...</option>
-                {characters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="jc-field">
-            <label>Suhde (Kuvaus)</label>
-            <input type="text" className="jc-input" placeholder="Esim. Entinen rakastaja, Velallinen..." value={newRel.description} onChange={e => setNewRel({...newRel, description: e.target.value})} required />
-          </div>
-          <button type="submit" className="jc-cta primary mt-2">Luo Yhteys</button>
-        </form>
-      </div>
-
-      <div className="jc-grid">
-        {relationships.map(rel => (
-          <div key={rel.id} className="jc-col-12">
-            <div className="jc-card small" style={{display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(0,0,0,0.4)', padding:'0.8rem'}}>
-              <div style={{display:'flex', alignItems:'center', gap:'1rem', flexWrap:'wrap'}}>
-                <strong style={{color:'var(--turquoise)'}}>{getCharName(rel.char1_id)}</strong>
-                <span style={{opacity:0.5}}>➜</span>
-                <strong style={{color:'var(--magenta)'}}>{getCharName(rel.char2_id)}</strong>
-                <span style={{margin:'0 1rem', borderLeft:'1px solid #555', paddingLeft:'1rem', fontStyle:'italic'}}>{rel.description}</span>
-              </div>
-              <button onClick={() => deleteRelationship(rel.id)} style={{color:'#ff6b6b', background:'none', border:'none', cursor:'pointer', fontWeight:'bold', fontSize:'1.2rem'}}>×</button>
-            </div>
-          </div>
-        ))}
-      </div>
-
     </div>
   );
 }

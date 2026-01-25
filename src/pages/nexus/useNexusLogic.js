@@ -21,10 +21,11 @@ export const useNexusLogic = (ticketId) => {
         setLoading(true);
         if (!ticketId) throw new Error("ID puuttuu.");
 
+        // MUUTOS TÄSSÄ: Haetaan guest_splits-taulusta vain ne rivit, joissa is_grouped on true.
         const [charsRes, relsRes, splitsRes, feedbackRes] = await Promise.all([
           supabase.from('characters').select('*'),
           supabase.from('character_relationships').select('*'),
-          supabase.from('guest_splits').select('*'),
+          supabase.from('guest_splits').select('*').eq('is_grouped', true),
           supabase.from('character_feedback').select('*')
         ]);
 
