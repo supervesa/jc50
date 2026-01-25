@@ -4,7 +4,7 @@ import AIAssistant from './AIAssistant/AIAssistant';
 import { 
   HeroBlock, TicketBlock, InfoBlock, ListBlock, ImageBlock, 
   AgentBlock, ActionBlock, PointsBlock, PrivacyBlock, ContactBlock,
-  H1Block, H2Block, PBlock 
+  H1Block, H2Block, PBlock, NoteBlock
 } from './VisualBlocks';
 import { renderBlockToHtml, assembleFullHtml } from './HtmlGenerator';
 import TagPicker from './TagPicker';
@@ -178,7 +178,8 @@ export default function VisualEditor({ html, onChange, templateId, templateName:
             <button onClick={() => addBlock('agent')} className="jc-btn small outline">📱 AGENTTI-NAPPI</button>
             <button onClick={() => addBlock('action')} className="jc-btn small outline">📸 KYMPPIKUVA</button>
             <button onClick={() => addBlock('points')} className="jc-btn small outline">🏆 PISTEJAHTI</button>
-            <button onClick={() => addBlock('privacy')} className="jc-btn small outline">⚠️ YKSITYISYYS</button>
+            <button onClick={() => addBlock('privacy')} className="jc-btn small outline">⚠️ VAROITUS-LAATIKKO</button>
+            <button onClick={() => addBlock('note')} className="jc-btn small outline" style={{borderColor: '#555', color:'#aaa'}}>📝 SEKONDAARINEN HUOMIO</button>
           </div>
 
           <h4 style={{ color: '#555', fontSize: '0.6rem', marginBottom: '15px' }}>MUUT</h4>
@@ -236,6 +237,7 @@ export default function VisualEditor({ html, onChange, templateId, templateName:
             {block.type === 'action' && <ActionBlock content={block.content} onUpdate={(c) => updateBlock(block.id, c)} />}
             {block.type === 'points' && <PointsBlock content={block.content} onUpdate={(c) => updateBlock(block.id, c)} />}
             {block.type === 'privacy' && <PrivacyBlock content={block.content} onUpdate={(c) => updateBlock(block.id, c)} />}
+            {block.type === 'note' && <NoteBlock content={block.content} onUpdate={(c) => updateBlock(block.id, c)} />}
             {block.type === 'info' && <InfoBlock content={block.content} onUpdate={(c) => updateBlock(block.id, c)} />}
             {block.type === 'list' && <ListBlock content={block.content} onUpdate={(c) => updateBlock(block.id, c)} />}
             {block.type === 'contact' && <ContactBlock content={block.content} onUpdate={(c) => updateBlock(block.id, c)} />}
@@ -293,7 +295,8 @@ const getDefaults = (t) => {
   if (t === 'agent') return {};
   if (t === 'action') return { title: 'LIVEWALL & CAM', body: 'Ota kuvia illan aikana, katso Kymppiseinää ja kerää pisteitä. Kaikki otetut kuvat ovat julkisia.' };
   if (t === 'points') return { body: 'Illan aikana on käynnissä salainen peli. Voit kerätä pisteitä kuvaamalla, kommentoimalla ja olemalla aktiivinen.' };
-  if (t === 'privacy') return { body: 'Kaikki Kymppikuva-toiminnolla otetut kuvat näkyvät livenä kaikille osallistujille Kymppiseinällä.' };
+  if (t === 'privacy') return { title: '⚠️ YKSITYISYYS:', body: 'Kaikki Kymppikuva-toiminnolla otetut kuvat näkyvät livenä kaikille osallistujille Kymppiseinällä.' };
+  if (t === 'note') return { title: 'Huomio:', body: 'Tämä on lisätietoa, joka ei vaadi välitöntä toimenpidettä.' };
   if (t === 'ticket') return { label: 'SINUN ROOLISI' };
   if (t === 'info') return { location: 'Etelätie 3, Mikkeli', time: '17:00 - 04:00' };
   if (t === 'list') return { title: 'TARJOILU', items: 'Salakapakka Cocktails\nCyber-tapas Service\nNeon Gatsby Dinner' };

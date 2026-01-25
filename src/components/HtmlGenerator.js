@@ -1,9 +1,59 @@
 /**
  * HtmlGenerator.js
  * Generoi HTML-koodin ja pakottaa Dark Moden metatiedoilla.
+ * KORJATTU: Aggressiivinen Regex ja div-wrapperit p-lohkoille.
  */
 
-// TÄHÄN KOPIOIDAAN SAMA CSS KUIN EmailStyles.css-TIEDOSTOON
+/**
+ * Apufunktio tekstin muotoiluun.
+ * - Siivoaa ensin näkymättömät merkit
+ * - Tunnistaa ### otsikot
+ * - Tunnistaa listat (-, *, ●, 1.)
+ */
+const formatEmailText = (text, allowLists = true) => {
+  if (!text) return '';
+
+  // 1. SIIVOUS: Muutetaan non-breaking spacet normaaleiksi
+  let cleanText = text.replace(/\u00A0/g, ' ');
+
+  // 2. Perusmuotoilu: Bold (**teksti**) ja Italic (*teksti*)
+  const applyMarkdown = (str) => str
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  if (!allowLists) return applyMarkdown(cleanText);
+
+  const lines = cleanText.split('\n');
+  
+  return lines.map((line, index) => {
+    const trimmed = line.trim();
+    
+    // Tyhjä rivi -> rivinvaihto
+    if (!trimmed) return '<br/>';
+
+    // 1. OTSIKOT (### Otsikko)
+    if (trimmed.startsWith('###')) {
+        const headerContent = trimmed.replace(/^###\s*/, ''); 
+        return `<h3 class="jc-h2" style="margin-top:20px; margin-bottom:10px; display:block;">${applyMarkdown(headerContent)}</h3>`;
+    }
+
+    // 2. LISTAT (Bullet: -, *, ●)
+    const bulletMatch = trimmed.match(/^[\-\*●]\s+(.*)/);
+    if (bulletMatch) {
+      return `<div style="margin-left: 20px; margin-bottom: 6px;"><span style="color:#FF00E5; margin-right: 8px;">●</span> ${applyMarkdown(bulletMatch[1])}</div>`;
+    }
+
+    // 3. NUMEROLISTAT (1. Asia)
+    const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+    if (numMatch) {
+      return `<div style="margin-left: 20px; margin-bottom: 6px;"><strong style="color:#00E7FF; margin-right: 8px;">${numMatch[1]}.</strong> ${applyMarkdown(numMatch[2])}</div>`;
+    }
+
+    // 4. Tavallinen rivi
+    return applyMarkdown(line) + (index < lines.length - 1 ? '<br/>' : '');
+  }).join('');
+};
+
 const EMAIL_CSS = `
   :root { 
     color-scheme: light dark; 
@@ -11,25 +61,25 @@ const EMAIL_CSS = `
     --bg-deep:#0b0b10; --cream:#F7F5E6; --magenta:#FF00E5; --turquoise:#00E7FF; --lime:#ADFF2F; --sun:#FFA500; --plasma-gold:#D4AF37; --card-radius:14px; 
   }
   
-  /* Reset ja Dark Mode Pakotus */
   body, .email-container { 
     margin:0; padding:0; 
     background-color:#0b0b10 !important; 
     color:#F7F5E6 !important; 
-    font-family:"Montserrat", sans-serif; 
+    font-family:"Montserrat", Helvetica, Arial, sans-serif; 
     mso-line-height-rule: exactly;
   }
   
-  /* Kuvien korjaus (poistaa haamu-välit) */
   img { display:block; border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
   
   .email-container { width:100%; padding-bottom:4rem; }
   .jc-wrapper { max-width:800px; margin:0 auto; padding:2rem; }
   .jc-card { background:rgba(5,7,10,0.65); border-radius:14px; padding:2rem; margin-bottom:2.5rem; border:1px solid rgba(255,255,255,0.1); }
   
-  .jc-h1 { font-family:"Josefin Sans"; font-size:3.5rem; color:white; text-shadow:0 0 20px #FF00E5; text-align:center; margin:0; line-height:1; }
-  .jc-h2 { font-family:"Outfit"; font-weight:800; font-size:1.8rem; color:#00E7FF; text-transform:uppercase; margin:0 0 10px 0; }
-  .jc-p { font-family:"Montserrat"; font-size:1rem; line-height:1.6; color:#F7F5E6; opacity:0.9; margin:0; }
+  .jc-h1 { font-family:"Josefin Sans", sans-serif; font-size:3.5rem; color:white; text-shadow:0 0 20px #FF00E5; text-align:center; margin:0; line-height:1.1; }
+  .jc-h2 { font-family:"Outfit", sans-serif; font-weight:800; font-size:1.8rem; color:#00E7FF; text-transform:uppercase; margin:0 0 10px 0; }
+  
+  /* jc-p on nyt luokka diville, ei p-tagille */
+  .jc-p { font-family:"Montserrat", sans-serif; font-size:1rem; line-height:1.6; color:#F7F5E6; opacity:0.9; margin:0; }
   
   .agent-hero-btn { display:flex; align-items:center; background:rgba(0,231,255,0.05); border:1px solid #00E7FF; padding:15px; border-radius:12px; margin-bottom:2.5rem; text-decoration:none; }
   .agent-icon-box { width:50px; height:50px; background:#00E7FF; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-right:15px; position:relative; }
@@ -45,7 +95,10 @@ const EMAIL_CSS = `
   .camera-icon { font-size:2.5rem; margin-bottom:1rem; animation:pulse 2s infinite; }
   
   .points-box { border:1px solid #ADFF2F; background:rgba(173,255,47,0.05); padding:2rem; border-radius:14px; margin-bottom:2.5rem; }
+  
   .privacy-box { border:1px solid #FFA500; background:rgba(255,165,0,0.05); color:#ffeab0; padding:1rem; border-radius:8px; margin-bottom:2.5rem; font-size:0.85rem; }
+  
+  .note-box { border: 1px solid #333; background: #0a0a0c; color: #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 2.5rem; font-size: 0.9rem; }
   
   @keyframes ping { 75%, 100% { transform:scale(1.4); opacity:0; } }
   @keyframes pulse { 0%, 100% { transform:scale(1); opacity:0.8; } 50% { transform:scale(1.1); opacity:1; } }
@@ -59,14 +112,16 @@ export const renderBlockToHtml = (block) => {
     case 'hero':
       return `
         <div style="text-align:center; padding:2rem 0 2.5rem 0;">
-          <p class="small" style="margin-bottom:10px;">${content.date}</p>
-          <h1 class="jc-h1">${content.title}</h1>
-          <p class="small" style="color:#FF00E5; margin-top:10px;">Theme: ${content.theme}</p>
+          <p class="small" style="margin-bottom:10px;">${formatEmailText(content.date, false)}</p>
+          <h1 class="jc-h1">${formatEmailText(content.title, false)}</h1>
+          <p class="small" style="color:#FF00E5; margin-top:10px;">Theme: ${formatEmailText(content.theme, false)}</p>
         </div>`;
 
-    case 'h1': return `<h1 class="jc-h1" style="padding-bottom:2.5rem;">${content.text}</h1>`;
-    case 'h2': return `<h2 class="jc-h2" style="padding-bottom:1rem;">${content.text}</h2>`;
-    case 'p': return `<p class="jc-p" style="padding-bottom:2.5rem;">${content.text}</p>`;
+    case 'h1': return `<h1 class="jc-h1" style="padding-bottom:2.5rem;">${formatEmailText(content.text, false)}</h1>`;
+    case 'h2': return `<h2 class="jc-h2" style="padding-bottom:1rem;">${formatEmailText(content.text, false)}</h2>`;
+    
+    // KORJAUS: Käytetään DIV-elementtiä P:n sijaan, jotta H3-tagit (###) toimivat sisällä
+    case 'p': return `<div class="jc-p" style="padding-bottom:2.5rem;">${formatEmailText(content.text)}</div>`;
 
     case 'agent':
       return `
@@ -90,7 +145,7 @@ export const renderBlockToHtml = (block) => {
             <h2 class="jc-h1" style="font-size:3rem; margin-top:0.5rem;">{{name}}</h2>
           </div>
           <div class="character-box">
-            <span class="small" style="color:#FF00E5; display:block; margin-bottom:1rem;">${content.label}</span>
+            <span class="small" style="color:#FF00E5; display:block; margin-bottom:1rem;">${formatEmailText(content.label, false)}</span>
             <div style="font-family:'Josefin Sans'; font-size:2.2rem; color:white; text-shadow:0 0 10px #FF00E5;">{{character}}</div>
           </div>
           <div style="text-align:center; margin-top:2rem;">
@@ -102,39 +157,50 @@ export const renderBlockToHtml = (block) => {
       return `
         <div class="action-box">
           <div class="camera-icon">📸</div>
-          <h3 style="margin:0; color:white; font-family:'Outfit'; text-transform:uppercase;">${content.title}</h3>
-          <p class="jc-p" style="font-size:0.9rem; margin-top:10px;">${content.body}</p>
+          <h3 style="margin:0; color:white; font-family:'Outfit'; text-transform:uppercase;">${formatEmailText(content.title, false)}</h3>
+          <p class="jc-p" style="font-size:0.9rem; margin-top:10px;">${formatEmailText(content.body)}</p>
         </div>`;
 
     case 'points':
       return `
         <div class="points-box">
           <h3 style="color:#ADFF2F; text-transform:uppercase; margin:0 0 10px 0; font-family:'Outfit';">Pistejahti: Aktiivisuus palkitaan</h3>
-          <p class="jc-p" style="font-size:0.95rem;">${content.body}</p>
+          <p class="jc-p" style="font-size:0.95rem;">${formatEmailText(content.body)}</p>
         </div>`;
 
     case 'privacy':
       return `
         <div class="privacy-box">
-          <strong>⚠️ YKSITYISYYS:</strong><br>${content.body}
+          <strong style="color: #FFA500;">${formatEmailText(content.title || '⚠️ YKSITYISYYS:', false)}</strong><br>
+          ${formatEmailText(content.body)}
+        </div>`;
+    
+    case 'note':
+      return `
+        <div class="note-box">
+          ${content.title ? `<strong style="color: #fff; display:block; margin-bottom:5px;">${formatEmailText(content.title, false)}</strong>` : ''}
+          ${formatEmailText(content.body)}
         </div>`;
 
     case 'info':
       return `
         <div class="jc-card small">
             <h2 class="jc-h2">Sijaintitiedot</h2>
-            <div style="margin-bottom:1rem;"><span class="small">OSOITE</span><br><strong style="font-size:1.1rem; color:white;">${content.location}</strong></div>
-            <div><span class="small">AIKA</span><br><strong style="font-size:1.1rem; color:white;">${content.time}</strong></div>
+            <div style="margin-bottom:1rem;"><span class="small">OSOITE</span><br><strong style="font-size:1.1rem; color:white;">${formatEmailText(content.location, false)}</strong></div>
+            <div><span class="small">AIKA</span><br><strong style="font-size:1.1rem; color:white;">${formatEmailText(content.time, false)}</strong></div>
         </div>`;
 
     case 'list':
-      const items = content.items.split('\n').filter(i=>i).map(i => `<li style="padding:0.5rem 0; border-bottom:1px solid rgba(255,255,255,0.1); color:#F7F5E6;"><span style="color:#FF00E5; margin-right:10px;">●</span> ${i}</li>`).join('');
-      return `<div class="jc-card"><h2 class="jc-h2">${content.title}</h2><ul style="list-style:none; padding:0; margin:0;">${items}</ul></div>`;
+      const items = content.items.split('\n').filter(i=>i).map(i => {
+        const itemText = formatEmailText(i.trim(), false);
+        return `<li style="padding:0.5rem 0; border-bottom:1px solid rgba(255,255,255,0.1); color:#F7F5E6;"><span style="color:#FF00E5; margin-right:10px;">●</span> ${itemText}</li>`;
+      }).join('');
+      return `<div class="jc-card"><h2 class="jc-h2">${formatEmailText(content.title, false)}</h2><ul style="list-style:none; padding:0; margin:0;">${items}</ul></div>`;
 
     case 'contact':
       return `
         <div class="jc-card small" style="border-color:#00E7FF;">
-          <h2 class="jc-h2" style="font-size:1.2rem; color:#00E7FF;">${content.title}</h2>
+          <h2 class="jc-h2" style="font-size:1.2rem; color:#00E7FF;">${formatEmailText(content.title, false)}</h2>
           <a href="mailto:${content.email}" style="color:white; text-decoration:underline;">${content.email}</a>
         </div>`;
 
@@ -155,7 +221,7 @@ export const assembleFullHtml = (content) => `
     <meta name="supported-color-schemes" content="light dark">
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@700&family=Montserrat:wght@400;600&family=Outfit:wght@300;400;800&display=swap" rel="stylesheet">
     <style>${EMAIL_CSS}</style>
-    </head>
+</head>
 <body style="margin:0;padding:0;word-spacing:normal;background-color:#0b0b10;">
     <div class="email-container">
         <div style="text-align:center; padding:15px 0; font-size:10px; color:#444; font-family:sans-serif;">

@@ -88,7 +88,7 @@ export const TicketBlock = ({ content, onUpdate }) => (
       <div style={{ color: 'white', fontSize: '1.5rem', fontFamily: 'Josefin Sans', textShadow: '0 0 10px var(--magenta)' }}>{"{{character}}"}</div>
     </div>
     <div className="jc-cta-primary" style={{ width: '100%', boxSizing: 'border-box' }}>
-      AVAA LIPPU & LIVEWALL
+      AVAA LIPPU
     </div>
   </div>
 );
@@ -105,15 +105,41 @@ export const PointsBlock = ({ content, onUpdate }) => (
   </div>
 );
 
+// PÄIVITETTY PRIVACY BLOCK (Otsikko muokattavissa)
 export const PrivacyBlock = ({ content, onUpdate }) => (
   <div className="jc-card-wrapper privacy-box" style={{ padding: '15px' }}>
-    <strong>⚠️ YKSITYISYYS:</strong><br />
+    <input 
+      className="jc-input-transparent" 
+      style={{ color: '#FFA500', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px', textAlign: 'left' }}
+      value={content.title || '⚠️ YKSITYISYYS:'} 
+      onChange={e => onUpdate({ ...content, title: e.target.value })} 
+    />
     <textarea 
       className="jc-textarea"
       style={{ color: 'inherit', marginTop: '5px' }}
       rows="2" 
       value={content.body} 
-      onChange={e => onUpdate({ body: e.target.value })} 
+      onChange={e => onUpdate({ ...content, body: e.target.value })} 
+    />
+  </div>
+);
+
+// UUSI NOTE BLOCK (Sekondaarinen huomio)
+export const NoteBlock = ({ content, onUpdate }) => (
+  <div style={{ padding: '15px', border: '1px solid #333', borderRadius: '8px', background: '#0a0a0c', marginBottom: '20px' }}>
+    <input 
+      className="jc-input-transparent" 
+      style={{ color: '#ccc', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px', textAlign: 'left' }}
+      value={content.title || ''} 
+      placeholder="Huomio (valinnainen otsikko)"
+      onChange={e => onUpdate({ ...content, title: e.target.value })} 
+    />
+    <textarea 
+      className="jc-textarea"
+      style={{ color: '#aaa', fontSize: '0.9rem' }}
+      rows="2" 
+      value={content.body} 
+      onChange={e => onUpdate({ ...content, body: e.target.value })} 
     />
   </div>
 );
