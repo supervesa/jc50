@@ -4,48 +4,68 @@ import {
   Activity, Smartphone, BatteryLow, WifiOff, AlertTriangle, 
   Zap, Clock, Shield, Database, Globe, UserCheck, 
   BookOpen, Camera, Ghost, Star, UserMinus, LayoutDashboard,
-  Target, Eye
+  Target, Eye, Mail, MailCheck, MailWarning, ClockAlert, Info
 } from 'lucide-react';
 import './SentinelGuardian.css';
 
 const SentinelGuardian = ({ guests }) => {
   const [logs, setLogs] = useState([]);
+  const [emailLogs, setEmailLogs] = useState([]);
+  const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState(null);
 
   useEffect(() => {
-    fetchSentinelLogs();
+    fetchInitialData();
+    
     const channel = supabase.channel('sentinel_live')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sentinel_access_logs' }, 
       (payload) => setLogs(prev => [payload.new, ...prev].slice(0, 1000)))
       .subscribe();
+      
     return () => supabase.removeChannel(channel);
   }, []);
 
-  const fetchSentinelLogs = async () => {
-    const { data } = await supabase.from('sentinel_access_logs').select('*').order('created_at', { ascending: false }).limit(1000);
-    if (data) setLogs(data);
+  const fetchInitialData = async () => {
+    const [logsRes, emailsRes, charsRes] = await Promise.all([
+      supabase.from('sentinel_access_logs').select('*').order('created_at', { ascending: false }).limit(1000),
+      supabase.from('email_logs').select('*').order('sent_at', { ascending: false }),
+      supabase.from('characters').select('id, assigned_guest_id, name')
+    ]);
+
+    if (logsRes.data) setLogs(logsRes.data);
+    if (emailsRes.data) setEmailLogs(emailsRes.data);
+    if (charsRes.data) setCharacters(charsRes.data);
+    
     setLoading(false);
   };
 
-  // --- MASTER ANALYYSIMOOTTORI ---
   const analysis = useMemo(() => {
     const now = new Date();
     const agentMap = {};
-    const stats = { browsers: {}, os: {}, systems: { NEXUS: 0, PHOTO: 0, TICKET: 0 } };
-    
+    const stats = { 
+      browsers: {}, 
+      systems: { NEXUS: 0, PHOTO: 0, TICKET: 0 },
+      email: { sent: 0, errors: 0, templates: {} }
+    };
+
+    const charToGuest = {};
+    characters.forEach(c => { if(c.assigned_guest_id) charToGuest[c.id] = c.assigned_guest_id; });
+
+    emailLogs.forEach(email => {
+      stats.email.sent++;
+      if (email.status !== 'sent') stats.email.errors++;
+      stats.email.templates[email.template_name] = (stats.email.templates[email.template_name] || 0) + 1;
+    });
+
     logs.forEach(log => {
-      // 1. Globaalit tekniset tilastot
       if (log.interaction_point.includes('NEXUS')) stats.systems.NEXUS++;
       if (log.interaction_point.includes('PHOTO')) stats.systems.PHOTO++;
       if (log.interaction_point.includes('TICKET')) stats.systems.TICKET++;
       
       const b = log.tech_profile?.browser || 'Unknown';
       stats.browsers[b] = (stats.browsers[b] || 0) + 1;
-      const os = log.tech_profile?.os || 'Unknown';
-      stats.os[os] = (stats.os[os] || 0) + 1;
 
-      // 2. Agenttikohtainen ryhmittely
       if (!agentMap[log.guest_id]) {
         const guestInfo = guests.find(g => g.id === log.guest_id);
         agentMap[log.guest_id] = {
@@ -56,7 +76,8 @@ const SentinelGuardian = ({ guests }) => {
           totalTime: 0,
           latest: log,
           firstSeen: log.created_at,
-          points: new Set()
+          points: new Set(),
+          emails: []
         };
       }
       const agent = agentMap[log.guest_id];
@@ -66,8 +87,9 @@ const SentinelGuardian = ({ guests }) => {
       if (new Date(log.created_at) < new Date(agent.firstSeen)) agent.firstSeen = log.created_at;
     });
 
-    // 3. Syväanalyysi (Sessiot, Arkkityypit, Signaalit)
     const processedAgents = Object.values(agentMap).map(agent => {
+      agent.emails = emailLogs.filter(e => charToGuest[e.character_id] === agent.id);
+      
       Object.values(agent.sessions).forEach(sessionLogs => {
         const sorted = [...sessionLogs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         sorted.forEach((log, i) => {
@@ -92,46 +114,95 @@ const SentinelGuardian = ({ guests }) => {
       };
 
       let archetype = { label: 'Field Operative', icon: Activity, color: 'var(--turquoise)' };
-      if (percentages.NEXUS > 60) archetype = { label: 'Lore Hunter', icon: BookOpen, color: 'var(--lime)' };
-      else if (percentages.PHOTO > 60) archetype = { label: 'Paparazzi', icon: Camera, color: 'var(--magenta)' };
-      else if (percentages.TICKET > 80) archetype = { label: 'System Observer', icon: Eye, color: 'var(--muted)' };
-      else if (agent.totalTime < 60) archetype = { label: 'Ghost Trace', icon: Ghost, color: 'var(--muted)' };
+      
+      const lastEmail = agent.emails[0];
+      if (lastEmail) {
+        const timeDiff = (new Date(agent.firstSeen) - new Date(lastEmail.sent_at)) / (1000 * 60);
+        if (timeDiff > 0 && timeDiff < 30) {
+          archetype = { label: 'Responsive Agent', icon: Zap, color: 'var(--sun)' };
+        } else if (percentages.NEXUS > 60) {
+          archetype = { label: 'Lore Hunter', icon: BookOpen, color: 'var(--lime)' };
+        } else if (percentages.PHOTO > 60) {
+          archetype = { label: 'Paparazzi', icon: Camera, color: 'var(--magenta)' };
+        }
+      } else if (agent.totalTime < 60) {
+        archetype = { label: 'Ghost Trace', icon: Ghost, color: 'var(--muted)' };
+      }
 
-      return { ...agent, archetype, percentages };
+      const status = (new Date(agent.latest.created_at) < new Date(now.getTime() - 24*60*60*1000)) ? 'Pudonnut' : 'Aktiivinen';
+      return { ...agent, archetype, percentages, status };
     });
+
+    const deadSignals = guests.filter(g => {
+      const hasEmail = emailLogs.some(e => charToGuest[e.character_id] === g.id);
+      const hasActivity = logs.some(l => l.guest_id === g.id);
+      return hasEmail && !hasActivity;
+    }).map(g => ({
+      ...g,
+      emails: emailLogs.filter(e => charToGuest[e.character_id] === g.id)
+    }));
 
     return { 
       agents: processedAgents, 
       stats, 
+      deadSignals,
       alerts: processedAgents.filter(a => a.latest.battery_alert).slice(0, 4) 
     };
-  }, [logs, guests]);
+  }, [logs, emailLogs, characters, guests]);
 
   if (loading) return <div className="sentinel-loading">Synkronoidaan HUD...</div>;
 
   return (
     <div className="sentinel-wrapper">
       
-      {/* KERROS 1: HUD (ALERTS & NETWORK) */}
+      {/* KERROS 1: HUD */}
       <div className="sentinel-hud-grid">
         <div className="jc-card sentinel-card sentinel-alert-border">
           <div className="sentinel-card-header"><AlertTriangle size={20} className="sentinel-icon-magenta" /> <h3 className="sentinel-h3">Hälytyskeskus</h3></div>
           <div className="sentinel-alerts-list">
             {analysis.alerts.length > 0 ? analysis.alerts.map(a => (
               <div key={a.id} className="sentinel-alert-toast"><BatteryLow size={14} /> <strong>{a.name}</strong> – Akku vähissä!</div>
-            )) : <p className="sentinel-muted-text">Ei poikkeamia.</p>}
+            )) : <p className="sentinel-muted-text">Ei teknisiä poikkeamia.</p>}
           </div>
         </div>
         <div className="jc-card sentinel-card">
           <div className="sentinel-card-header"><Target size={20} className="sentinel-icon-turquoise" /> <h3 className="sentinel-h3">Verkon tila</h3></div>
           <div className="sentinel-stats-summary">
              <div className="sentinel-stat-box"><span className="sentinel-label">Agentit</span><span className="sentinel-value">{analysis.agents.length}</span></div>
-             <div className="sentinel-stat-box"><span className="sentinel-label">Deep Immersion</span><span className="sentinel-value lime">{analysis.agents.filter(a => a.totalTime > 300).length}</span></div>
+             <div className="sentinel-stat-box"><span className="sentinel-label">Immersion</span><span className="sentinel-value lime">{analysis.agents.filter(a => a.totalTime > 300).length}</span></div>
           </div>
         </div>
       </div>
 
-      {/* KERROS 2: TRENDIT & TEKNIIKKA */}
+      {/* KERROS 2: NUDGE CONTROL & DEAD SIGNALS (SCROLL LISÄTTY) */}
+      <div className="sentinel-summary-grid mt-2">
+        <div className="jc-card sentinel-card">
+          <div className="sentinel-card-header"><Mail size={18} className="sentinel-icon-sun" /> <h3 className="sentinel-h3">Nudge Control</h3></div>
+          <div className="sentinel-nudge-stats">
+            <div className="nudge-row"><span>Sähköposteja:</span> <strong>{analysis.stats.email.sent}</strong></div>
+            <div className="nudge-row"><span>Virheet:</span> <strong className="text-magenta">{analysis.stats.email.errors}</strong></div>
+            <div className="nudge-row"><span>Aktivointi:</span> <strong className="text-lime">{Math.round((analysis.agents.length / guests.length) * 100)}%</strong></div>
+          </div>
+        </div>
+        <div className="jc-card sentinel-card sentinel-dead-border">
+          <div className="sentinel-card-header">
+            <ClockAlert size={18} className="text-magenta" /> 
+            <h3 className="sentinel-h3">Dead Signals ({analysis.deadSignals.length})</h3>
+          </div>
+          <div className="sentinel-dead-list sentinel-scrollable">
+            {analysis.deadSignals.length > 0 ? analysis.deadSignals.map(g => (
+              <div key={g.id} className="dead-signal-item">
+                <span>{g.name}</span>
+                <div className="dead-tags">
+                  {g.emails.map((e, i) => <span key={i} className="mini-tag" title={e.template_name}><Mail size={10}/></span>)}
+                </div>
+              </div>
+            )) : <p className="sentinel-muted-text">Ei pimeitä signaaleja.</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* KERROS 3: TRENDIT */}
       <div className="sentinel-summary-grid mt-2">
         <div className="jc-card sentinel-card">
           <div className="sentinel-card-header"><LayoutDashboard size={18} /> <h3 className="sentinel-h3">Järjestelmäsuosio</h3></div>
@@ -145,15 +216,15 @@ const SentinelGuardian = ({ guests }) => {
           </div>
         </div>
         <div className="jc-card sentinel-card">
-          <div className="sentinel-card-header"><Globe size={18} /> <h3 className="sentinel-h3">Tekninen Profiili</h3></div>
+          <div className="sentinel-card-header"><Globe size={18} /> <h3 className="sentinel-h3">Tekniikka</h3></div>
           <div className="sentinel-tech-brief">
             <p>Pääselain: <strong>{Object.entries(analysis.stats.browsers).sort((a,b)=>b[1]-a[1])[0]?.[0] || '??'}</strong></p>
-            <p>OS-suosikki: <strong>{Object.entries(analysis.stats.os).sort((a,b)=>b[1]-a[1])[0]?.[0] || '??'}</strong></p>
+            <p>Aktiivisia nyt: <strong>{analysis.agents.filter(a => a.status === 'Aktiivinen').length}</strong></p>
           </div>
         </div>
       </div>
 
-      {/* KERROS 3: AGENTTIEN KÄYTTÄYTYMISHISTORIA */}
+      {/* KERROS 4: PROFIILIT */}
       <div className="sentinel-card mt-2">
         <div className="sentinel-card-header"><UserCheck size={20} /> <h3 className="sentinel-h3">Agenttien Profiilit</h3></div>
         <div className="sentinel-agent-grid">
@@ -162,6 +233,9 @@ const SentinelGuardian = ({ guests }) => {
               <div className="behavior-card-header">
                 <agent.archetype.icon size={18} style={{ color: agent.archetype.color }} />
                 <span className="agent-name">{agent.name}</span>
+                <div className="email-status-icons">
+                  {agent.emails.some(e => e.status === 'sent') && <MailCheck size={14} className="text-lime" />}
+                </div>
               </div>
               <div className="signal-mini-bar">
                 <div className="sig-part nexus" style={{ width: `${agent.percentages.NEXUS}%` }}></div>
@@ -177,7 +251,7 @@ const SentinelGuardian = ({ guests }) => {
         </div>
       </div>
 
-      {/* KERROS 4: RAW FEED */}
+      {/* KERROS 5: RAW FEED */}
       <div className="jc-card sentinel-card mt-2">
         <div className="sentinel-card-header"><Database size={16} /> <h3 className="sentinel-h3">Signaalivirta (Raw)</h3></div>
         <div className="sentinel-table-scroll">
@@ -209,7 +283,19 @@ const SentinelGuardian = ({ guests }) => {
                 <p className="archetype-title" style={{ color: selectedAgent.archetype.color }}>{selectedAgent.archetype.label}</p>
               </div>
             </div>
+            
             <div className="dossier-signal-section">
+              <h4>Viestintähistoria</h4>
+              <div className="dossier-email-list">
+                {selectedAgent.emails.map((e, i) => (
+                  <div key={i} className="dossier-email-item">
+                    <Mail size={12}/> <span>{e.template_name}</span> <small>{new Date(e.sent_at).toLocaleDateString()}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="dossier-signal-section mt-2">
               <h4>Pääasiallinen Signaali</h4>
               <div className="full-signal-bar">
                 <div className="sig-segment nexus" style={{ width: `${selectedAgent.percentages.NEXUS}%` }}><span>NEXUS {selectedAgent.percentages.NEXUS}%</span></div>
@@ -217,19 +303,20 @@ const SentinelGuardian = ({ guests }) => {
                 <div className="sig-segment ticket" style={{ width: `${selectedAgent.percentages.TICKET}%` }}><span>TICKET {selectedAgent.percentages.TICKET}%</span></div>
               </div>
             </div>
+
             <div className="dossier-details-grid">
               <div className="dossier-box">
                 <h5>Kronologia</h5>
                 <p>Eka yhteys: {new Date(selectedAgent.firstSeen).toLocaleString()}</p>
-                <p>Viipymä: <strong>{Math.floor(selectedAgent.totalTime / 60)} min</strong></p>
+                <p>Status: <strong>{selectedAgent.status}</strong></p>
               </div>
               <div className="dossier-box">
                 <h5>Tekniikka</h5>
-                <p>OS: {selectedAgent.latest.tech_profile?.os}</p>
-                <p>Akku: {selectedAgent.latest.battery_alert ? 'Kriittinen' : 'Vakaa'}</p>
+                <p>Laite: {selectedAgent.latest.tech_profile?.os}</p>
+                <p>Viipymä: <strong>{Math.floor(selectedAgent.totalTime / 60)} min</strong></p>
               </div>
             </div>
-            <button className="jc-btn ghost mt-2" style={{ width: '100%' }} onClick={() => setSelectedAgent(null)}>Sulje</button>
+            <button className="jc-btn ghost mt-2" style={{ width: '100%' }} onClick={() => setSelectedAgent(null)}>Sulje Dossier</button>
           </div>
         </div>
       )}

@@ -97,7 +97,7 @@ const NexusPage = () => {
           <div className="locked-content">
             <Lock size={40} className="mb-3" />
             <h2>VERKOSTO ON LUKITTU</h2>
-            <p>Lataa avatar-kuva ja hyväksy hahmosi nähdäksesi verkoston.</p>
+            <p>Lataa profiili-kuva lippusivulla ja hyväksy hahmosi nähdäksesi verkoston.</p>
           </div>
         </div>
       )}

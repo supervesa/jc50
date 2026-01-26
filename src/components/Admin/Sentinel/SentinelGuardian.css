@@ -267,3 +267,146 @@
   padding: 5px; 
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+/* Nudge Control & Dead Signals */
+.sentinel-nudge-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.nudge-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.sentinel-dead-border {
+  border-left: 3px solid var(--magenta) !important;
+}
+
+.sentinel-dead-list {
+  max-height: 120px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dead-signal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 0, 229, 0.05);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 0, 229, 0.1);
+}
+
+.dead-tags {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-tag {
+  color: var(--magenta);
+  opacity: 0.7;
+}
+
+/* Dossier Email List */
+.dossier-email-list {
+  background: rgba(0,0,0,0.2);
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dossier-email-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--cream);
+}
+
+.dossier-email-item small {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+/* Agent Card Email Icon */
+.email-status-icons {
+  display: flex;
+  gap: 5px;
+  margin-left: 5px;
+}
+
+.text-sun { color: var(--sun); }
+.text-magenta { color: var(--magenta); }
+.text-lime { color: var(--lime); }
+
+/* Scroll-palkin tyylittely */
+.sentinel-scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+.sentinel-scrollable::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+.sentinel-scrollable::-webkit-scrollbar-thumb {
+  background: var(--turquoise);
+  border-radius: 10px;
+}
+
+/* Dead Signal Lista */
+.sentinel-dead-list {
+  height: 140px; /* Kiinteä korkeus mahdollistaa scrollin */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 5px; /* Tilaa scroll-palkille */
+}
+
+.dead-signal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 0, 229, 0.05);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 0, 229, 0.1);
+  flex-shrink: 0; /* Estää kutistumisen */
+}
+
+/* Nudge Control & Muut */
+.sentinel-nudge-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 5px 0;
+}
+
+.nudge-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.sentinel-dead-border {
+  border-left: 3px solid var(--magenta) !important;
+}
+
+.mini-tag {
+  color: var(--magenta);
+  opacity: 0.7;
+}
+
+.text- sun { color: var(--sun); }
+.text-magenta { color: var(--magenta); }
+.text-lime { color: var(--lime); }

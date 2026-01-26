@@ -3,11 +3,9 @@ import { supabase } from '../lib/supabaseClient';
 
 export const useSentinel = (passedId, context = 'GENERAL') => {
   // 1. ÄLYKÄS ID-TUNNISTUS
-  // Prioriteetti: 1. Komponentin antama ID, 2. URL-osoitteen ID, 3. Välimuisti
   const guestId = useMemo(() => {
     if (passedId && passedId.length > 30) return passedId;
 
-    // Haetaan UUID URL-osoitteesta (esim. /lippu/f5b82...)
     const urlParts = window.location.pathname.split('/');
     const uuidFromUrl = urlParts.find(part => 
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(part)
@@ -17,7 +15,6 @@ export const useSentinel = (passedId, context = 'GENERAL') => {
   }, [passedId, window.location.pathname]);
 
   // 2. SESSIO-HALLINTA
-  // Luodaan uusi session_id aina, kun vieras (guestId) vaihtuu
   const sessionId = useRef(Math.random().toString(36).substring(7));
 
   const getTechProfile = () => {
@@ -61,23 +58,24 @@ export const useSentinel = (passedId, context = 'GENERAL') => {
     }
   };
 
-  // 3. AKTIVOINTI JA SYKE
+  // 3. AKTIVOINTI JA SYKE (Visibility API lisätty)
   useEffect(() => {
     if (!guestId) return;
 
-    // Kun guestId vaihtuu (esim. vaihdat URL-osoitetta lennosta):
-    // - Luodaan uusi uniikki sessio-ID
-    // - Lähetetään välitön INIT-signaali
     sessionId.current = Math.random().toString(36).substring(7);
     
+    // INIT lähetetään aina kun sivu ladataan
     logEvent({ point: `${context}_INIT`, engagement: 'Quick Glance' });
 
     const heartbeat = setInterval(() => {
-      logEvent({ point: `${context}_PULSE`, engagement: 'Ghost Trace' });
+      // LISÄYS: Lähetetään signaali vain, jos välilehti on aktiivinen ja näkyvissä
+      if (document.visibilityState === 'visible') {
+        logEvent({ point: `${context}_PULSE`, engagement: 'Ghost Trace' });
+      }
     }, 45000);
 
     return () => clearInterval(heartbeat);
-  }, [guestId, context]); // Uudelleenkäynnistys aina kun guestId muuttuu
+  }, [guestId, context]);
 
   return { 
     trackInteraction: (point, level = 'Operative Briefing') => logEvent({ point, engagement: level }) 
