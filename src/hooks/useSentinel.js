@@ -1,24 +1,30 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-export const useSentinel = (guestId, context = 'GENERAL') => {
+export const useSentinel = (passedId, context = 'GENERAL') => {
+  // 1. ÄLYKÄS ID-TUNNISTUS
+  // Prioriteetti: 1. Komponentin antama ID, 2. URL-osoitteen ID, 3. Välimuisti
+  const guestId = useMemo(() => {
+    if (passedId && passedId.length > 30) return passedId;
+
+    // Haetaan UUID URL-osoitteesta (esim. /lippu/f5b82...)
+    const urlParts = window.location.pathname.split('/');
+    const uuidFromUrl = urlParts.find(part => 
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(part)
+    );
+
+    return uuidFromUrl || localStorage.getItem('jc_ticket_id');
+  }, [passedId, window.location.pathname]);
+
+  // 2. SESSIO-HALLINTA
+  // Luodaan uusi session_id aina, kun vieras (guestId) vaihtuu
   const sessionId = useRef(Math.random().toString(36).substring(7));
 
-  // 1. KERÄÄ TEKNINEN PROFIILI
   const getTechProfile = () => {
-    const ua = navigator.userAgent;
-    let browser = "Unknown";
-    if (ua.includes("Firefox")) browser = "Firefox";
-    else if (ua.includes("SamsungBrowser")) browser = "Samsung Browser";
-    else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
-    else if (ua.includes("Trident")) browser = "IE";
-    else if (ua.includes("Edge")) browser = "Edge";
-    else if (ua.includes("Chrome")) browser = "Chrome";
-    else if (ua.includes("Safari")) browser = "Safari";
-
     return {
       os: navigator.platform,
-      browser: browser,
+      browser: navigator.userAgent.includes("Chrome") ? "Chrome" : 
+               navigator.userAgent.includes("Safari") ? "Safari" : "Other",
       language: navigator.language,
       screen: `${window.screen.width}x${window.screen.height}`,
       mobile: /Mobi|Android/i.test(navigator.userAgent),
@@ -26,12 +32,10 @@ export const useSentinel = (guestId, context = 'GENERAL') => {
     };
   };
 
-  // 2. LÄHETÄ LOKI SUPABASEEN
   const logEvent = async (params = {}) => {
     if (!guestId) return;
 
     try {
-      // Akun tila (jos selain tukee)
       let batteryAlert = false;
       if (navigator.getBattery) {
         const battery = await navigator.getBattery();
@@ -45,38 +49,37 @@ export const useSentinel = (guestId, context = 'GENERAL') => {
         interaction_point: params.point || 'Heartbeat',
         tech_profile: getTechProfile(),
         connection_info: {
-          type: navigator.connection ? navigator.connection.effectiveType : 'unknown',
-          downlink: navigator.connection ? navigator.connection.downlink : null
+          type: navigator.connection ? navigator.connection.effectiveType : 'unknown'
         },
         battery_alert: batteryAlert,
         signals: params.signals || []
       }]);
 
-      if (error) console.warn("Sentinel: Silent Comms Error", error.message);
+      if (error) console.warn("Sentinel: Blocked", error.message);
     } catch (err) {
-      // Silent fail, jotta vieras ei huomaa mitään
+      // Silent fail
     }
   };
 
-  // 3. HEARTBEAT & INITIALIZATION
+  // 3. AKTIVOINTI JA SYKE
   useEffect(() => {
     if (!guestId) return;
 
-    // Alkutervehdys
+    // Kun guestId vaihtuu (esim. vaihdat URL-osoitetta lennosta):
+    // - Luodaan uusi uniikki sessio-ID
+    // - Lähetetään välitön INIT-signaali
+    sessionId.current = Math.random().toString(36).substring(7);
+    
     logEvent({ point: `${context}_INIT`, engagement: 'Quick Glance' });
 
-    // Syke 45 sekunnin välein (pidetään kuormitus matalana)
     const heartbeat = setInterval(() => {
       logEvent({ point: `${context}_PULSE`, engagement: 'Ghost Trace' });
     }, 45000);
 
     return () => clearInterval(heartbeat);
-  }, [guestId, context]);
+  }, [guestId, context]); // Uudelleenkäynnistys aina kun guestId muuttuu
 
-  // 4. JULKINEN FUNKTIO INTERAKTIOIDEN SEURANTAAN
-  const trackInteraction = (point, level = 'Operative Briefing') => {
-    logEvent({ point, engagement: level });
+  return { 
+    trackInteraction: (point, level = 'Operative Briefing') => logEvent({ point, engagement: level }) 
   };
-
-  return { trackInteraction };
 };

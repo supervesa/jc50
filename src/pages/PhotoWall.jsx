@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom'; // LISÄTTY URL-PARAMETRIEN TUKEMISEKSI
 import { supabase } from '../lib/supabaseClient'; 
 import { Flame, MessageCircle, ArrowLeft, ArrowUp } from 'lucide-react';
 import './PhotoWall.css';
@@ -8,13 +9,18 @@ import PhotoViewOverlay from './PhotoViewOverlay';
 import { useSentinel } from '../hooks/useSentinel';
 
 const PhotoWall = () => {
+  // 1. HAETAAN guestId (Täsmää App.jsx reittiin :guestId)
+  const { guestId: urlId } = useParams(); 
+  
   const [photos, setPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // SENTINEL ALUSTUS (Käytetään localStoragea guest_id:lle)
-  const guestId = localStorage.getItem('jc_ticket_id');
-  const { trackInteraction } = useSentinel(guestId, 'PHOTO_WALL');
+  // 2. PRIORISOINTI: URL-ID on vahvin totuus, localStorage on varalla
+  const activeGuestId = urlId || localStorage.getItem('jc_ticket_id');
+  
+  // 3. SENTINEL: Käynnistetään seuranta tunnistetulle vieraalle
+  const { trackInteraction } = useSentinel(activeGuestId, 'PHOTO_WALL');
 
   // --- LAUSEGENERAATTORI ---
   const getStoryPhrase = (id, isPlural) => {
@@ -30,7 +36,6 @@ const PhotoWall = () => {
       isPlural ? "Tämän muiston jakoivat" : "Tämän muiston jakoi",
       isPlural ? "Hetken pysäyttivät" : "Hetken pysäytti"
     ];
-    // Käytetään id:tä valitsemaan listasta aina sama lause samalle kuvalle
     const index = Math.abs(id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % phrases.length;
     return phrases[index];
   };
@@ -90,7 +95,6 @@ const PhotoWall = () => {
   };
 
   const fetchPhotos = async () => {
-    // Varmistetaan että haetaan vain kuvat, ei muita tehtäviä
     const { data, error } = await supabase
       .from('live_posts')
       .select(`
@@ -144,7 +148,6 @@ const PhotoWall = () => {
           <h1 className="jc-h1">Kymppiseinä</h1>
           <p>Jaa parhaat palat!</p>
         </div>
-  
       </div>
 
       {loading ? (
@@ -165,7 +168,6 @@ const PhotoWall = () => {
                   trackInteraction('PHOTO_POLAROID_CLICK', 'Operative Briefing');
                 }}
               >
-                {/* YLÄKULMAN BY-BADGE */}
                 <div className="photo-by-badge">
                   <div className="avatar-stack">
                     {photo.authors?.map((auth, i) => (
@@ -184,10 +186,7 @@ const PhotoWall = () => {
                 <img src={photo.url} alt="Postaus" className="polaroid-img" loading="lazy" />
                 
                 <div className="polaroid-caption">
-                  {/* UUSI TUSSIFONTTI TÄSSÄ */}
                   {photo.caption && <div className="main-message">{photo.caption}</div>}
-                  
-                  {/* ALAREUNAN TARINALLINEN SIGNEERAUS */}
                   <div className="story-credit">
                     <span className="phrase-part">{photo.storyPhrase}</span>
                     <span className="character-name-highlight">{photo.characterNames}</span>
