@@ -410,3 +410,289 @@
 .text- sun { color: var(--sun); }
 .text-magenta { color: var(--magenta); }
 .text-lime { color: var(--lime); }
+
+/* Dossier Layout Update */
+.dossier-grid-main {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+  margin-top: 15px;
+}
+
+@media (max-width: 600px) {
+  .dossier-grid-main { grid-template-columns: 1fr; }
+}
+
+.dossier-h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 5px;
+}
+
+/* Telemetry Grid Styles */
+.tech-telemetry {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.telemetry-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tel-label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tel-value {
+  font-size: 0.85rem;
+  color: var(--laser-white);
+  font-family: monospace;
+}
+
+/* Sähköpostilista Dossierissa */
+.dossier-email-list {
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.dossier-email-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.dossier-email-item small { color: var(--muted); }
+
+/* Tekniikka-kortin korostukset */
+.sentinel-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sentinel-clickable:hover {
+  background: rgba(0, 231, 255, 0.05);
+  border-color: var(--turquoise);
+}
+
+.mini-tech-footer {
+  font-size: 0.65rem;
+  color: var(--turquoise);
+  text-align: right;
+  margin-top: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Global Tech Modal */
+.global-tech-card {
+  max-width: 700px !important;
+}
+
+.tech-dossier-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+@media (max-width: 650px) {
+  .tech-dossier-grid { grid-template-columns: 1fr; }
+}
+
+.tech-widget {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tech-stat-list label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.stat-row-large {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.large-box {
+  background: rgba(255,255,255,0.03);
+  padding: 15px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.large-box strong {
+  font-size: 1.2rem;
+  color: var(--turquoise);
+}
+
+.large-box span {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.text-turquoise { color: var(--turquoise); }
+
+/* Global Tech Modal Layout Expansion */
+.global-tech-card {
+  max-width: 800px !important;
+}
+
+.tech-dossier-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 650px) {
+  .tech-dossier-grid { grid-template-columns: 1fr; }
+  .full-width { grid-column: auto; }
+}
+
+.tech-widget {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-group label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-row-large {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.large-box {
+  background: rgba(255,255,255,0.03);
+  padding: 15px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: transform 0.2s;
+}
+
+.large-box:hover {
+  transform: scale(1.02);
+  background: rgba(255,255,255,0.05);
+}
+
+.large-box strong {
+  font-size: 1.4rem;
+  color: var(--turquoise);
+}
+
+/* Aktiivisuus-telemetria Tri-Grid */
+.tech-tri-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 10px;
+}
+
+@media (max-width: 500px) {
+  .tech-tri-grid { grid-template-columns: 1fr; }
+}
+
+.tri-box {
+  background: rgba(0,0,0,0.3);
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+.tri-box .tel-label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.tri-box .tel-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.tri-box small {
+  font-size: 0.65rem;
+  color: var(--muted);
+}

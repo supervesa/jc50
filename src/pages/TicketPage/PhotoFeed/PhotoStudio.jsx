@@ -114,7 +114,7 @@ export function PhotoStudio({
 
     const frame = FRAMES.find(f => f.id === activeFrameId);
     if (frame && frame.draw) {
-        if (phaseValue >= 1 || !frame.isLocked) {
+        if (phaseValue >= 2 || !frame.isLocked) {
             frame.draw(ctx, size, size);
         }
     }
@@ -261,7 +261,7 @@ export function PhotoStudio({
                 )}
 
                 {activeTool === 'frames' && (
-                  phaseValue < 1 ? (
+                  phaseValue < 2 ? (
                     <div className="sentinel-lock-overlay-panel">
                         <Lock size={28} />
                         <div className="sentinel-lock-text">
@@ -281,7 +281,7 @@ export function PhotoStudio({
                 )}
 
                 {activeTool === 'stickers' && (
-                  phaseValue < 1 ? (
+                  phaseValue < 2 ? (
                     <div className="sentinel-lock-overlay-panel">
                         <Lock size={28} />
                         <div className="sentinel-lock-text">
@@ -300,7 +300,7 @@ export function PhotoStudio({
                 )}
 
                 {activeTool === 'text' && (
-                  phaseValue < 1 ? (
+                  phaseValue < 2 ? (
                     <div className="sentinel-lock-overlay-panel">
                         <Lock size={28} />
                         <div className="sentinel-lock-text">

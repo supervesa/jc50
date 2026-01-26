@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { 
-  Activity, Smartphone, BatteryLow, WifiOff, AlertTriangle, 
+  Activity, Smartphone, BatteryLow, Battery, Wifi, WifiOff, AlertTriangle, 
   Zap, Clock, Shield, Database, Globe, UserCheck, 
   BookOpen, Camera, Ghost, Star, UserMinus, LayoutDashboard,
-  Target, Eye, Mail, MailCheck, MailWarning, ClockAlert, Info
+  Target, Eye, Mail, MailCheck, MailWarning, ClockAlert, Info,
+  MapPin, MousePointer2, Monitor, BarChart3, PieChart, Layers,
+  Signal, Radio, Timer, MousePointerClick
 } from 'lucide-react';
 import './SentinelGuardian.css';
 
@@ -14,15 +16,14 @@ const SentinelGuardian = ({ guests }) => {
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState(null);
+  const [showTechDossier, setShowTechDossier] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
-    
     const channel = supabase.channel('sentinel_live')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sentinel_access_logs' }, 
       (payload) => setLogs(prev => [payload.new, ...prev].slice(0, 1000)))
       .subscribe();
-      
     return () => supabase.removeChannel(channel);
   }, []);
 
@@ -32,11 +33,9 @@ const SentinelGuardian = ({ guests }) => {
       supabase.from('email_logs').select('*').order('sent_at', { ascending: false }),
       supabase.from('characters').select('id, assigned_guest_id, name')
     ]);
-
     if (logsRes.data) setLogs(logsRes.data);
     if (emailsRes.data) setEmailLogs(emailsRes.data);
     if (charsRes.data) setCharacters(charsRes.data);
-    
     setLoading(false);
   };
 
@@ -45,9 +44,14 @@ const SentinelGuardian = ({ guests }) => {
     const agentMap = {};
     const stats = { 
       browsers: {}, 
+      os: {},
+      referrers: {},
       systems: { NEXUS: 0, PHOTO: 0, TICKET: 0 },
       email: { sent: 0, errors: 0, templates: {} }
     };
+    
+    let totalInteractions = 0;
+    const sessionIds = new Set();
 
     const charToGuest = {};
     characters.forEach(c => { if(c.assigned_guest_id) charToGuest[c.id] = c.assigned_guest_id; });
@@ -59,12 +63,19 @@ const SentinelGuardian = ({ guests }) => {
     });
 
     logs.forEach(log => {
+      totalInteractions++;
+      sessionIds.add(log.session_id);
+
       if (log.interaction_point.includes('NEXUS')) stats.systems.NEXUS++;
       if (log.interaction_point.includes('PHOTO')) stats.systems.PHOTO++;
       if (log.interaction_point.includes('TICKET')) stats.systems.TICKET++;
       
       const b = log.tech_profile?.browser || 'Unknown';
       stats.browsers[b] = (stats.browsers[b] || 0) + 1;
+      const os = log.tech_profile?.os || 'Unknown';
+      stats.os[os] = (stats.os[os] || 0) + 1;
+      const ref = log.tech_profile?.referrer || 'Direct';
+      stats.referrers[ref] = (stats.referrers[ref] || 0) + 1;
 
       if (!agentMap[log.guest_id]) {
         const guestInfo = guests.find(g => g.id === log.guest_id);
@@ -77,10 +88,12 @@ const SentinelGuardian = ({ guests }) => {
           latest: log,
           firstSeen: log.created_at,
           points: new Set(),
-          emails: []
+          emails: [],
+          interactionCount: 0
         };
       }
       const agent = agentMap[log.guest_id];
+      agent.interactionCount++;
       agent.points.add(log.interaction_point);
       if (!agent.sessions[log.session_id]) agent.sessions[log.session_id] = [];
       agent.sessions[log.session_id].push(log);
@@ -89,7 +102,6 @@ const SentinelGuardian = ({ guests }) => {
 
     const processedAgents = Object.values(agentMap).map(agent => {
       agent.emails = emailLogs.filter(e => charToGuest[e.character_id] === agent.id);
-      
       Object.values(agent.sessions).forEach(sessionLogs => {
         const sorted = [...sessionLogs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         sorted.forEach((log, i) => {
@@ -114,7 +126,6 @@ const SentinelGuardian = ({ guests }) => {
       };
 
       let archetype = { label: 'Field Operative', icon: Activity, color: 'var(--turquoise)' };
-      
       const lastEmail = agent.emails[0];
       if (lastEmail) {
         const timeDiff = (new Date(agent.firstSeen) - new Date(lastEmail.sent_at)) / (1000 * 60);
@@ -133,6 +144,20 @@ const SentinelGuardian = ({ guests }) => {
       return { ...agent, archetype, percentages, status };
     });
 
+    // LAAJENNETTU GLOBAALI TEKNIIKKA-INTEL LASKENTA
+    const techDossier = {
+      browsers: Object.entries(stats.browsers).sort((a,b) => b[1]-a[1]).slice(0, 3),
+      os: Object.entries(stats.os).sort((a,b) => b[1]-a[1]).slice(0, 3),
+      referrers: Object.entries(stats.referrers).sort((a,b) => b[1]-a[1]).slice(0, 3),
+      mobileCount: processedAgents.filter(a => a.latest.tech_profile?.mobile).length,
+      desktopCount: processedAgents.filter(a => !a.latest.tech_profile?.mobile).length,
+      batteryCritical: processedAgents.filter(a => a.latest.battery_alert).length,
+      wifiCount: processedAgents.filter(a => a.latest.connection_info?.type?.includes('wifi')).length,
+      cellularCount: processedAgents.filter(a => ['4g', '5g', 'cellular'].some(t => a.latest.connection_info?.type?.toLowerCase().includes(t))).length,
+      visibleCount: logs.filter(l => l.interaction_point.includes('PULSE')).length, // Visibility API: Pulse lähetetään vain visible-tilassa
+      sessionIntensity: (totalInteractions / (sessionIds.size || 1)).toFixed(1)
+    };
+
     const deadSignals = guests.filter(g => {
       const hasEmail = emailLogs.some(e => charToGuest[e.character_id] === g.id);
       const hasActivity = logs.some(l => l.guest_id === g.id);
@@ -145,6 +170,7 @@ const SentinelGuardian = ({ guests }) => {
     return { 
       agents: processedAgents, 
       stats, 
+      techDossier,
       deadSignals,
       alerts: processedAgents.filter(a => a.latest.battery_alert).slice(0, 4) 
     };
@@ -174,7 +200,7 @@ const SentinelGuardian = ({ guests }) => {
         </div>
       </div>
 
-      {/* KERROS 2: NUDGE CONTROL & DEAD SIGNALS (SCROLL LISÄTTY) */}
+      {/* KERROS 2: NUDGE & DEAD SIGNALS */}
       <div className="sentinel-summary-grid mt-2">
         <div className="jc-card sentinel-card">
           <div className="sentinel-card-header"><Mail size={18} className="sentinel-icon-sun" /> <h3 className="sentinel-h3">Nudge Control</h3></div>
@@ -202,7 +228,7 @@ const SentinelGuardian = ({ guests }) => {
         </div>
       </div>
 
-      {/* KERROS 3: TRENDIT */}
+      {/* KERROS 3: TEKNIIKKA TRENDIT */}
       <div className="sentinel-summary-grid mt-2">
         <div className="jc-card sentinel-card">
           <div className="sentinel-card-header"><LayoutDashboard size={18} /> <h3 className="sentinel-h3">Järjestelmäsuosio</h3></div>
@@ -215,12 +241,13 @@ const SentinelGuardian = ({ guests }) => {
             ))}
           </div>
         </div>
-        <div className="jc-card sentinel-card">
-          <div className="sentinel-card-header"><Globe size={18} /> <h3 className="sentinel-h3">Tekniikka</h3></div>
+        <div className="jc-card sentinel-card sentinel-clickable" onClick={() => setShowTechDossier(true)}>
+          <div className="sentinel-card-header"><Globe size={18} className="sentinel-icon-turquoise" /> <h3 className="sentinel-h3">Tekniikka Intel</h3></div>
           <div className="sentinel-tech-brief">
-            <p>Pääselain: <strong>{Object.entries(analysis.stats.browsers).sort((a,b)=>b[1]-a[1])[0]?.[0] || '??'}</strong></p>
+            <p>Pääselain: <strong>{analysis.techDossier.browsers[0]?.[0] || '??'}</strong></p>
             <p>Aktiivisia nyt: <strong>{analysis.agents.filter(a => a.status === 'Aktiivinen').length}</strong></p>
           </div>
+          <div className="mini-tech-footer">Avaa Globaali Telemetria →</div>
         </div>
       </div>
 
@@ -272,7 +299,7 @@ const SentinelGuardian = ({ guests }) => {
         </div>
       </div>
 
-      {/* DOSSIER MODAL */}
+      {/* MODAL 1: AGENTTI-DOSSIER */}
       {selectedAgent && (
         <div className="sentinel-dossier-overlay" onClick={() => setSelectedAgent(null)}>
           <div className="sentinel-dossier-card jc-card" onClick={e => e.stopPropagation()}>
@@ -283,40 +310,128 @@ const SentinelGuardian = ({ guests }) => {
                 <p className="archetype-title" style={{ color: selectedAgent.archetype.color }}>{selectedAgent.archetype.label}</p>
               </div>
             </div>
-            
-            <div className="dossier-signal-section">
-              <h4>Viestintähistoria</h4>
-              <div className="dossier-email-list">
-                {selectedAgent.emails.map((e, i) => (
-                  <div key={i} className="dossier-email-item">
-                    <Mail size={12}/> <span>{e.template_name}</span> <small>{new Date(e.sent_at).toLocaleDateString()}</small>
+            <div className="dossier-grid-main">
+              <div className="dossier-column">
+                <div className="dossier-section">
+                  <h4 className="dossier-h4"><Mail size={14}/> Viestintähistoria</h4>
+                  <div className="dossier-email-list">
+                    {selectedAgent.emails.length > 0 ? selectedAgent.emails.map((e, i) => (
+                      <div key={i} className="dossier-email-item">
+                        <span>{e.template_name}</span> <small>{new Date(e.sent_at).toLocaleDateString()}</small>
+                      </div>
+                    )) : <p className="sentinel-muted-text">Ei lähetettyjä viestejä.</p>}
                   </div>
-                ))}
+                </div>
+                <div className="dossier-section mt-2">
+                  <h4 className="dossier-h4"><Activity size={14}/> Pääasiallinen Signaali</h4>
+                  <div className="full-signal-bar">
+                    <div className="sig-segment nexus" style={{ width: `${selectedAgent.percentages.NEXUS}%` }}><span>NEXUS {selectedAgent.percentages.NEXUS}%</span></div>
+                    <div className="sig-segment photo" style={{ width: `${selectedAgent.percentages.PHOTO}%` }}><span>PHOTO {selectedAgent.percentages.PHOTO}%</span></div>
+                    <div className="sig-segment ticket" style={{ width: `${selectedAgent.percentages.TICKET}%` }}><span>TICKET {selectedAgent.percentages.TICKET}%</span></div>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <div className="dossier-signal-section mt-2">
-              <h4>Pääasiallinen Signaali</h4>
-              <div className="full-signal-bar">
-                <div className="sig-segment nexus" style={{ width: `${selectedAgent.percentages.NEXUS}%` }}><span>NEXUS {selectedAgent.percentages.NEXUS}%</span></div>
-                <div className="sig-segment photo" style={{ width: `${selectedAgent.percentages.PHOTO}%` }}><span>PHOTO {selectedAgent.percentages.PHOTO}%</span></div>
-                <div className="sig-segment ticket" style={{ width: `${selectedAgent.percentages.TICKET}%` }}><span>TICKET {selectedAgent.percentages.TICKET}%</span></div>
-              </div>
-            </div>
-
-            <div className="dossier-details-grid">
-              <div className="dossier-box">
-                <h5>Kronologia</h5>
-                <p>Eka yhteys: {new Date(selectedAgent.firstSeen).toLocaleString()}</p>
-                <p>Status: <strong>{selectedAgent.status}</strong></p>
-              </div>
-              <div className="dossier-box">
-                <h5>Tekniikka</h5>
-                <p>Laite: {selectedAgent.latest.tech_profile?.os}</p>
-                <p>Viipymä: <strong>{Math.floor(selectedAgent.totalTime / 60)} min</strong></p>
+              <div className="dossier-column">
+                <div className="dossier-section tech-telemetry">
+                  <h4 className="dossier-h4"><Shield size={14}/> Tekninen Telemetria</h4>
+                  <div className="telemetry-grid">
+                    <div className="telemetry-item"><span className="tel-label"><Smartphone size={12}/> Laite</span><span className="tel-value">{selectedAgent.latest.tech_profile?.os}</span></div>
+                    <div className="telemetry-item"><span className="tel-label"><Wifi size={12}/> Yhteys</span><span className="tel-value">{selectedAgent.latest.connection_info?.type || 'Mobiilidata'}</span></div>
+                    <div className="telemetry-item">
+                      <span className="tel-label">{selectedAgent.latest.battery_alert ? <BatteryLow size={12} className="text-magenta"/> : <Battery size={12} className="text-lime"/>} Akku</span>
+                      <span className={selectedAgent.latest.battery_alert ? "tel-value text-magenta" : "tel-value"}>{selectedAgent.latest.battery_alert ? 'Kriittinen (<15%)' : 'Vakaa'}</span>
+                    </div>
+                    <div className="telemetry-item"><span className="tel-label"><MapPin size={12}/> Sijainti</span><span className="tel-value">{selectedAgent.latest.interaction_point}</span></div>
+                    <div className="telemetry-item"><span className="tel-label"><Clock size={12}/> Viipymä</span><span className="tel-value">{Math.floor(selectedAgent.totalTime / 60)} min</span></div>
+                  </div>
+                </div>
               </div>
             </div>
             <button className="jc-btn ghost mt-2" style={{ width: '100%' }} onClick={() => setSelectedAgent(null)}>Sulje Dossier</button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: GLOBAALI TEKNIIKKA-INTEL (TÄYSI LAAJENNUS) */}
+      {showTechDossier && (
+        <div className="sentinel-dossier-overlay" onClick={() => setShowTechDossier(false)}>
+          <div className="sentinel-dossier-card jc-card global-tech-card" onClick={e => e.stopPropagation()}>
+            <div className="dossier-header-main">
+              <Globe size={40} className="sentinel-icon-turquoise" />
+              <div>
+                <h2 className="jc-h2">Global Technical Intel</h2>
+                <p className="archetype-title text-turquoise">Järjestelmän Telemetria ja Verkon Tila</p>
+              </div>
+            </div>
+
+            <div className="tech-dossier-grid">
+              {/* 1. Ohjelmistoympäristö */}
+              <div className="tech-widget">
+                <h4 className="dossier-h4"><Monitor size={14}/> Ohjelmisto & Lähteet</h4>
+                <div className="tech-stat-list">
+                  <div className="stat-group">
+                    <label>Top Selaimet</label>
+                    {analysis.techDossier.browsers.map(([name, count]) => (
+                      <div key={name} className="stat-row"><span>{name}</span> <strong>{Math.round((count/logs.length)*100)}%</strong></div>
+                    ))}
+                  </div>
+                  <div className="stat-group mt-1">
+                    <label>Tulolähteet (Referrer)</label>
+                    {analysis.techDossier.referrers.map(([name, count]) => (
+                      <div key={name} className="stat-row"><span className="truncate">{name.substring(0,25)}</span> <strong>{count}</strong></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Energia ja Yhteys */}
+              <div className="tech-widget">
+                <h4 className="dossier-h4"><Zap size={14}/> Energia & Signaali</h4>
+                <div className="tech-stat-list">
+                  <div className="stat-row-large">
+                     <div className="large-box">
+                        <Smartphone size={24} />
+                        <span>Mobiili</span>
+                        <strong>{Math.round((analysis.techDossier.mobileCount / (analysis.agents.length || 1)) * 100)}%</strong>
+                     </div>
+                     <div className="large-box">
+                        <Monitor size={24} />
+                        <span>Desktop</span>
+                        <strong>{Math.round((analysis.techDossier.desktopCount / (analysis.agents.length || 1)) * 100)}%</strong>
+                     </div>
+                  </div>
+                  <div className="stat-group mt-1">
+                    <div className="stat-row"><span><BatteryLow size={12} className="text-magenta"/> Globaali akkukunto</span> <strong className="text-magenta">{Math.round((analysis.techDossier.batteryCritical / (analysis.agents.length || 1)) * 100)}% kriittinen</strong></div>
+                    <div className="stat-row"><span><Wifi size={12}/> WiFi-aste</span> <strong>{analysis.techDossier.wifiCount} agenttia</strong></div>
+                    <div className="stat-row"><span><Radio size={12}/> Mobiilidata</span> <strong>{analysis.techDossier.cellularCount} agenttia</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Aktiivisuus-telemetria */}
+              <div className="tech-widget full-width">
+                <h4 className="dossier-h4"><MousePointerClick size={14}/> Aktiivisuus & Vakaus</h4>
+                <div className="tech-tri-grid">
+                  <div className="tri-box">
+                    <span className="tel-label">Visibility Index</span>
+                    <span className="tel-value">{analysis.techDossier.visibleCount} Aktiivista pulssia</span>
+                    <small>Sivu aktiivisena edessä</small>
+                  </div>
+                  <div className="tri-box">
+                    <span className="tel-label">Sessio-intensiteetti</span>
+                    <span className="tel-value text-lime">{analysis.techDossier.sessionIntensity}</span>
+                    <small>Tapahtumaa per istunto</small>
+                  </div>
+                  <div className="tri-box">
+                    <span className="tel-label">Signaalin vakaus</span>
+                    <span className="tel-value text-turquoise">Vakaa</span>
+                    <small>Heartbeat-synkronointi OK</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button className="jc-btn ghost mt-2" style={{ width: '100%' }} onClick={() => setShowTechDossier(false)}>Sulje Intel</button>
           </div>
         </div>
       )}
