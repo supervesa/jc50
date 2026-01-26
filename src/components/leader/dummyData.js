@@ -1,5 +1,5 @@
 // Aseta tämä falseksi, kun haluat nähdä vain oikeat pelaajat
-export const ENABLE_DUMMY_MODE = true;
+export const ENABLE_DUMMY_MODE = false;
 
 const NOW = Date.now();
 const MINUTE = 60 * 1000;
