@@ -37,12 +37,14 @@ const NexusTeaser = ({ characterName, id: propId }) => {
         <div style={{ background: 'rgba(0,231,255,0.1)', padding: '10px', borderRadius: '10px' }}>
           <Share2 className="neon-text-cyan" size={24} />
         </div>
-        <div>
-          <h3 className="jc-h2" style={{ fontSize: '1.1rem', margin: 0 }}>NEXUS VERKOSTO</h3>
-          <p className="small" style={{ margin: 0 }}>
-            {characterName}, katso kuka muu on jo täällä.
-          </p>
-        </div>
+      <div style={{ textAlign: 'left' }}>
+  <h3 className="jc-h2" style={{ fontSize: '1.1rem', margin: 0 }}>
+    NEXUS VERKOSTO
+  </h3>
+  <p className="small" style={{ margin: 0 }}>
+    Katso kuka muu on jo täällä.
+  </p>
+</div>
       </div>
 
       <Link 

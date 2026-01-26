@@ -227,7 +227,7 @@ const CharacterAcceptance = ({ guestId, characterCount }) => {
                 <strong style={{ color: 'var(--magenta)', textTransform: 'uppercase', letterSpacing: '1px' }}>Huomio seuralaiset!</strong>
                 <div style={{ opacity: 0.8, fontSize: '0.9rem', color: 'var(--laser-white)' }}>
                   Hallinnoit nyt molempia hahmoja. Jos painat "Hyväksy", lukitset molemmat itsellesi. 
-                  Jos haluatte pelata erillisillä puhelimilla, tee <strong>Split</strong> sivun alareunasta <em>ennen</em> hyväksyntää.
+                  Jos haluatte pelata erillisillä puhelimilla, <strong>Eriytä hahmot</strong> <em>ennen</em> hyväksyntää.
                 </div>
               </div>
             </div>
