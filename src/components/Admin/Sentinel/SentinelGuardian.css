@@ -1,0 +1,105 @@
+/* Sentinel Wrapper & Grid */
+.sentinel-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.sentinel-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Card Enhancements */
+.sentinel-card {
+  border-left: 3px solid rgba(0, 231, 255, 0.3);
+  position: relative;
+}
+
+.sentinel-alert-border {
+  border-left: 3px solid var(--magenta);
+}
+
+.sentinel-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.sentinel-h3 {
+  font-family: "Outfit", sans-serif;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+  color: var(--cream);
+}
+
+/* Status Badges */
+.sentinel-badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sentinel-status-deep { background: rgba(173, 255, 47, 0.2); color: var(--lime); border: 1px solid var(--lime); }
+.sentinel-status-active { background: rgba(0, 231, 255, 0.2); color: var(--turquoise); border: 1px solid var(--turquoise); }
+.sentinel-status-brief { background: rgba(255, 165, 0, 0.2); color: var(--sun); border: 1px solid var(--sun); }
+.sentinel-status-ghost { background: rgba(136, 136, 136, 0.1); color: var(--muted); border: 1px solid rgba(255,255,255,0.1); }
+
+/* Table & Mobile responsiveness */
+.sentinel-table-container {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.sentinel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sentinel-table th {
+  text-align: left;
+  padding: 0.75rem;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sentinel-table td {
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+@media (max-width: 600px) {
+  .sentinel-hide-mobile {
+    display: none;
+  }
+  
+  .sentinel-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Icons */
+.sentinel-icon-turquoise { color: var(--turquoise); filter: drop-shadow(0 0 5px var(--turquoise)); }
+.sentinel-icon-magenta { color: var(--magenta); filter: drop-shadow(0 0 5px var(--magenta)); }
+.sentinel-icon-lime { color: var(--lime); filter: drop-shadow(0 0 5px var(--lime)); }
+
+.sentinel-alert-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 0, 229, 0.1);
+  padding: 8px;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--magenta);
+  border: 1px solid rgba(255, 0, 229, 0.2);
+}

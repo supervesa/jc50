@@ -9,6 +9,9 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
   const [hypeCount, setHypeCount] = useState(photo.hot_count || 0);
   const [isHypeAnimating, setIsHypeAnimating] = useState(false);
   
+  // UUSI: Tila tykkäyksen estämiselle
+  const [hasLiked, setHasLiked] = useState(false);
+
   // Tila käyttäjän tunnistamiselle
   const [identityName, setIdentityName] = useState('');
   const [manualName, setManualName] = useState(localStorage.getItem('jc_username') || '');
@@ -37,6 +40,16 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
     };
     identifyUser();
   }, []); 
+
+  // UUSI: Tarkista LocalStoragesta onko käyttäjä jo tykännyt tästä kuvasta
+  useEffect(() => {
+    const likedPhotos = JSON.parse(localStorage.getItem('jc_liked_photos') || '[]');
+    if (likedPhotos.includes(photo.id)) {
+      setHasLiked(true);
+    } else {
+      setHasLiked(false);
+    }
+  }, [photo.id]);
 
   // 2. Hae kommentit
   useEffect(() => {
@@ -77,11 +90,24 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
     if (error) console.error("Kommentin lähetysvirhe:", error);
   };
 
-  // 4. Hype
+  // 4. Hype (MUOKATTU LocalStorage-logiikalla)
   const handleHype = async () => {
+    if (hasLiked) return; // Estä jos on jo tykätty
+
+    // Päivitä UI ja animaatio
     setIsHypeAnimating(true);
     setTimeout(() => setIsHypeAnimating(false), 300);
     setHypeCount(prev => prev + 1);
+    
+    // Aseta tila ja päivitä LocalStorage
+    setHasLiked(true);
+    const likedPhotos = JSON.parse(localStorage.getItem('jc_liked_photos') || '[]');
+    if (!likedPhotos.includes(photo.id)) {
+      likedPhotos.push(photo.id);
+      localStorage.setItem('jc_liked_photos', JSON.stringify(likedPhotos));
+    }
+
+    // Kutsu tietokantaa
     const { error } = await supabase.rpc('increment_hotness', { row_id: photo.id });
     if (error) console.error("Hype virhe:", error);
   };
@@ -106,12 +132,21 @@ const PhotoViewOverlay = ({ photo, onClose }) => {
         <div className="overlay-image-wrapper">
           <img src={photo.image_url || photo.url} alt="Full view" className="overlay-img" />
           
-          <button className="hype-fab" onClick={handleHype}>
+          <button 
+            className="hype-fab" 
+            onClick={handleHype}
+            disabled={hasLiked} // Disabloi jos tykätty
+            style={{ 
+              opacity: hasLiked ? 1 : 1, // Pidetään näkyvissä mutta...
+              cursor: hasLiked ? 'default' : 'pointer' // ...ei klikattavana
+            }}
+          >
             <Flame 
               className={`flame-icon ${isHypeAnimating ? 'anim-pop' : ''}`} 
               size={24} 
-              fill={hypeCount > 0 ? "#ff4500" : "none"} 
-              color={hypeCount > 0 ? "#ff4500" : "#333"}
+              // Jos tykätty (hasLiked) TAI count > 0, näytetään punaisena
+              fill={hasLiked || hypeCount > 0 ? "#ff4500" : "none"} 
+              color={hasLiked || hypeCount > 0 ? "#ff4500" : "#333"}
             />
             <span className="hype-count">{hypeCount}</span>
           </button>

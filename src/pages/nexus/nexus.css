@@ -232,7 +232,7 @@
   background: rgba(0, 231, 255, 0.08);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 }
-
+/*
 .nexus-page-wrapper .avatar-stack { 
   width: 54px !important; 
   height: 54px !important; 
@@ -242,7 +242,7 @@
   border: 2px solid rgba(255,255,255,0.1) !important;
   margin-bottom: 12px !important;
   display: block !important;
-}
+} */
 
 .nexus-page-wrapper .avatar-stack-placeholder { 
   width: 54px; 
@@ -294,6 +294,7 @@
 }
 
 /* --- KULMATAGI JA STATUKSET --- */
+
 .nexus-page-wrapper .relation-tag-corner {
   position: absolute;
   top: 6px;
@@ -314,11 +315,8 @@
 .nexus-page-wrapper .relation-tag-corner.spouse, 
 .nexus-page-wrapper .relation-tag-corner.avec { color: var(--magenta); border-color: rgba(255, 0, 229, 0.4); }
 
-.status-badge {
 
-display: none;
-}
-
+/*
 .nexus-page-wrapper .status-badge {
   position: absolute;
   bottom: 10px;
@@ -332,11 +330,11 @@ display: none;
   z-index: 2;
 }
 
-.nexus-page-wrapper .status-badge.public {
   background: rgba(0, 255, 136, 0.8);
   color: #002211;
   box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
 }
+*/
 
 .nexus-page-wrapper .status-badge.private {
   background: rgba(255, 204, 0, 0.8);
@@ -485,7 +483,7 @@ display: none;
   transition: 0.25s;
   height: 100%;
 }
-
+/*
 .avatar-stack { 
   width: 54px !important; 
   height: 54px !important; 
@@ -494,7 +492,7 @@ display: none;
   border: 2px solid rgba(255,255,255,0.1) !important;
   margin-bottom: 12px !important;
 }
-
+*/
 .card-name-small { 
   font-size: 0.78rem; 
   color: #fff; 
@@ -681,12 +679,12 @@ display: none;
   opacity: 0.3;
   z-index: 10;
 }
-
+/*
 .nexus-page-wrapper .nexus-card-stack.is-locked .avatar-stack {
   filter: brightness(0.4) blur(1px);
   border-color: rgba(255, 255, 255, 0.05) !important;
 }
-
+*/
 .nexus-page-wrapper .nexus-card-stack.is-locked .card-name-small {
   color: var(--muted);
   font-style: italic;
@@ -722,8 +720,9 @@ display: none;
 }
 
 /* Jos haluat poistaa KAIKKI overlayt myös avatarin päältä lukitussa tilassa, 
-   varmista että tämä sääntö on tällainen (vain harmaannus, ei muuta): */
+   varmista että tämä sääntö on tällainen (vain harmaannus, ei muuta): 
 .nexus-page-wrapper .nexus-card-stack.is-locked .avatar-stack {
   filter: grayscale(1) brightness(0.5);
   opacity: 0.6;
 }
+  */

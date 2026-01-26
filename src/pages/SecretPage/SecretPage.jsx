@@ -9,6 +9,7 @@ import RelationManager from '../../components/Admin/RelationManager';
 import CharacterCasting from '../../components/Admin/CharacterCasting'; 
 import GuestManager from '../../components/Admin/GuestManager';
 import MessageCenter from '../../components/MessageCenter';
+import SentinelGuardian from '../../components/Admin/Sentinel/SentinelGuardian';
 
 function SecretPage() {
   // --- AUTH STATE (UUSI) ---
@@ -162,6 +163,7 @@ function SecretPage() {
           <button onClick={()=>setActiveTab('RELATIONS')} className={`jc-cta ${activeTab==='RELATIONS'?'primary':'ghost'}`}>Relaatiot</button>
           <button onClick={()=>setActiveTab('MANAGER')} className={`jc-cta ${activeTab==='MANAGER'?'primary':'ghost'}`}>Hallinta</button>
           <button onClick={()=>setActiveTab('EMAIL')} className={`jc-cta ${activeTab==='EMAIL'?'primary':'ghost'}`}>Viestit</button>
+          <button onClick={()=>setActiveTab('SENTINEL')} className={`jc-cta ${activeTab==='SENTINEL'?'primary':'ghost'}`}>Sentinel</button>
         </div>
       </header>
 
@@ -217,6 +219,11 @@ function SecretPage() {
           {activeTab === 'EMAIL' && (
              <MessageCenter />
           )}
+
+          {/* UUSI SENTINEL-NÄKYMÄ */}
+{activeTab === 'SENTINEL' && (
+  <SentinelGuardian guests={guests} />
+)}
         </>
       )}
     </div>
