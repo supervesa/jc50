@@ -1,32 +1,16 @@
-/* Sentinel Wrapper & Grid */
+/* --- 1. GLOBAALIT & PERUSTYYLIT --- */
 .sentinel-wrapper {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  color: var(--cream);
+  font-family: "Outfit", sans-serif;
   animation: fadeIn 0.5s ease-out;
 }
 
-.sentinel-dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.25rem;
-}
-
-/* Card Enhancements */
-.sentinel-card {
-  border-left: 3px solid rgba(0, 231, 255, 0.3);
-  position: relative;
-}
-
-.sentinel-alert-border {
-  border-left: 3px solid var(--magenta);
-}
-
-.sentinel-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .sentinel-h3 {
@@ -35,71 +19,251 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin: 0;
-  color: var(--cream);
+  color: var(--laser-white);
 }
 
-/* Status Badges */
-.sentinel-badge {
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+.sentinel-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 10px;
 }
 
-.sentinel-status-deep { background: rgba(173, 255, 47, 0.2); color: var(--lime); border: 1px solid var(--lime); }
-.sentinel-status-active { background: rgba(0, 231, 255, 0.2); color: var(--turquoise); border: 1px solid var(--turquoise); }
-.sentinel-status-brief { background: rgba(255, 165, 0, 0.2); color: var(--sun); border: 1px solid var(--sun); }
-.sentinel-status-ghost { background: rgba(136, 136, 136, 0.1); color: var(--muted); border: 1px solid rgba(255,255,255,0.1); }
-
-/* Table & Mobile responsiveness */
-.sentinel-table-container {
-  overflow-x: auto;
-  margin-top: 1rem;
-}
-
-.sentinel-table {
-  width: 100%;
-  border-collapse: collapse;
+.sentinel-muted-text {
+  color: var(--muted);
+  font-style: italic;
   font-size: 0.9rem;
 }
 
-.sentinel-table th {
-  text-align: left;
-  padding: 0.75rem;
-  color: var(--muted);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.sentinel-table td {
-  padding: 1rem 0.75rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-@media (max-width: 600px) {
-  .sentinel-hide-mobile {
-    display: none;
-  }
-  
-  .sentinel-dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Icons */
+/* Ikonien korostukset */
 .sentinel-icon-turquoise { color: var(--turquoise); filter: drop-shadow(0 0 5px var(--turquoise)); }
 .sentinel-icon-magenta { color: var(--magenta); filter: drop-shadow(0 0 5px var(--magenta)); }
 .sentinel-icon-lime { color: var(--lime); filter: drop-shadow(0 0 5px var(--lime)); }
 
+/* --- 2. LEAYOUTIT (GRIDS) --- */
+.sentinel-hud-grid, 
+.sentinel-summary-grid, 
+.sentinel-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+/* --- 3. KORTIT & STATISTIIKAT --- */
+.sentinel-card {
+  border-left: 3px solid rgba(0, 231, 255, 0.3);
+  position: relative;
+}
+
+.sentinel-alert-border {
+  border-left: 3px solid var(--magenta) !important;
+}
+
+.sentinel-stats-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.sentinel-stat-box {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sentinel-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.sentinel-value { 
+  font-size: 1.8rem; 
+  font-weight: 800; 
+  color: var(--turquoise); 
+  display: block; 
+}
+
+.sentinel-value.lime { color: var(--lime); }
+
+/* Käyttöastepalkit */
+.sentinel-usage-row { margin-bottom: 10px; }
+.sentinel-bar-bg { background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.sentinel-bar-fill { background: var(--turquoise); height: 100%; transition: width 0.5s ease; }
+
+/* --- 4. HÄLYTYKSET & NUDGE LIST --- */
 .sentinel-alert-toast {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   background: rgba(255, 0, 229, 0.1);
-  padding: 8px;
+  padding: 10px;
   border-radius: 6px;
-  margin-bottom: 0.5rem;
-  font-size: 0.8rem;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
   color: var(--magenta);
   border: 1px solid rgba(255, 0, 229, 0.2);
+}
+
+.sentinel-nudge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.sentinel-nudge-card {
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  border-left: 4px solid var(--muted);
+  background: rgba(255,255,255,0.03);
+}
+
+.sentinel-nudge-card.pudonnut { border-color: var(--magenta); color: var(--magenta); background: rgba(255, 0, 229, 0.05); }
+.sentinel-nudge-card.uusi { border-color: var(--lime); color: var(--lime); background: rgba(173, 255, 47, 0.05); }
+
+/* --- 5. AGENTTIKORTIT & KÄYTTÄYTYMINEN --- */
+.sentinel-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.sentinel-behavior-card {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sentinel-behavior-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--turquoise);
+  transform: translateY(-2px);
+}
+
+.behavior-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.agent-name { font-weight: 700; color: var(--laser-white); }
+
+.status-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+}
+
+.status-tag.aktiivinen { color: var(--lime); background: rgba(173, 255, 47, 0.1); }
+.status-tag.pudonnut { color: var(--magenta); background: rgba(255, 0, 229, 0.1); }
+
+/* Signaalipalkit */
+.signal-mini-bar {
+  height: 4px;
+  display: flex;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.sig-part.nexus { background: var(--lime); }
+.sig-part.photo { background: var(--magenta); }
+.sig-part.ticket { background: var(--turquoise); }
+
+/* --- 6. DOSSIER MODAL --- */
+.sentinel-dossier-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.sentinel-dossier-card {
+  max-width: 550px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--turquoise) !important;
+  padding: 25px;
+}
+
+.full-signal-bar {
+  height: 30px;
+  display: flex;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.sig-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  transition: width 0.5s ease;
+  white-space: nowrap;
+}
+
+.sig-segment.nexus { background: rgba(173, 255, 47, 0.2); color: var(--lime); border-right: 1px solid var(--lime); }
+.sig-segment.photo { background: rgba(255, 0, 229, 0.2); color: var(--magenta); border-right: 1px solid var(--magenta); }
+.sig-segment.ticket { background: rgba(0, 231, 255, 0.2); color: var(--turquoise); }
+
+.dossier-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.dossier-box {
+  background: rgba(255,255,255,0.03);
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* --- 7. RAW FEED (LOGS) --- */
+.sentinel-table-scroll { 
+  max-height: 200px; 
+  overflow-y: auto; 
+  font-family: monospace; 
+  font-size: 0.75rem; 
+}
+
+.sentinel-table-mini { 
+  width: 100%; 
+  color: var(--muted); 
+  border-collapse: collapse;
+}
+
+.sentinel-table-mini td { 
+  padding: 5px; 
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }

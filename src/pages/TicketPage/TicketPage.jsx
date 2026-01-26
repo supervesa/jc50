@@ -15,11 +15,15 @@ import NexusTeaser from './NexusTeaser';
 
 // Hookit
 import { useGameConfig } from '../AgentPage/hooks/useGameConfig'; 
+import { useSentinel } from '../../hooks/useSentinel';
 
 function TicketPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   
+  // SENTINEL AKTIVOINTI
+  useSentinel(id, 'TICKET');
+
   // --- TILAT ---
   const [guest, setGuest] = useState(null);
   const [myCharacters, setMyCharacters] = useState([]); 

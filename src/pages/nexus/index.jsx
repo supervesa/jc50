@@ -6,11 +6,17 @@ import NexusModal from './NexusModal';
 import { RotateCcw, BookOpen, Lock } from 'lucide-react';
 import './nexus.css';
 
+// SENTINEL
+import { useSentinel } from '../../hooks/useSentinel';
+
 const NexusPage = () => {
   const { ticketId } = useParams();
   const topRef = useRef(null);
   const { focalChar, isPublic, isTester, neighbors, groupedOthers, loading, error, currentFocusId, setCurrentFocusId, originalCharId } = useNexusLogic(ticketId);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+
+  // SENTINEL ALUSTUS
+  const { trackInteraction } = useSentinel(ticketId, 'NEXUS');
 
   useEffect(() => {
     if (currentFocusId && !loading) topRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -26,7 +32,13 @@ const NexusPage = () => {
       <header className="nexus-header">
         <h1 className="jc-h1">NEXUS</h1>
         {currentFocusId !== originalCharId && (
-          <button className="nexus-reset-btn" onClick={() => setCurrentFocusId(originalCharId)}>
+          <button 
+            className="nexus-reset-btn" 
+            onClick={() => {
+              setCurrentFocusId(originalCharId);
+              trackInteraction('NEXUS_RESET_VIEW', 'Quick Glance');
+            }}
+          >
             <RotateCcw size={14} /> PALAA OMAAN NÄKYMÄÄN
           </button>
         )}
@@ -46,7 +58,13 @@ const NexusPage = () => {
                   {focalChar.isLocked ? "Yhteys muodostetaan. Tiedot salattu." : "Yhteys vahvistettu."}
                 </p>
                 {!focalChar.isLocked && (
-                   <button className="dossier-pill-btn" onClick={() => setSelectedCharacter(focalChar)}>
+                   <button 
+                    className="dossier-pill-btn" 
+                    onClick={() => {
+                      setSelectedCharacter(focalChar);
+                      trackInteraction('NEXUS_READ_STORY_FOCAL', 'Operative Briefing');
+                    }}
+                  >
                      <BookOpen size={10} /> LUE TARINA
                    </button>
                 )}
@@ -65,8 +83,14 @@ const NexusPage = () => {
         <NexusGrid 
           neighbors={neighbors} 
           groupedOthers={groupedOthers} 
-          onCardClick={setCurrentFocusId} 
-          onDossierClick={setSelectedCharacter} 
+          onCardClick={(id) => {
+            setCurrentFocusId(id);
+            trackInteraction('NEXUS_NEIGHBOR_CLICK', 'Operative Briefing');
+          }} 
+          onDossierClick={(char) => {
+            setSelectedCharacter(char);
+            trackInteraction('NEXUS_READ_STORY_GRID', 'Operative Briefing');
+          }} 
         />
       ) : (
         <div className="nexus-locked-overlay">

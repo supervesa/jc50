@@ -4,10 +4,17 @@ import { Flame, MessageCircle, ArrowLeft, ArrowUp } from 'lucide-react';
 import './PhotoWall.css';
 import PhotoViewOverlay from './PhotoViewOverlay';
 
+// SENTINEL
+import { useSentinel } from '../hooks/useSentinel';
+
 const PhotoWall = () => {
   const [photos, setPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // SENTINEL ALUSTUS (Käytetään localStoragea guest_id:lle)
+  const guestId = localStorage.getItem('jc_ticket_id');
+  const { trackInteraction } = useSentinel(guestId, 'PHOTO_WALL');
 
   // --- LAUSEGENERAATTORI ---
   const getStoryPhrase = (id, isPlural) => {
@@ -153,7 +160,10 @@ const PhotoWall = () => {
                 key={photo.id} 
                 className="polaroid-item"
                 style={{ transform: `rotate(${rotation})` }}
-                onClick={() => setSelectedPhoto(photo)}
+                onClick={() => {
+                  setSelectedPhoto(photo);
+                  trackInteraction('PHOTO_POLAROID_CLICK', 'Operative Briefing');
+                }}
               >
                 {/* YLÄKULMAN BY-BADGE */}
                 <div className="photo-by-badge">

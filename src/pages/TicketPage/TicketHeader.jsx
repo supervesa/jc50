@@ -3,11 +3,15 @@ import { Link } from 'react-router-dom';
 import { Smartphone, IdCard, Camera, ScanLine, ShieldCheck, Images } from 'lucide-react';
 import './TicketPage.css';
 
-// TUODAAN HOOK
+// TUODAAN HOOKIT
 import { useGameConfig } from '../../hooks/useGameConfig'; 
+import { useSentinel } from '../../hooks/useSentinel';
 
 function TicketHeader({ id, activeTab, setActiveTab }) {
   const wallLink = id ? `/wall/${id}` : '/wall';
+
+  // SENTINEL ALUSTUS
+  const { trackInteraction } = useSentinel(id, 'TICKET');
 
   // 1. Haetaan konfiguraatio
   const { 
@@ -36,7 +40,12 @@ function TicketHeader({ id, activeTab, setActiveTab }) {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <Link to={wallLink} className="header-wall-link" title="Avaa Juhlafeed">
+          <Link 
+            to={wallLink} 
+            className="header-wall-link" 
+            title="Avaa Juhlafeed"
+            onClick={() => trackInteraction('TOP_WALL_LINK_CLICK', 'Quick Glance')}
+          >
             <Images size={16} /> <span style={{ letterSpacing: '1px' }}>LIVE WALL</span>
           </Link>
         </div>
@@ -49,7 +58,12 @@ function TicketHeader({ id, activeTab, setActiveTab }) {
       {showAgentButton && (
         /* VAIHTOEHTO A: AGENTTI-KOMMUNIKAATTORI (Kulta/Plasma) */
         <div className="agent-hero-container">
-          <Link to={`/agent?id=${id}`} className="agent-hero-btn agent-active" style={{ borderColor: 'rgba(212,175,55,0.4)' }}>
+          <Link 
+            to={`/agent?id=${id}`} 
+            className="agent-hero-btn agent-active" 
+            style={{ borderColor: 'rgba(212,175,55,0.4)' }}
+            onClick={() => trackInteraction('AGENT_COMMUNICATOR_OPEN', 'Deep Immersion')}
+          >
             <div className="agent-icon-box" style={{ color: '#D4AF37', borderColor: '#D4AF37' }}>
               <Smartphone size={32} />
               <div className="ping-ring" style={{ borderColor: '#D4AF37' }}></div>
@@ -74,6 +88,7 @@ function TicketHeader({ id, activeTab, setActiveTab }) {
               background: 'rgba(255, 0, 229, 0.03)',
               boxShadow: '0 0 30px rgba(255, 0, 229, 0.15)'
             }}
+            onClick={() => trackInteraction('HERO_LIVE_WALL_OPEN', 'Quick Glance')}
           >
             <div className="agent-icon-box" style={{ color: '#FF00E5', borderColor: '#FF00E5' }}>
               <Images size={32} />
@@ -94,7 +109,10 @@ function TicketHeader({ id, activeTab, setActiveTab }) {
       <div className="ticket-nav-wrapper">
         <div className="ticket-nav-pill" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <button 
-            onClick={() => setActiveTab('IDENTITY')}
+            onClick={() => {
+              setActiveTab('IDENTITY');
+              trackInteraction('TAB_CHANGE_IDENTITY', 'Quick Glance');
+            }}
             className={`nav-segment ${activeTab === 'IDENTITY' ? 'active' : ''}`}
           >
             <IdCard size={18} />
@@ -102,7 +120,10 @@ function TicketHeader({ id, activeTab, setActiveTab }) {
           </button>
           
           <button 
-            onClick={() => setActiveTab('PHOTO')}
+            onClick={() => {
+              setActiveTab('PHOTO');
+              trackInteraction('TAB_CHANGE_PHOTO', 'Quick Glance');
+            }}
             className={`nav-segment ${activeTab === 'PHOTO' ? 'active' : ''}`}
           >
             <Camera size={18} />
