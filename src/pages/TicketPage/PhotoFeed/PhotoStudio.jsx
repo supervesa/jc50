@@ -14,9 +14,9 @@ export function PhotoStudio({
   uploading,  
   uploadSuccess,
   phaseValue = 0,
-  isTester = false 
+  isTester = false // Aktivoi uudet ominaisuudet vain testaajille
 }) {
-  // --- Tila ---
+  // --- Tila (Alkuperäiset + Zoom) ---
   const [activeFrameId, setActiveFrameId] = useState('none');
   const [activeFilterId, setActiveFilterId] = useState('none');
   const [activeTool, setActiveTool] = useState('filters'); 
@@ -29,8 +29,9 @@ export function PhotoStudio({
   const isDragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
 
+  // Mobiili pinch-to-zoom apu-refit
   const initialPinchDistance = useRef(null);
-  const initialPinchZoom = useRef(1);
+  const lastZoom = useRef(1);
 
   const [toolInputText, setToolInputText] = useState('');
   const [photoMessage, setPhotoMessage] = useState(''); 
@@ -39,7 +40,7 @@ export function PhotoStudio({
   const canvasRef = useRef(null);
   const imgRef = useRef(null); 
 
-  // --- Alustus ---
+  // --- Alustus (Säilytetty ennallaan) ---
   useEffect(() => {
     if (imageSrc) {
       const img = new Image();
@@ -48,6 +49,7 @@ export function PhotoStudio({
         imgRef.current = img;
         setBgPan({ x: 0, y: 0 });
         setBgZoom(1);
+        lastZoom.current = 1;
         setOverlays([]); 
         setActiveFrameId('none');
         setActiveFilterId('none');
@@ -58,7 +60,7 @@ export function PhotoStudio({
     }
   }, [imageSrc]);
 
-  // --- Piirtologiikka ---
+  // --- Piirtologiikka (Optimoitu zoomilla) ---
   const drawCanvas = () => {
     if (!imgRef.current || !canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -75,6 +77,7 @@ export function PhotoStudio({
     const currentFilter = FILTERS.find(f => f.id === activeFilterId) || FILTERS[0];
     ctx.filter = currentFilter.filter || 'none';
 
+    // Zoom-kerroin (1.0 jos ei olla tester-tilassa)
     const effectiveZoom = isTester ? bgZoom : 1;
 
     let renderW, renderH, offsetX, offsetY;
@@ -88,6 +91,7 @@ export function PhotoStudio({
       renderH = (size / aspect) * effectiveZoom;
     }
     
+    // Keskitetty asettelu + käyttäjän pan-siirto
     offsetX = (size - renderW) / 2 + bgPan.x;
     offsetY = (size - renderH) / 2 + bgPan.y;
     
@@ -133,12 +137,12 @@ export function PhotoStudio({
     canvas.toBlob((blob) => setProcessedBlob(blob), 'image/jpeg', 0.9);
   };
 
+  // Piirretään välittömästi ilman setTimeoutia vasteen parantamiseksi
   useEffect(() => { 
-    const timer = setTimeout(() => drawCanvas(), 50); 
-    return () => clearTimeout(timer);
+    drawCanvas();
   }, [activeFrameId, activeFilterId, bgPan, bgZoom, overlays, dragTarget, phaseValue]);
 
-  // --- Muokkaustoiminnot ---
+  // --- Muokkaustoiminnot (Säilytetty ennallaan) ---
   const addOverlay = (type, content) => {
     if (!content) return;
     const newId = Date.now();
@@ -166,17 +170,18 @@ export function PhotoStudio({
   };
 
   const getPinchDistance = (touches) => {
-    return Math.sqrt(
-      Math.pow(touches[0].clientX - touches[1].clientX, 2) +
-      Math.pow(touches[0].clientY - touches[1].clientY, 2)
-    );
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   };
 
   const handleStart = (e) => { 
+    // Pinch-to-zoom aloitus (Vain testaajille)
     if (isTester && e.touches && e.touches.length === 2) {
       isDragging.current = false;
       initialPinchDistance.current = getPinchDistance(e.touches);
-      initialPinchZoom.current = bgZoom;
+      lastZoom.current = bgZoom;
       return;
     }
 
@@ -196,17 +201,21 @@ export function PhotoStudio({
   };
 
   const handleMove = (e) => { 
-    if (isTester && e.touches && e.touches.length === 2 && initialPinchDistance.current) {
+    // Pinch-to-zoom liike (Vain testaajille)
+    if (isTester && e.touches && e.touches.length === 2) {
       if (e.cancelable) e.preventDefault();
       const currentDist = getPinchDistance(e.touches);
-      const ratio = currentDist / initialPinchDistance.current;
-      const newZoom = Math.min(Math.max(initialPinchZoom.current * ratio, 1), 4);
-      setBgZoom(newZoom);
+      if (initialPinchDistance.current > 10) {
+        const ratio = currentDist / initialPinchDistance.current;
+        const newZoom = Math.min(Math.max(lastZoom.current * ratio, 1), 5);
+        setBgZoom(newZoom);
+      }
       return;
     }
 
     if(!isDragging.current) return;
     if (e.cancelable) e.preventDefault();
+    
     const pt = e.touches ? e.touches[0] : e; 
     const pos = getCanvasCoords(pt.clientX, pt.clientY);
     const dx = pos.x - lastPos.current.x;
@@ -223,6 +232,7 @@ export function PhotoStudio({
   const endDrag = () => { 
     isDragging.current = false; 
     initialPinchDistance.current = null;
+    lastZoom.current = bgZoom;
   };
 
   const handleSendClick = () => {
@@ -251,11 +261,12 @@ export function PhotoStudio({
       ) : (
         <>
           <div className="studio-workspace"
+            style={{ touchAction: 'none' }} // Estää selaimen häiriöt mobiilissa
             onMouseDown={handleStart} onMouseMove={handleMove} onMouseUp={endDrag} onMouseLeave={endDrag}
             onTouchStart={handleStart} onTouchMove={handleMove} onTouchEnd={endDrag}
           >
               <div className="canvas-wrapper">
-                <canvas ref={canvasRef} className="studio-canvas" style={{ touchAction: 'none' }} />
+                <canvas ref={canvasRef} className="studio-canvas" style={{ touchAction: 'none', display: 'block' }} />
                 
                 <button 
                   className={`delete-hint-overlay ${dragTarget && dragTarget !== 'bg' ? 'visible' : ''}`}
@@ -269,46 +280,37 @@ export function PhotoStudio({
           </div>
 
           <div className="studio-controls">
-              {/* TESTER ZOOM TYÖKALUT INLINE-TYYLEILLÄ */}
+              {/* TESTER-OSIO INLINE-TYYLEILLÄ */}
               {isTester && (
                 <div style={{
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '12px', 
-                  padding: '12px', 
-                  background: 'rgba(0,0,0,0.6)', 
-                  borderRadius: '16px', 
+                  padding: '10px 15px', 
+                  background: 'rgba(0, 231, 255, 0.1)', 
+                  borderRadius: '12px', 
                   marginBottom: '10px',
-                  border: '1px solid rgba(0, 231, 255, 0.3)'
+                  border: '1px solid rgba(0, 231, 255, 0.4)'
                 }}>
                   <Maximize2 size={16} color="#00e7ff" />
                   <input 
-                    type="range" min="1" max="4" step="0.01" 
+                    type="range" min="1" max="5" step="0.01" 
                     value={bgZoom} 
                     onChange={(e) => setBgZoom(parseFloat(e.target.value))}
-                    style={{
-                      flex: 1,
-                      height: '4px',
-                      borderRadius: '2px',
-                      background: '#444',
-                      accentColor: '#00e7ff',
-                      cursor: 'pointer'
-                    }}
+                    style={{ flex: 1, accentColor: '#00e7ff', cursor: 'pointer' }}
                   />
                   <button 
                     onClick={() => { setBgZoom(1); setBgPan({x:0, y:0}); }}
                     style={{
-                      padding: '4px 10px',
-                      background: 'transparent',
+                      background: 'rgba(0, 231, 255, 0.2)',
                       color: '#00e7ff',
                       border: '1px solid #00e7ff',
-                      borderRadius: '12px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase'
+                      padding: '2px 8px',
+                      borderRadius: '8px',
+                      fontSize: '11px'
                     }}
                   >
-                    Reset
+                    RESET
                   </button>
                 </div>
               )}
