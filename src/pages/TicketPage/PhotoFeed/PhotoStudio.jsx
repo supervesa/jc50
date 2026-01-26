@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Trash2, Type, Smile, Frame, X, Send, 
-  CheckCircle, ArrowLeft, Move, Wand2, Lock 
+  CheckCircle, ArrowLeft, Move, Wand2, Lock,
+  Maximize2 
 } from 'lucide-react';
 import { FRAMES, STICKERS, FILTERS } from './constants';
 
@@ -12,7 +13,8 @@ export function PhotoStudio({
   onSend,     
   uploading,  
   uploadSuccess,
-  phaseValue = 0 
+  phaseValue = 0,
+  isTester = false 
 }) {
   // --- Tila ---
   const [activeFrameId, setActiveFrameId] = useState('none');
@@ -20,11 +22,15 @@ export function PhotoStudio({
   const [activeTool, setActiveTool] = useState('filters'); 
   
   const [bgPan, setBgPan] = useState({ x: 0, y: 0 }); 
+  const [bgZoom, setBgZoom] = useState(1); 
   const [overlays, setOverlays] = useState([]); 
   const [dragTarget, setDragTarget] = useState(null); 
   
   const isDragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
+
+  const initialPinchDistance = useRef(null);
+  const initialPinchZoom = useRef(1);
 
   const [toolInputText, setToolInputText] = useState('');
   const [photoMessage, setPhotoMessage] = useState(''); 
@@ -41,6 +47,7 @@ export function PhotoStudio({
       img.onload = () => {
         imgRef.current = img;
         setBgPan({ x: 0, y: 0 });
+        setBgZoom(1);
         setOverlays([]); 
         setActiveFrameId('none');
         setActiveFilterId('none');
@@ -68,17 +75,21 @@ export function PhotoStudio({
     const currentFilter = FILTERS.find(f => f.id === activeFilterId) || FILTERS[0];
     ctx.filter = currentFilter.filter || 'none';
 
+    const effectiveZoom = isTester ? bgZoom : 1;
+
     let renderW, renderH, offsetX, offsetY;
     const aspect = img.width / img.height;
+    
     if (aspect > 1) {
-      renderH = size; renderW = size * aspect;
-      offsetX = -(renderW - size) / 2 + bgPan.x;
-      offsetY = 0 + bgPan.y;
+      renderH = size * effectiveZoom; 
+      renderW = size * aspect * effectiveZoom;
     } else {
-      renderW = size; renderH = size / aspect;
-      offsetX = 0 + bgPan.x;
-      offsetY = -(renderH - size) / 2 + bgPan.y;
+      renderW = size * effectiveZoom; 
+      renderH = (size / aspect) * effectiveZoom;
     }
+    
+    offsetX = (size - renderW) / 2 + bgPan.x;
+    offsetY = (size - renderH) / 2 + bgPan.y;
     
     ctx.drawImage(img, offsetX, offsetY, renderW, renderH);
     ctx.restore();
@@ -125,7 +136,7 @@ export function PhotoStudio({
   useEffect(() => { 
     const timer = setTimeout(() => drawCanvas(), 50); 
     return () => clearTimeout(timer);
-  }, [activeFrameId, activeFilterId, bgPan, overlays, dragTarget, phaseValue]);
+  }, [activeFrameId, activeFilterId, bgPan, bgZoom, overlays, dragTarget, phaseValue]);
 
   // --- Muokkaustoiminnot ---
   const addOverlay = (type, content) => {
@@ -136,7 +147,6 @@ export function PhotoStudio({
     if (type === 'text') setToolInputText('');
   };
 
-  // KORJATTU: Poisto reagoi välittömästi tilaan
   const removeSelectedOverlay = (e) => {
     if (e) {
       e.stopPropagation();
@@ -148,14 +158,28 @@ export function PhotoStudio({
     }
   };
 
-  // --- Raahaus ---
+  // --- Koordinaatit ja Mobiilieleet ---
   const getCanvasCoords = (clientX, clientY) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const scale = 1080 / rect.width;
     return { x: (clientX - rect.left) * scale, y: (clientY - rect.top) * scale };
   };
 
+  const getPinchDistance = (touches) => {
+    return Math.sqrt(
+      Math.pow(touches[0].clientX - touches[1].clientX, 2) +
+      Math.pow(touches[0].clientY - touches[1].clientY, 2)
+    );
+  };
+
   const handleStart = (e) => { 
+    if (isTester && e.touches && e.touches.length === 2) {
+      isDragging.current = false;
+      initialPinchDistance.current = getPinchDistance(e.touches);
+      initialPinchZoom.current = bgZoom;
+      return;
+    }
+
     const pt = e.touches ? e.touches[0] : e; 
     const coords = getCanvasCoords(pt.clientX, pt.clientY);
     isDragging.current = true;
@@ -166,13 +190,21 @@ export function PhotoStudio({
       const item = overlays[i];
       const dx = coords.x - item.x;
       const dy = coords.y - item.y;
-      // Etäisyys tarkistus (tarran koko on n. 150px)
       if (Math.sqrt(dx*dx + dy*dy) < 100) { hitId = item.id; break; }
     }
     setDragTarget(hitId || 'bg');
   };
 
   const handleMove = (e) => { 
+    if (isTester && e.touches && e.touches.length === 2 && initialPinchDistance.current) {
+      if (e.cancelable) e.preventDefault();
+      const currentDist = getPinchDistance(e.touches);
+      const ratio = currentDist / initialPinchDistance.current;
+      const newZoom = Math.min(Math.max(initialPinchZoom.current * ratio, 1), 4);
+      setBgZoom(newZoom);
+      return;
+    }
+
     if(!isDragging.current) return;
     if (e.cancelable) e.preventDefault();
     const pt = e.touches ? e.touches[0] : e; 
@@ -188,7 +220,10 @@ export function PhotoStudio({
     lastPos.current = pos;
   };
 
-  const endDrag = () => { isDragging.current = false; };
+  const endDrag = () => { 
+    isDragging.current = false; 
+    initialPinchDistance.current = null;
+  };
 
   const handleSendClick = () => {
     if (processedBlob) onSend(processedBlob, photoMessage);
@@ -220,9 +255,8 @@ export function PhotoStudio({
             onTouchStart={handleStart} onTouchMove={handleMove} onTouchEnd={endDrag}
           >
               <div className="canvas-wrapper">
-                <canvas ref={canvasRef} className="studio-canvas" />
+                <canvas ref={canvasRef} className="studio-canvas" style={{ touchAction: 'none' }} />
                 
-                {/* POISTONAPPI - Käyttää onMouseDownia nopeaan poistoon */}
                 <button 
                   className={`delete-hint-overlay ${dragTarget && dragTarget !== 'bg' ? 'visible' : ''}`}
                   onMouseDown={removeSelectedOverlay}
@@ -235,6 +269,50 @@ export function PhotoStudio({
           </div>
 
           <div className="studio-controls">
+              {/* TESTER ZOOM TYÖKALUT INLINE-TYYLEILLÄ */}
+              {isTester && (
+                <div style={{
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  padding: '12px', 
+                  background: 'rgba(0,0,0,0.6)', 
+                  borderRadius: '16px', 
+                  marginBottom: '10px',
+                  border: '1px solid rgba(0, 231, 255, 0.3)'
+                }}>
+                  <Maximize2 size={16} color="#00e7ff" />
+                  <input 
+                    type="range" min="1" max="4" step="0.01" 
+                    value={bgZoom} 
+                    onChange={(e) => setBgZoom(parseFloat(e.target.value))}
+                    style={{
+                      flex: 1,
+                      height: '4px',
+                      borderRadius: '2px',
+                      background: '#444',
+                      accentColor: '#00e7ff',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <button 
+                    onClick={() => { setBgZoom(1); setBgPan({x:0, y:0}); }}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'transparent',
+                      color: '#00e7ff',
+                      border: '1px solid #00e7ff',
+                      borderRadius: '12px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              )}
+
               <div className="caption-area">
                 <input type="text" className="caption-input" placeholder="Viesti seinälle..." 
                   value={photoMessage} onChange={(e) => setPhotoMessage(e.target.value)} />
