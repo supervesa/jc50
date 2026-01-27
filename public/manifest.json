@@ -1,6 +1,7 @@
 {
   "short_name": "J:Club50",
   "name": "J:Club Fiftyparty",
+  "id": "/?version=browser_safe_v1",
   "icons": [
     {
       "src": "/icon-192.png",  
@@ -15,8 +16,8 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/?mode=pwa", 
-  "display": "standalone",
+  "start_url": "/", 
+  "display": "minimal-ui",
   "theme_color": "#050505",
   "background_color": "#050505",
   "orientation": "portrait"

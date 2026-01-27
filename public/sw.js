@@ -1,29 +1,23 @@
-/* public/sw.js */
-
-// VAIHDA TÄMÄ NIMI (esim. v2), se pakottaa selaimen lataamaan workerin uudestaan
-const CACHE_NAME = 'jclub-cache-v2-ios-fix';
+/* public/sw.js - THE KILL SWITCH */
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); 
+  self.skipWaiting(); // Pakottaa tämän uuden version heti käyttöön
 });
 
 self.addEventListener('activate', (event) => {
-  // Tämä varmistaa että uusi worker ottaa vallan heti
+  // TÄRKEÄ: Poistaa kaikki vanhat välimuistit
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache); // Poistetaan vanhat sotkemasta
-          }
-        })
+        cacheNames.map((cache) => caches.delete(cache))
       );
     })
   );
+  // Ottaa komennon välittömästi kaikilta asiakkailta
   return self.clients.claim();
 });
 
-// Passiivinen fetch (ei riko Supabasea)
 self.addEventListener('fetch', (event) => {
-  return; 
+  // Ei tehdä mitään, päästetään kaikki läpi suoraan verkkoon
+  return;
 });
