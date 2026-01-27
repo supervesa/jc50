@@ -41,7 +41,7 @@ function TicketPage() {
   // HAETAAN MAAILMAN TILA
   const { phaseValue } = useGameConfig(id);
 
-  // --- 1. DATAHAKU & LEIMAUS ---
+ // --- 1. DATAHAKU & LEIMAUS ---
 const fetchData = async () => {
   if (!id || id.length < 20) {
     setErrorMsg("Linkki virheellinen.");
@@ -53,10 +53,11 @@ const fetchData = async () => {
 
   try {
     // --- MUUTOS ALKAA ---
-    // Tallennetaan ID heti, jotta PWA-asennus muistaa kuka olet.
-    // 'last_visited_id' on se avain, jota aiempi PWA-ohjauskoodi etsii.
+    // Tallennetaan ID ja TYYPPI heti, jotta PWA-asennus muistaa missä ollaan.
     localStorage.setItem('jc_ticket_id', id);
     localStorage.setItem('last_visited_id', id); 
+    
+    localStorage.setItem('last_visited_type', 'ticket'); // <--- SIIRRETTY TÄNNE (OIKEA PAIKKA)
     // --- MUUTOS LOPPU ---
 
     const { data: guestData, error: guestError } = await supabase
@@ -68,7 +69,6 @@ const fetchData = async () => {
     if (guestError || !guestData) throw guestError;
     
     setGuest(guestData);
-    // (Poistin tästä vanhan localStorage-tallennuksen, koska se on nyt ylhäällä)
 
     // Haetaan hahmot
     const { data: charData, error: charError } = await supabase
@@ -90,11 +90,11 @@ const fetchData = async () => {
     setErrorMsg("Lippua ei löytynyt.");
     
     // --- SIIVOUS ---
-    // Jos ID olikin väärä, poistetaan se muistista ettei äppi jumita rikkinäiseen linkkiin
+    // Jos ID olikin väärä, poistetaan kaikki jäljet
     localStorage.removeItem('jc_ticket_id');
     localStorage.removeItem('jc_username');
     localStorage.removeItem('last_visited_id'); 
-    localStorage.setItem('last_visited_type', 'ticket'); // <--- TÄMÄ ON UUSI
+    localStorage.removeItem('last_visited_type'); // <--- POISTETAAN TYYPPIKIN JOS VIRHE
   } finally {
     setLoading(false);
   }
