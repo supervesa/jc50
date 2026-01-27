@@ -14,6 +14,35 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#050505">
     <title>J:Club Fiftyparty</title>
+
+    <script>
+  (function() {
+    // 1. Tunnista PWA-tila
+    var isPWA = window.location.search.includes('mode=pwa') || 
+                window.matchMedia('(display-mode: standalone)').matches;
+
+    // 2. Jos sovellus aukeaa "appina"
+    if (isPWA) {
+      var savedId = localStorage.getItem('last_visited_id');
+      var savedType = localStorage.getItem('last_visited_type'); // UUSI: 'ticket' tai 'agent'
+      
+      // Varmistetaan, ettei olla jo valmiiksi oikealla sivulla, jotta vältetään looppi
+      var currentUrl = window.location.href;
+
+      if (savedId) {
+        // SKENAARIO A: Käyttäjä oli viimeksi Agentissa
+        if (savedType === 'agent' && currentUrl.indexOf('/agent') === -1) {
+          window.location.replace('/agent?id=' + savedId);
+        }
+        // SKENAARIO B: Käyttäjä oli viimeksi Lipussa (tai tieto puuttuu -> oletus)
+        else if ((!savedType || savedType === 'ticket') && currentUrl.indexOf('/lippu/') === -1) {
+          window.location.replace('/lippu/' + savedId);
+        }
+      }
+    }
+  })();
+</script>
+
   </head>
   <body>
 

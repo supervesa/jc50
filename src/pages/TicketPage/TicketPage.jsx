@@ -42,51 +42,63 @@ function TicketPage() {
   const { phaseValue } = useGameConfig(id);
 
   // --- 1. DATAHAKU & LEIMAUS ---
-  const fetchData = async () => {
-    if (!id || id.length < 20) {
-      setErrorMsg("Linkki virheellinen.");
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setErrorMsg(null);
+const fetchData = async () => {
+  if (!id || id.length < 20) {
+    setErrorMsg("Linkki virheellinen.");
+    setLoading(false);
+    return;
+  }
+  setLoading(true);
+  setErrorMsg(null);
 
-    try {
-      const { data: guestData, error: guestError } = await supabase
-        .from('guests')
-        .select('*')
-        .eq('id', id)
-        .single();
+  try {
+    // --- MUUTOS ALKAA ---
+    // Tallennetaan ID heti, jotta PWA-asennus muistaa kuka olet.
+    // 'last_visited_id' on se avain, jota aiempi PWA-ohjauskoodi etsii.
+    localStorage.setItem('jc_ticket_id', id);
+    localStorage.setItem('last_visited_id', id); 
+    // --- MUUTOS LOPPU ---
 
-      if (guestError || !guestData) throw guestError;
-      
-      setGuest(guestData);
-      localStorage.setItem('jc_ticket_id', id);
+    const { data: guestData, error: guestError } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-      // Haetaan hahmot
-      const { data: charData, error: charError } = await supabase
-        .from('characters')
-        .select('*')
-        .eq('assigned_guest_id', id);
+    if (guestError || !guestData) throw guestError;
+    
+    setGuest(guestData);
+    // (Poistin tästä vanhan localStorage-tallennuksen, koska se on nyt ylhäällä)
 
-      if (!charError && charData) {
-        setMyCharacters(charData);
-        if (charData.length > 0) {
-          localStorage.setItem('jc_username', charData[0].name);
-        }
+    // Haetaan hahmot
+    const { data: charData, error: charError } = await supabase
+      .from('characters')
+      .select('*')
+      .eq('assigned_guest_id', id);
+
+    if (!charError && charData) {
+      setMyCharacters(charData);
+      if (charData.length > 0) {
+        localStorage.setItem('jc_username', charData[0].name);
       }
-
-      fetchMyPhotos(id);
-
-    } catch (err) {
-      console.error("Lippuvirhe:", err);
-      setErrorMsg("Lippua ei löytynyt.");
-      localStorage.removeItem('jc_ticket_id');
-      localStorage.removeItem('jc_username');
-    } finally {
-      setLoading(false);
     }
-  };
+
+    fetchMyPhotos(id);
+
+  } catch (err) {
+    console.error("Lippuvirhe:", err);
+    setErrorMsg("Lippua ei löytynyt.");
+    
+    // --- SIIVOUS ---
+    // Jos ID olikin väärä, poistetaan se muistista ettei äppi jumita rikkinäiseen linkkiin
+    localStorage.removeItem('jc_ticket_id');
+    localStorage.removeItem('jc_username');
+    localStorage.removeItem('last_visited_id'); 
+    localStorage.setItem('last_visited_type', 'ticket'); // <--- TÄMÄ ON UUSI
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchMyPhotos = async (guestId) => {
     const { data } = await supabase

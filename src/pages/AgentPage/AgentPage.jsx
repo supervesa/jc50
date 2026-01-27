@@ -32,6 +32,16 @@ const AgentPage = () => {
   
   // LISÄTTY: Intron tilanhallinta
   const [showIntro, setShowIntro] = useState(true);
+  // --- UUSI LISÄYS: PWA MUISTI ---
+  // Kun sivu latautuu, kerrotaan selaimelle, että ollaan Agentissa.
+  // Näin ensi kerralla appi aukeaa suoraan tänne.
+  useEffect(() => {
+    if (guestId) {
+      localStorage.setItem('last_visited_id', guestId);
+      localStorage.setItem('last_visited_type', 'agent'); // Tärkeä: kertoo tyypin
+    }
+  }, [guestId]);
+  // ------------------------------
 
   // 1. HAE PELIVAIHE
   const { chatOpen, missionsOpen, loading: configLoading } = useGameConfig(guestId);
