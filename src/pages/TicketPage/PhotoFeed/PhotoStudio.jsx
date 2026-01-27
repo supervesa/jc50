@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { FRAMES, STICKERS, FILTERS } from './constants';
 
+// Debug-lippu: Aseta trueksi testauksessa, jotta zoom näkyy ilman ulkoista propseja
+const LOCAL_DEBUG = true; 
+
 export function PhotoStudio({ 
   imageSrc, 
   identityName, 
@@ -14,9 +17,11 @@ export function PhotoStudio({
   uploading,  
   uploadSuccess,
   phaseValue = 0,
-  isTester = false // Aktivoi uudet ominaisuudet vain testaajille
+  isTester = false 
 }) {
-  // --- Tila (Alkuperäiset + Zoom) ---
+  const activeTester = isTester || LOCAL_DEBUG;
+
+  // --- Tila ---
   const [activeFrameId, setActiveFrameId] = useState('none');
   const [activeFilterId, setActiveFilterId] = useState('none');
   const [activeTool, setActiveTool] = useState('filters'); 
@@ -29,10 +34,6 @@ export function PhotoStudio({
   const isDragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
 
-  // Mobiili pinch-to-zoom apu-refit
-  const initialPinchDistance = useRef(null);
-  const lastZoom = useRef(1);
-
   const [toolInputText, setToolInputText] = useState('');
   const [photoMessage, setPhotoMessage] = useState(''); 
   const [processedBlob, setProcessedBlob] = useState(null); 
@@ -40,7 +41,7 @@ export function PhotoStudio({
   const canvasRef = useRef(null);
   const imgRef = useRef(null); 
 
-  // --- Alustus (Säilytetty ennallaan) ---
+  // --- Alustus ---
   useEffect(() => {
     if (imageSrc) {
       const img = new Image();
@@ -49,7 +50,6 @@ export function PhotoStudio({
         imgRef.current = img;
         setBgPan({ x: 0, y: 0 });
         setBgZoom(1);
-        lastZoom.current = 1;
         setOverlays([]); 
         setActiveFrameId('none');
         setActiveFilterId('none');
@@ -60,7 +60,7 @@ export function PhotoStudio({
     }
   }, [imageSrc]);
 
-  // --- Piirtologiikka (Optimoitu zoomilla) ---
+  // --- Piirtologiikka (CORRECTED: Cover Logic) ---
   const drawCanvas = () => {
     if (!imgRef.current || !canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -77,23 +77,29 @@ export function PhotoStudio({
     const currentFilter = FILTERS.find(f => f.id === activeFilterId) || FILTERS[0];
     ctx.filter = currentFilter.filter || 'none';
 
-    // Zoom-kerroin (1.0 jos ei olla tester-tilassa)
-    const effectiveZoom = isTester ? bgZoom : 1;
+    // 1. COVER-LOGIIKKA: Lasketaan skaalaus niin, että kuva TÄYTTÄÄ ruudun
+    // Valitaan suurempi suhde (leveys tai korkeus), jotta lyhyempikin sivu on vähintään 1080
+    const scaleToCover = Math.max(size / img.width, size / img.height);
+    
+    // 2. ZOOM: Kerrotaan perusskaalaus zoomilla
+    const effectiveZoom = activeTester ? bgZoom : 1;
+    const finalScale = scaleToCover * effectiveZoom;
+    
+    const renderW = img.width * finalScale;
+    const renderH = img.height * finalScale;
+    
+    // 3. CLAMPING: Estetään kuvan reunan vetäminen kankaan sisäpuolelle
+    // Kuinka paljon kuva on isompi kuin kangas (ylimenevä osa)
+    const maxMoveX = (renderW - size) / 2;
+    const maxMoveY = (renderH - size) / 2;
 
-    let renderW, renderH, offsetX, offsetY;
-    const aspect = img.width / img.height;
-    
-    if (aspect > 1) {
-      renderH = size * effectiveZoom; 
-      renderW = size * aspect * effectiveZoom;
-    } else {
-      renderW = size * effectiveZoom; 
-      renderH = (size / aspect) * effectiveZoom;
-    }
-    
-    // Keskitetty asettelu + käyttäjän pan-siirto
-    offsetX = (size - renderW) / 2 + bgPan.x;
-    offsetY = (size - renderH) / 2 + bgPan.y;
+    // Rajoitetaan Pan-liike tähän ylimenevään osaan
+    const clampedPanX = Math.max(-maxMoveX, Math.min(maxMoveX, bgPan.x));
+    const clampedPanY = Math.max(-maxMoveY, Math.min(maxMoveY, bgPan.y));
+
+    // Lasketaan piirtokoordinaatit keskipisteestä
+    const offsetX = (size - renderW) / 2 + clampedPanX;
+    const offsetY = (size - renderH) / 2 + clampedPanY;
     
     ctx.drawImage(img, offsetX, offsetY, renderW, renderH);
     ctx.restore();
@@ -137,12 +143,12 @@ export function PhotoStudio({
     canvas.toBlob((blob) => setProcessedBlob(blob), 'image/jpeg', 0.9);
   };
 
-  // Piirretään välittömästi ilman setTimeoutia vasteen parantamiseksi
+  // Piirretään heti kun muuttujat vaihtuvat
   useEffect(() => { 
     drawCanvas();
   }, [activeFrameId, activeFilterId, bgPan, bgZoom, overlays, dragTarget, phaseValue]);
 
-  // --- Muokkaustoiminnot (Säilytetty ennallaan) ---
+  // --- Muokkaustoiminnot ---
   const addOverlay = (type, content) => {
     if (!content) return;
     const newId = Date.now();
@@ -152,9 +158,9 @@ export function PhotoStudio({
   };
 
   const removeSelectedOverlay = (e) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
+    if (e) { 
+      e.stopPropagation(); 
+      e.preventDefault(); 
     }
     if (dragTarget && dragTarget !== 'bg') {
       setOverlays(current => current.filter(o => o.id !== dragTarget));
@@ -162,29 +168,14 @@ export function PhotoStudio({
     }
   };
 
-  // --- Koordinaatit ja Mobiilieleet ---
   const getCanvasCoords = (clientX, clientY) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
     const rect = canvasRef.current.getBoundingClientRect();
     const scale = 1080 / rect.width;
     return { x: (clientX - rect.left) * scale, y: (clientY - rect.top) * scale };
   };
 
-  const getPinchDistance = (touches) => {
-    if (touches.length < 2) return 0;
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  };
-
   const handleStart = (e) => { 
-    // Pinch-to-zoom aloitus (Vain testaajille)
-    if (isTester && e.touches && e.touches.length === 2) {
-      isDragging.current = false;
-      initialPinchDistance.current = getPinchDistance(e.touches);
-      lastZoom.current = bgZoom;
-      return;
-    }
-
     const pt = e.touches ? e.touches[0] : e; 
     const coords = getCanvasCoords(pt.clientX, pt.clientY);
     isDragging.current = true;
@@ -201,21 +192,8 @@ export function PhotoStudio({
   };
 
   const handleMove = (e) => { 
-    // Pinch-to-zoom liike (Vain testaajille)
-    if (isTester && e.touches && e.touches.length === 2) {
-      if (e.cancelable) e.preventDefault();
-      const currentDist = getPinchDistance(e.touches);
-      if (initialPinchDistance.current > 10) {
-        const ratio = currentDist / initialPinchDistance.current;
-        const newZoom = Math.min(Math.max(lastZoom.current * ratio, 1), 5);
-        setBgZoom(newZoom);
-      }
-      return;
-    }
-
     if(!isDragging.current) return;
     if (e.cancelable) e.preventDefault();
-    
     const pt = e.touches ? e.touches[0] : e; 
     const pos = getCanvasCoords(pt.clientX, pt.clientY);
     const dx = pos.x - lastPos.current.x;
@@ -229,11 +207,7 @@ export function PhotoStudio({
     lastPos.current = pos;
   };
 
-  const endDrag = () => { 
-    isDragging.current = false; 
-    initialPinchDistance.current = null;
-    lastZoom.current = bgZoom;
-  };
+  const endDrag = () => { isDragging.current = false; };
 
   const handleSendClick = () => {
     if (processedBlob) onSend(processedBlob, photoMessage);
@@ -250,157 +224,177 @@ export function PhotoStudio({
       </div>
 
       {uploadSuccess ? (
-          <div className="success-view">
-            <CheckCircle className="success-icon" />
-            <h2>LÄHETETTY! 🚀</h2>
-            {identityName && <p style={{color: '#00ff41'}}>Lähettäjä: {identityName}</p>}
-            <button onClick={onCancel} className="btn-ghost" style={{border: '1px solid #444', borderRadius: '20px', marginTop: '20px'}}>
-              <ArrowLeft size={18} /> Uusi kuva
+      <div className="success-view">
+        <CheckCircle className="success-icon" />
+        <h2>LÄHETETTY! 🚀</h2>
+        {identityName && <p style={{color: '#00ff41'}}>Lähettäjä: {identityName}</p>}
+        <button onClick={onCancel} className="btn-ghost" style={{border: '1px solid #444', borderRadius: '20px', marginTop: '20px'}}>
+          <ArrowLeft size={18} /> Uusi kuva
+        </button>
+      </div>
+  ) : (
+    <>
+      <div className="studio-workspace"
+        onMouseDown={handleStart} onMouseMove={handleMove} onMouseUp={endDrag} onMouseLeave={endDrag}
+        onTouchStart={handleStart} onTouchMove={handleMove} onTouchEnd={endDrag}
+        style={{ touchAction: 'none' }}
+      >
+          <div className="canvas-wrapper" style={{ position: 'relative' }}>
+            <canvas ref={canvasRef} className="studio-canvas" style={{ display: 'block' }} />
+            
+            {/* POISTONAPPI - SIIRRETTY YLÖS */}
+            <button 
+              className={`delete-hint-overlay ${dragTarget && dragTarget !== 'bg' ? 'visible' : ''}`}
+              onMouseDown={removeSelectedOverlay}
+              onTouchStart={removeSelectedOverlay}
+              style={{ 
+                position: 'absolute',
+                top: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 300 // Korkea Z-index jotta on päällimmäisenä
+              }}
+              type="button"
+            >
+              <Trash2 size={22} /> <span>Poista valinta</span>
             </button>
-          </div>
-      ) : (
-        <>
-          <div className="studio-workspace"
-            style={{ touchAction: 'none' }} // Estää selaimen häiriöt mobiilissa
-            onMouseDown={handleStart} onMouseMove={handleMove} onMouseUp={endDrag} onMouseLeave={endDrag}
-            onTouchStart={handleStart} onTouchMove={handleMove} onTouchEnd={endDrag}
-          >
-              <div className="canvas-wrapper">
-                <canvas ref={canvasRef} className="studio-canvas" style={{ touchAction: 'none', display: 'block' }} />
-                
+
+            {/* ZOOM-SÄÄDIN - ALHAALLA, ERISTETTY */}
+            {activeTester && (
+              <div 
+                onMouseDown={(e) => e.stopPropagation()} 
+                onTouchStart={(e) => e.stopPropagation()}
+                onMouseMove={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                style={{
+                  position: 'absolute',
+                  bottom: '15px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '85%',
+                  zIndex: 200, // Canvaksen päällä, mutta poistonapin alla
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  background: 'rgba(0, 0, 0, 0.7)',
+                  padding: '10px 20px',
+                  borderRadius: '40px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                <Maximize2 size={16} color="#00e7ff" />
+                <input 
+                  type="range" min="1" max="4" step="0.01" 
+                  value={bgZoom} 
+                  onChange={(e) => setBgZoom(parseFloat(e.target.value))}
+                  style={{ flex: 1, accentColor: '#00e7ff', height: '6px', cursor: 'pointer' }}
+                />
                 <button 
-                  className={`delete-hint-overlay ${dragTarget && dragTarget !== 'bg' ? 'visible' : ''}`}
-                  onMouseDown={removeSelectedOverlay}
-                  onTouchStart={removeSelectedOverlay}
-                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setBgZoom(1); setBgPan({x:0, y:0}); }}
+                  style={{
+                    background: 'transparent',
+                    color: '#00e7ff',
+                    border: '1px solid #00e7ff',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 'bold'
+                  }}
                 >
-                  <Trash2 size={22} /> <span>Poista</span>
+                  RESET
                 </button>
               </div>
+            )}
+          </div>
+      </div>
+
+      <div className="studio-controls">
+          <div className="caption-area">
+            <input type="text" className="caption-input" placeholder="Viesti seinälle..." 
+              value={photoMessage} onChange={(e) => setPhotoMessage(e.target.value)} />
           </div>
 
-          <div className="studio-controls">
-              {/* TESTER-OSIO INLINE-TYYLEILLÄ */}
-              {isTester && (
-                <div style={{
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '12px', 
-                  padding: '10px 15px', 
-                  background: 'rgba(0, 231, 255, 0.1)', 
-                  borderRadius: '12px', 
-                  marginBottom: '10px',
-                  border: '1px solid rgba(0, 231, 255, 0.4)'
-                }}>
-                  <Maximize2 size={16} color="#00e7ff" />
-                  <input 
-                    type="range" min="1" max="5" step="0.01" 
-                    value={bgZoom} 
-                    onChange={(e) => setBgZoom(parseFloat(e.target.value))}
-                    style={{ flex: 1, accentColor: '#00e7ff', cursor: 'pointer' }}
-                  />
-                  <button 
-                    onClick={() => { setBgZoom(1); setBgPan({x:0, y:0}); }}
-                    style={{
-                      background: 'rgba(0, 231, 255, 0.2)',
-                      color: '#00e7ff',
-                      border: '1px solid #00e7ff',
-                      padding: '2px 8px',
-                      borderRadius: '8px',
-                      fontSize: '11px'
-                    }}
-                  >
-                    RESET
-                  </button>
-                </div>
-              )}
+          <div className="tool-tabs">
+            <button onClick={() => setActiveTool('filters')} className={`tab-btn ${activeTool === 'filters' ? 'active' : ''}`}><Wand2 size={18} /> Filtterit</button>
+            <button onClick={() => setActiveTool('frames')} className={`tab-btn ${activeTool === 'frames' ? 'active' : ''}`}><Frame size={18} /> Kehykset</button>
+            <button onClick={() => setActiveTool('stickers')} className={`tab-btn ${activeTool === 'stickers' ? 'active' : ''}`}><Smile size={18} /> Tarrat</button>
+            <button onClick={() => setActiveTool('text')} className={`tab-btn ${activeTool === 'text' ? 'active' : ''}`}><Type size={18} /> Teksti</button>
+          </div>
 
-              <div className="caption-area">
-                <input type="text" className="caption-input" placeholder="Viesti seinälle..." 
-                  value={photoMessage} onChange={(e) => setPhotoMessage(e.target.value)} />
-              </div>
-
-              <div className="tool-tabs">
-                <button onClick={() => setActiveTool('filters')} className={`tab-btn ${activeTool === 'filters' ? 'active' : ''}`}><Wand2 size={18} /> Filtterit</button>
-                <button onClick={() => setActiveTool('frames')} className={`tab-btn ${activeTool === 'frames' ? 'active' : ''}`}><Frame size={18} /> Kehykset</button>
-                <button onClick={() => setActiveTool('stickers')} className={`tab-btn ${activeTool === 'stickers' ? 'active' : ''}`}><Smile size={18} /> Tarrat</button>
-                <button onClick={() => setActiveTool('text')} className={`tab-btn ${activeTool === 'text' ? 'active' : ''}`}><Type size={18} /> Teksti</button>
-              </div>
-
-              <div className="tool-panel">
-                {activeTool === 'filters' && (
-                  <div className="horizontal-scroll">
-                    {FILTERS.map(f => (
-                      <div key={f.id} className={`filter-item ${activeFilterId === f.id ? 'selected' : ''}`}
-                        onClick={() => setActiveFilterId(f.id)}>
-                          <div className="filter-preview-circle" style={{ filter: f.filter }}></div>
-                          <span>{f.name}</span>
-                      </div>
-                    ))}
+          <div className="tool-panel">
+            {activeTool === 'filters' && (
+              <div className="horizontal-scroll">
+                {FILTERS.map(f => (
+                  <div key={f.id} className={`filter-item ${activeFilterId === f.id ? 'selected' : ''}`}
+                    onClick={() => setActiveFilterId(f.id)}>
+                      <div className="filter-preview-circle" style={{ filter: f.filter }}></div>
+                      <span>{f.name}</span>
                   </div>
-                )}
-
-                {activeTool === 'frames' && (
-                  phaseValue < 2 ? (
-                    <div className="sentinel-lock-overlay-panel">
-                        <Lock size={28} />
-                        <div className="sentinel-lock-text">
-                          <p>MODUULIT LUKITTU</p>
-                          <span>KEHYKSET VAATIVAT VALTUUTUKSEN</span>
-                        </div>
-                    </div>
-                  ) : (
-                    <div className="horizontal-scroll">
-                      {FRAMES.map(frame => (
-                        <div key={frame.id} className={`frame-item ${activeFrameId === frame.id ? 'selected' : ''}`}
-                          onClick={() => setActiveFrameId(frame.id)} 
-                          style={{ borderTop: `4px solid ${frame.color}` }}>{frame.name}</div>
-                      ))}
-                    </div>
-                  )
-                )}
-
-                {activeTool === 'stickers' && (
-                  phaseValue < 2 ? (
-                    <div className="sentinel-lock-overlay-panel">
-                        <Lock size={28} />
-                        <div className="sentinel-lock-text">
-                          <p>PROSESSOIDAAN...</p>
-                          <span>SENTINEL-YDIN KALIBROIDAAN</span>
-                        </div>
-                    </div>
-                  ) : (
-                    <div className="horizontal-scroll">
-                      {STICKERS.map(s => (
-                        <button key={s.char} className="sticker-item" 
-                          onClick={() => addOverlay('sticker', s.char)}>{s.char}</button>
-                      ))}
-                    </div>
-                  )
-                )}
-
-                {activeTool === 'text' && (
-                  phaseValue < 2 ? (
-                    <div className="sentinel-lock-overlay-panel">
-                        <Lock size={28} />
-                        <div className="sentinel-lock-text">
-                          <p>PÄÄSY ESTETTY</p>
-                          <span>ODOTTAA PURKUASETUKSIA</span>
-                        </div>
-                    </div>
-                  ) : (
-                    <div className="text-tool-row">
-                      <input type="text" className="text-input-modern" placeholder="Teksti..." 
-                        value={toolInputText} onChange={(e) => setToolInputText(e.target.value)} />
-                      <button className="btn-add-text" 
-                        onClick={() => addOverlay('text', toolInputText || 'TEKSTI')}><Move size={20} color="black" /></button>
-                    </div>
-                  )
-                )}
+                ))}
               </div>
+            )}
+
+            {activeTool === 'frames' && (
+              phaseValue < 2 ? (
+                <div className="sentinel-lock-overlay-panel">
+                    <Lock size={28} />
+                    <div className="sentinel-lock-text">
+                      <p>MODUULIT LUKITTU</p>
+                      <span>KEHYKSET VAATIVAT VALTUUTUKSEN</span>
+                    </div>
+                </div>
+              ) : (
+                <div className="horizontal-scroll">
+                  {FRAMES.map(frame => (
+                    <div key={frame.id} className={`frame-item ${activeFrameId === frame.id ? 'selected' : ''}`}
+                      onClick={() => setActiveFrameId(frame.id)} 
+                      style={{ borderTop: `4px solid ${frame.color}` }}>{frame.name}</div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {activeTool === 'stickers' && (
+              phaseValue < 2 ? (
+                <div className="sentinel-lock-overlay-panel">
+                    <Lock size={28} />
+                    <div className="sentinel-lock-text">
+                      <p>PROSESSOIDAAN...</p>
+                      <span>SENTINEL-YDIN KALIBROIDAAN</span>
+                    </div>
+                </div>
+              ) : (
+                <div className="horizontal-scroll">
+                  {STICKERS.map(s => (
+                    <button key={s.char} className="sticker-item" 
+                      onClick={() => addOverlay('sticker', s.char)}>{s.char}</button>
+                  ))}
+                </div>
+              )
+            )}
+
+            {activeTool === 'text' && (
+              phaseValue < 2 ? (
+                <div className="sentinel-lock-overlay-panel">
+                    <Lock size={28} />
+                    <div className="sentinel-lock-text">
+                      <p>PÄÄSY ESTETTY</p>
+                      <span>ODOTTAA PURKUASETUKSIA</span>
+                    </div>
+                </div>
+              ) : (
+                <div className="text-tool-row">
+                  <input type="text" className="text-input-modern" placeholder="Teksti..." 
+                    value={toolInputText} onChange={(e) => setToolInputText(e.target.value)} />
+                  <button className="btn-add-text" 
+                    onClick={() => addOverlay('text', toolInputText || 'TEKSTI')}><Move size={20} color="black" /></button>
+                </div>
+              )
+            )}
           </div>
-        </>
-      )}
-    </div>
+      </div>
+    </>
+  )}
+</div>
   );
 }
