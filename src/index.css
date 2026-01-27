@@ -3,6 +3,40 @@
    Käyttötarkoitukset: layout, typografia, UI-komponentit, lomakkeet, kortit, modalit, nav, footer
 */
 
+/* src/index.css */
+
+:root {
+  /* Estää "kumilankaefektin" (sivu ei pompi kun skrollaa reun yli) */
+  overscroll-behavior-y: none;
+  
+  /* Estää tekstin koon automaattisen suurentamisen kun puhelin kääntyy */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #050505; /* Sama kuin teemaväri */
+  
+  /* Estää tekstin valinnan/maalauksen sormella (tuntuu apilta) */
+  -webkit-user-select: none;
+  user-select: none;
+  
+  /* Poistaa harmaan välähdyksen nappeja painettaessa mobiilissa */
+  -webkit-tap-highlight-color: transparent;
+  
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* TÄRKEÄ: Palauttaa tekstin valinnan input-kenttiin, muuten ei voi kirjoittaa! */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* -------------------------
    DESIGN VARIABLES (THEME)
    ------------------------- */

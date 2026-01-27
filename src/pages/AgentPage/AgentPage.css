@@ -180,19 +180,32 @@
 .ap-tabs button {
   flex: 1;
   background: transparent;
-  color: #666; /* Passiivinen teksti tummemmaksi */
+  color: #666;
   border: none;
-  padding: 15px 10px; /* Vähän isompi osuma-alue */
+  
+  /* --- MUUTOS ALKAA: FLEXBOX-PINOAMINEN --- */
+  display: flex;              /* Ota Flexbox käyttöön */
+  flex-direction: column;     /* Aseta elementit allekkain (Pino) */
+  align-items: center;        /* Keskitä vaakasuunnassa */
+  justify-content: center;    /* Keskitä pystysuunnassa */
+  gap: 6px;                   /* Väli ikonin ja tekstin väliin */
+  padding: 12px 4px;          /* Vähennä sivupehmustetta, jotta napit mahtuvat */
+  /* ---------------------------------------- */
+
   font-family: inherit;
   font-weight: bold;
-  font-size: 0.9rem;
+  
+  /* Pienennetään fonttia hieman mobiilia varten */
+  font-size: 0.75rem;       
+  line-height: 1;             /* Tiivistetään riviväliä */
+  
   letter-spacing: 1px;
   text-transform: uppercase;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
   
-  /* Pystyviivat nappien väliin (Metalli-sauma) */
+  /* Pystyviivat nappien väliin */
   border-right: 1px solid rgba(0, 0, 0, 0.8);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.05);
 }
