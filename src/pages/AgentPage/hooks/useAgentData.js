@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 
 // Apufunktio: Hash stringille (Pysyvä satunnaistaminen)
@@ -27,7 +27,53 @@ export const useAgentData = (guestId) => {
   const [isVaultActive, setIsVaultActive] = useState(false);
   const [rewardData, setRewardData] = useState(null);
 
-  // --- DATAHAKU ---
+  // --- 1. ERILLINEN SALAMATARKISTUS (KERROS 1 & 2 KÄYTTÄVÄT TÄTÄ) ---
+  // Siirretty omaksi funktioksi, jotta tätä voidaan kutsua milloin vain
+  const checkFlashStatus = useCallback(async () => {
+    if (!guestId) return;
+
+    // Haetaan aktiivinen flash
+    const { data: flash } = await supabase
+      .from('flash_missions')
+      .select('*')
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (flash) {
+      setActiveFlash(flash);
+      // Tarkistetaan onko käyttäjä jo vastannut tähän
+      const { data: response } = await supabase
+        .from('flash_responses')
+        .select('id')
+        .eq('flash_id', flash.id)
+        .eq('guest_id', guestId)
+        .maybeSingle();
+      
+      setFlashResponseSent(!!response);
+    } else {
+      setActiveFlash(null);
+    }
+  }, [guestId]);
+
+  // --- 2. HERÄTYSLIIKE (KERROS 2: WINDOW FOCUS REVALIDATION) ---
+  useEffect(() => {
+    const handleRevalidation = () => {
+      // Kun sivu tulee näkyviin tai saa fokuksen (puhelin avataan), tarkista heti!
+      if (document.visibilityState === 'visible') {
+        checkFlashStatus();
+      }
+    };
+
+    window.addEventListener('focus', handleRevalidation);
+    document.addEventListener('visibilitychange', handleRevalidation);
+
+    return () => {
+      window.removeEventListener('focus', handleRevalidation);
+      document.removeEventListener('visibilitychange', handleRevalidation);
+    };
+  }, [checkFlashStatus]);
+
+  // --- 3. NORMAALI ALUSTUS ---
   useEffect(() => {
     if (!guestId) { setLoading(false); return; }
 
@@ -82,7 +128,11 @@ export const useAgentData = (guestId) => {
       if (history) setChatHistory(history);
 
       const { data: poll } = await supabase.from('polls').select('*').eq('status', 'active').maybeSingle();
-      if (poll) { setActivePoll(poll); checkIfVoted(poll.id); }
+      if (poll) { 
+        setActivePoll(poll); 
+        const { data: vote } = await supabase.from('poll_votes').select('id').eq('poll_id', poll.id).eq('guest_id', guestId).maybeSingle();
+        if (vote) setHasVoted(true);
+      }
 
       const { data: missionData } = await supabase.from('missions').select('*').eq('is_active', true);
       if (missionData) setMissions(missionData);
@@ -90,18 +140,18 @@ export const useAgentData = (guestId) => {
       const { data: myLogs } = await supabase.from('mission_log').select('mission_id').eq('guest_id', guestId).neq('approval_status', 'rejected');
       if (myLogs) setCompletedMissionIds(myLogs.map(l => l.mission_id));
 
-      const { data: flash } = await supabase.from('flash_missions').select('*').eq('status', 'active').maybeSingle();
-      if (flash) { setActiveFlash(flash); checkFlashResponse(flash.id); }
-
       const { data: settings } = await supabase.from('game_settings').select('value').eq('key', 'speakeasy_active').maybeSingle();
       if (settings) setIsVaultActive(settings.value);
+
+      // Kutsutaan Flash-tarkistusta myös alussa
+      await checkFlashStatus();
 
       setLoading(false);
     };
 
     init();
 
-    // REALTIME SUBSCRIPTIONS
+    // REALTIME SUBSCRIPTIONS (KERROS 1)
     const subs = [
       supabase.channel('ag_chat').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
         const { data: sender } = await supabase.from('guests').select('name').eq('id', payload.new.guest_id).single();
@@ -112,13 +162,10 @@ export const useAgentData = (guestId) => {
         if (payload.new.status === 'active') { setActivePoll(payload.new); setHasVoted(false); } else { setActivePoll(null); }
       }).subscribe(),
       
+      // TÄMÄ ON SE TÄRKEIN: Kuunnellaan Flash-muutoksia reaaliajassa
       supabase.channel('ag_flash').on('postgres_changes', { event: '*', schema: 'public', table: 'flash_missions' }, (payload) => {
-        if (payload.new.status === 'active') { 
-          setActiveFlash(payload.new); 
-          setFlashResponseSent(false); 
-        } else { 
-          setActiveFlash(null); 
-        }
+         // Kun tietokanta muuttuu, tarkistetaan tilanne heti uudestaan
+         checkFlashStatus();
       }).subscribe(),
       
       supabase.channel('ag_settings').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_settings' }, (payload) => {
@@ -153,20 +200,9 @@ export const useAgentData = (guestId) => {
     ];
 
     return () => subs.forEach(s => supabase.removeChannel(s));
-  }, [guestId]);
+  }, [guestId, checkFlashStatus]);
 
-  // HELPERS
-  const checkIfVoted = async (pollId) => { 
-    const { data } = await supabase.from('poll_votes').select('id').eq('poll_id', pollId).eq('guest_id', guestId).maybeSingle(); 
-    if (data) setHasVoted(true); 
-  };
-  
-  const checkFlashResponse = async (flashId) => { 
-    const { data } = await supabase.from('flash_responses').select('id').eq('flash_id', flashId).eq('guest_id', guestId).maybeSingle(); 
-    if (data) setFlashResponseSent(true); 
-  };
-
-  // ACTIONS
+  // ACTIONS (Samat kuin ennen, täydellisenä)
   const handleVote = async (index) => { 
     if (!activePoll || hasVoted) return; 
     setHasVoted(true); 
@@ -178,7 +214,6 @@ export const useAgentData = (guestId) => {
     return !error; 
   };
 
-  // --- PÄIVITETTY: STEALTH UPLOAD LOGIIKKA ---
   const submitPersonalReport = async (reportText, imageUrl) => {
     try {
       // 1. Mission Log (Pelaajan oma status)
@@ -207,9 +242,8 @@ export const useAgentData = (guestId) => {
           });
       }
 
-      // 2. Live Posts (Adminin hyväksyntäjono) - LISÄTTY
+      // 2. Live Posts (Adminin hyväksyntäjono)
       if (reportText || imageUrl) {
-        // Määritetään lähettäjän nimi (Hahmo tai oikea nimi)
         const sender = identity?.charName || identity?.realName || 'Salainen Agentti';
         
         await supabase.from('live_posts').insert({
@@ -217,9 +251,9 @@ export const useAgentData = (guestId) => {
           sender_name: sender,
           message: `🕵️ SALAINEN RAPORTTI: ${reportText || '(Vain kuva)'}`,
           image_url: imageUrl,
-          is_visible: false,           // TÄRKEÄ: Ei näy seinällä
-          status: 'pending',           // TÄRKEÄ: Odottaa hyväksyntää
-          flag_type: 'mission_proof',  // TÄRKEÄ: Admin tunnistaa tästä
+          is_visible: false,           
+          status: 'pending',           
+          flag_type: 'mission_proof',
           is_deleted: false
         });
       }
@@ -265,7 +299,7 @@ export const useAgentData = (guestId) => {
     return true; 
   };
 
-  // --- NÄKYVÄT TEHTÄVÄT (LOGIIKKA) ---
+  // --- NÄKYVÄT TEHTÄVÄT ---
   const todoMissions = missions.filter(m => !completedMissionIds.includes(m.id));
 
   const visibleMissions = [...todoMissions].sort((a, b) => {
@@ -275,7 +309,6 @@ export const useAgentData = (guestId) => {
 
   const nextMission = visibleMissions.length > 0 ? visibleMissions[0] : null;
 
-  // --- RETURN ---
   return {
     loading,
     identity,
@@ -295,7 +328,6 @@ export const useAgentData = (guestId) => {
     rewardData,
     setRewardData,
     nextMission, 
-    // Actions
     handleVote,
     handleSendChat,
     submitPersonalReport,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import '../AgentPage.css'; // Tuodaan tyylit
+import '../AgentPage.css'; 
 
 const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
   const [flashFile, setFlashFile] = useState(null);
@@ -9,7 +9,6 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
   const handleFlashAction = async () => {
     if (!activeFlash) return;
 
-    // TARKISTUS: Jos on FOTO-tehtävä, vaaditaan kuva
     if (activeFlash.type === 'photo' && !flashFile) {
       alert("Ota ensin kuva!");
       return;
@@ -19,7 +18,7 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
     let publicUrl = null;
 
     try {
-      // 1. KUVAN LATAUS (Jos kyseessä photo-tehtävä)
+      // 1. KUVAN LATAUS
       if (activeFlash.type === 'photo' && flashFile) {
         const fileExt = flashFile.name.split('.').pop();
         const fileName = `${guestId}-${Date.now()}.${fileExt}`;
@@ -34,7 +33,7 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
         publicUrl = data.publicUrl;
       }
 
-      // 2. TALLENNETAAN VASTAUS (Peliä varten)
+      // 2. TALLENNETAAN VASTAUS
       const responseData = { 
         flash_id: activeFlash.id, 
         guest_id: guestId,
@@ -45,7 +44,7 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
 
       await supabase.from('flash_responses').insert(responseData);
 
-      // 3. TALLENNETAAN XP JA LOGI (Pisteitä varten)
+      // 3. TALLENNETAAN XP JA LOGI
       await supabase.from('mission_log').insert({ 
         guest_id: guestId, 
         xp_earned: activeFlash.xp_reward, 
@@ -55,21 +54,31 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
       });
 
       // 4. (UUSI) LISÄTÄÄN LIVEWALLILLE (Jos on kuva)
-      // Tämä varmistaa että kuva näkyy seinällä ja adminin feedissä
       if (publicUrl) {
+        
+        // A. Haetaan nopeasti hahmon nimi, jotta seinällä lukee esim. "AGENTTI RAAKEL" eikä "Flash Agent"
+        const { data: charData } = await supabase
+          .from('characters')
+          .select('name')
+          .eq('assigned_guest_id', guestId)
+          .maybeSingle();
+
+        const sender = charData?.name || 'Salainen Agentti';
+
+        // B. Lähetetään LiveWallille
         await supabase.from('live_posts').insert({
           guest_id: guestId,
-          sender_name: 'Flash Agent', // LiveWall rikastaa tämän myöhemmin oikealla nimellä guest_id:n perusteella
+          sender_name: sender, 
           image_url: publicUrl,
-          message: `FLASH: ${activeFlash.title}`, // Kuvatekstiksi tehtävän otsikko
-          is_visible: true, // Pakotetaan näkyviin heti
+          message: `FLASH: ${activeFlash.title}`, 
+          is_visible: true, 
           status: 'approved',
           is_deleted: false,
-          flag_type: 'flash' // <--- TÄMÄ ON SE VIP-LIPPU
+          flag_type: 'flash',
+          type: 'mission' // <--- TÄRKEÄ: Tämä ohjaa kuvan LiveWallin karuselliin, mutta pitää sen poissa PhotoWallista
         });
       }
 
-      // Ilmoitetaan pääsivulle, että valmista tuli
       if (onComplete) onComplete();
 
     } catch (error) {
@@ -87,15 +96,13 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
         <h3>{activeFlash.title}</h3>
         <p>Palkkio: {activeFlash.xp_reward} XP</p>
         
-        {/* ERIKOISOHJEET JA KAMERA */}
         {activeFlash.type === 'race' && (
-          <div className="flash-instruct">🏃 JUOKSE DJ:N LUOKSE JA HUUDA NIMESI!</div>
+          <div className="flash-instruct">🏃 JUOKSE DJ:N LUOKSE!</div>
         )}
 
         {activeFlash.type === 'photo' && (
           <div className="flash-photo-section">
             {!flashFile ? (
-              // KAMERANAPPI
               <label className="btn-camera">
                 <span style={{fontSize: '2rem'}}>📸</span><br/>
                 <span className="camera-text">NAPSAUTA KUVA TÄSTÄ</span>
@@ -112,7 +119,6 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
                 />
               </label>
             ) : (
-              // KUVA OTETTU
               <div className="photo-preview-box">
                  <div className="success-text">✔ KUVA VALMIINA</div>
                  <button 
@@ -126,7 +132,6 @@ const FlashMissionOverlay = ({ activeFlash, guestId, onComplete }) => {
           </div>
         )}
         
-        {/* ACTION BUTTON */}
         <button 
           className="flash-btn-action" 
           onClick={handleFlashAction}

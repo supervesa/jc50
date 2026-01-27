@@ -36,7 +36,7 @@ const VettingQueue = () => {
         return;
       }
 
-      // 1. Haetaan voimassa olevat säännöt game_rules-taulusta
+      // 1. Haetaan säännöt
       const { data: rulesData } = await supabase
         .from('game_rules')
         .select('value')
@@ -46,40 +46,67 @@ const VettingQueue = () => {
       const xpConfig = rulesData?.value;
       let updates = { approval_status: 'approved' };
       
-      // 2. Määritetään annettava XP dynaamisesti sääntöjen perusteella
+      // 2. XP Laskenta
       let finalXP = 0;
       let missionNameForWall = "";
 
       if (log.mission_id === 'personal-objective') {
-        // Päätehtävä: haetaan personal_objective arvo (oletus 500)
         finalXP = xpConfig?.personal_objective || 500; 
         missionNameForWall = "SALAINEN TEHTÄVÄ";
       } else if (log.mission_id && (log.xp_earned === 0 || !log.xp_earned)) {
-        // Jos tavallinen tehtävä ja pisteet ovat 0, haetaan find_role (oletus 50)
         finalXP = xpConfig?.find_role || 50;
         missionNameForWall = "ETSINTÄKUULUTUS";
       } else {
-        // Muuten käytetään olemassa olevaa arvoa
         finalXP = log.xp_earned;
         missionNameForWall = "TEHTÄVÄ";
       }
 
-      // Asetetaan laskettu XP päivitykseen
       updates.xp_earned = finalXP;
 
-      // 3. Päivitetään alkuperäinen suoritus hyväksytyksi
+      // 3. Päivitetään mission_log hyväksytyksi
       await supabase.from('mission_log').update(updates).eq('id', log.id);
 
-// handleAction-funktion sisällä:
-await supabase.from('live_posts').insert({
-  guest_id: log.guest_id, // Liitetään agenttiin, jotta nähdään kuka pisteet sai
-  sender_name: "HQ / MISSION CONTROL",
-  message: `🚨 AGENTTI ${log.guests?.name || 'Tuntematon'} SUORITTI: ${missionNameForWall}! (+${finalXP} XP)`,
-  status: 'approved',
-  type: 'announcement',
-  is_visible: true,   // TÄRKEÄ: LiveWall suodattaa tämän mukaan!
-  is_deleted: false
-});
+      // --- KORJATTU LOGIIKKA ALKAA TÄSTÄ ---
+
+      // A. Haetaan Hahmon Nimi (Character Name)
+      // Tämä varmistaa, että seinällä lukee hahmon nimi (esim. "Raakel"), eikä vieraan oma nimi.
+      const { data: charData } = await supabase
+        .from('characters')
+        .select('name')
+        .eq('assigned_guest_id', log.guest_id)
+        .maybeSingle();
+
+      // Jos hahmo löytyy, käytetään sen nimeä. Jos ei, käytetään vieraan oikeaa nimeä varalla.
+      const agentName = charData?.name || log.guests?.name || 'Tuntematon Agentti';
+
+      // B. Tarkistetaan onko kuvatodistetta
+      let proofImage = null;
+      try {
+        const parsed = JSON.parse(log.proof_data);
+        proofImage = parsed.image; 
+      } catch (e) {
+        proofImage = null;
+      }
+
+      // C. Määritetään tyyppi: 
+      // Jos on kuva -> 'mission' (LiveWall Carousel, PhotoWall hylkää)
+      // Jos ei kuvaa -> 'announcement' (LiveWall Ticker, PhotoWall hylkää)
+      const postType = proofImage ? 'mission' : 'announcement';
+
+      // D. Lähetetään LiveWallille
+      await supabase.from('live_posts').insert({
+        guest_id: log.guest_id,
+        sender_name: "HQ / MISSION CONTROL",
+        // Viesti käyttää nyt hahmon nimeä isolla kirjoitettuna
+        message: `🚨 AGENTTI ${agentName.toUpperCase()} SUORITTI: ${missionNameForWall}! (+${finalXP} XP)`,
+        status: 'approved',
+        type: postType,        
+        image_url: proofImage, 
+        is_visible: true,
+        is_deleted: false
+      });
+
+      // --- KORJATTU LOGIIKKA PÄÄTTYY TÄHÄN ---
 
       // 4. Milestone-tarkistus (Vain roolien etsintätehtäville)
       if (log.mission_id && log.mission_id !== 'personal-objective' && xpConfig?.milestones) {
@@ -117,11 +144,11 @@ await supabase.from('live_posts').insert({
               mission_id: null 
             });
 
-            // Milestone-ilmoitus myös seinälle
+            // Milestone-ilmoitus myös seinälle (Käytetään tässäkin hahmon nimeä)
             await supabase.from('live_posts').insert({
               guest_id: log.guest_id,
               sender_name: "HQ / MISSION CONTROL",
-              content: `🎖️ AGENTTI ${log.guests?.name || 'Tuntematon'} SAAVUTTI TASON: ${milestone.label}! (+${bonusXP} XP)`,
+              content: `🎖️ AGENTTI ${agentName.toUpperCase()} SAAVUTTI TASON: ${milestone.label}! (+${bonusXP} XP)`,
               status: 'approved',
               type: 'announcement'
             });
@@ -157,6 +184,7 @@ await supabase.from('live_posts').insert({
           return (
             <div key={log.id} className="poll-card history-card" style={{borderColor:'#555'}}>
               <div className="poll-info">
+                {/* Admin näkee edelleen vieraan oikean nimen tässä kortissa tunnistamisen helpottamiseksi */}
                 <h3 style={{color:'gold'}}>AGENTTI: {log.guests?.name || 'Tuntematon'}</h3>
                 <p style={{color:'var(--turquoise)'}}>
                   TEHTÄVÄ: {missionTitle}

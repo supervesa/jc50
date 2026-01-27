@@ -86,7 +86,8 @@ const AgentPage = () => {
       </div>
 
       {/* OVERLAYT */}
-      {activeFlash && !flashResponseSent && (
+  {/* LISÄTTY && missionsOpen TÄHÄN ALLE: */}
+      {activeFlash && !flashResponseSent && missionsOpen && (
         <FlashMissionOverlay 
           activeFlash={activeFlash} 
           guestId={guestId}
