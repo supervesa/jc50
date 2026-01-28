@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import RelationList from './relationmanager/RelationList';
 import RelationForm from './relationmanager/RelationForm';
 import SplitManager from './relationmanager/SplitManager';
+import RelationMatrix from './relationmanager/RelationMatrix'; // UUSI: Import
 
 // Tyylit pääkonteinerille
 const styles = {
@@ -35,7 +36,7 @@ const styles = {
 
 function RelationManager({ characters = [] }) {
   // --- STATE ---
-  const [activeTab, setActiveTab] = useState('list'); // 'list', 'create', 'splits'
+  const [activeTab, setActiveTab] = useState('matrix'); // OLETUS: 'matrix' on nyt oletusnäkymä
   const [relationships, setRelationships] = useState([]);
   const [splits, setSplits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,8 +45,14 @@ function RelationManager({ characters = [] }) {
   const [editingRelation, setEditingRelation] = useState(null);
 
   // --- DATAN HAKU ---
-  const fetchData = async () => {
-    setLoading(true);
+  // Lisätään parametri: isBackgroundUpdate (oletus false)
+  const fetchData = async (isBackgroundUpdate = false) => {
+    
+    // TÄRKEÄ MUUTOS: Jos tämä on taustapäivitys, ÄLÄ aseta loading-tilaa
+    if (!isBackgroundUpdate) {
+      setLoading(true);
+    }
+
     try {
       const [relRes, splitRes] = await Promise.all([
         supabase.from('character_relationships').select('*'),
@@ -72,7 +79,6 @@ function RelationManager({ characters = [] }) {
   const handleEditClick = (rel) => {
     setEditingRelation(rel);
     setActiveTab('create'); // Siirry lomake-välilehdelle
-    // Scrollataan ylös mobiilissa
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -95,18 +101,28 @@ function RelationManager({ characters = [] }) {
 
       {/* --- TAB NAVIGATION --- */}
       <div style={styles.tabMenu}>
+        {/* UUSI: MATRIX TAB */}
+        <button 
+          style={styles.tabBtn(activeTab === 'matrix')} 
+          onClick={() => setActiveTab('matrix')}
+        >
+          🔮 MATRIX (GOD VIEW)
+        </button>
+
         <button 
           style={styles.tabBtn(activeTab === 'list')} 
           onClick={() => { setActiveTab('list'); setEditingRelation(null); }}
         >
           LISTAUS ({relationships.length})
         </button>
+        
         <button 
           style={styles.tabBtn(activeTab === 'create')} 
           onClick={() => setActiveTab('create')}
         >
           {editingRelation ? 'MUOKKAA YHTEYTTÄ' : 'LUO UUSI'}
         </button>
+        
         <button 
           style={styles.tabBtn(activeTab === 'splits')} 
           onClick={() => setActiveTab('splits')}
@@ -119,12 +135,23 @@ function RelationManager({ characters = [] }) {
       <div className="jc-tab-content">
         {loading && <div style={{ padding: '20px', color: '#888' }}>Ladataan...</div>}
 
+       {/* UUSI: MATRIX VIEW */}
+        {!loading && activeTab === 'matrix' && (
+          <RelationMatrix 
+            characters={characters}
+            relationships={relationships}
+            splits={splits}
+            // TÄRKEÄ MUUTOS: Kutsutaan fetchData(true), jolloin loading-ruutu ei välähdä
+            onUpdate={() => fetchData(true)} 
+          />
+        )}
+
         {!loading && activeTab === 'list' && (
           <RelationList 
             relationships={relationships} 
             characters={characters} 
             onEdit={handleEditClick}
-            onDelete={fetchData} // Päivitä poiston jälkeen
+            onDelete={fetchData} 
           />
         )}
 
