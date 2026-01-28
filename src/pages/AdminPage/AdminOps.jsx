@@ -18,10 +18,50 @@ const AdminOps = ({
   startFlash, 
   stopFlash   
 }) => {
-  // Seurataan mikä vaihe on päällä
+  // --- TILAT ---
   const [globalPhase, setGlobalPhase] = useState(null);
+  
+  // Tab-navigaatio: 'game' | 'admin' | 'vetting'
+  const [activeTab, setActiveTab] = useState('game');
+  
+  // Hyväksyntäjonon pituus (tieto tarvitaan tabin piilottamiseen/näyttämiseen)
+  const [pendingCount, setPendingCount] = useState(0);
 
-  // Haetaan ja kuunnellaan vaihetta
+  // --- EFFECT 1: JONON SEURANTA (VETTING WATCHER) ---
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      const { count, error } = await supabase
+        .from('mission_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('approval_status', 'pending');
+      
+      if (!error) {
+        setPendingCount(count || 0);
+      }
+    };
+
+    // Haetaan heti alussa
+    fetchPendingCount();
+
+    // Kuunnellaan muutoksia mission_log -taulussa
+    const sub = supabase.channel('ops_vetting_counter')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mission_log' }, () => {
+        fetchPendingCount();
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(sub);
+  }, []);
+
+  // --- EFFECT 2: AUTOMAATTINEN TABIN VAIHTO ---
+  // Jos jono tyhjenee ja olemme vetting-tabilla, palataan peli-tabille
+  useEffect(() => {
+    if (pendingCount === 0 && activeTab === 'vetting') {
+      setActiveTab('game');
+    }
+  }, [pendingCount, activeTab]);
+
+  // --- EFFECT 3: MAAILMAN TILA (PHASE) ---
   useEffect(() => {
     const fetchPhase = async () => {
       const { data } = await supabase
@@ -48,6 +88,8 @@ const AdminOps = ({
     return () => supabase.removeChannel(sub);
   }, []);
 
+  // --- TOIMINNOT ---
+
   const updateGlobalPhase = async (newPhase) => {
     if(!window.confirm(`⚠️ Olet vaihtamassa maailman tilaksi: ${newPhase}.\n\nOletko varma?`)) return;
     
@@ -64,7 +106,7 @@ const AdminOps = ({
     }
   };
 
-  const getBtnStyle = (phaseName, activeColor) => {
+  const getPhaseBtnStyle = (phaseName, activeColor) => {
     const isActive = globalPhase === phaseName;
     return {
       background: isActive ? activeColor : '#1a1a1a',
@@ -81,68 +123,151 @@ const AdminOps = ({
     };
   };
 
+  const getTabStyle = (tabName) => {
+    const isActive = activeTab === tabName;
+    
+    // Erikoistyyli Vetting-tabille
+    if (tabName === 'vetting') {
+      return {
+        padding: '12px 24px',
+        cursor: 'pointer',
+        background: isActive ? '#ff4444' : '#330000',
+        color: isActive ? '#fff' : '#ffaaaa',
+        border: 'none',
+        borderBottom: isActive ? '4px solid #fff' : 'none',
+        fontWeight: 'bold',
+        fontSize: '1rem',
+        animation: isActive ? 'none' : 'pulse 2s infinite' // Lisätään pieni huomioefekti CSS:llä jos halutaan
+      };
+    }
+
+    // Perustyyli muille
+    return {
+      padding: '12px 24px',
+      cursor: 'pointer',
+      background: isActive ? '#333' : 'transparent',
+      color: isActive ? '#fff' : '#888',
+      border: 'none',
+      borderBottom: isActive ? '4px solid #00d2ff' : 'none',
+      fontWeight: isActive ? 'bold' : 'normal',
+      fontSize: '1rem'
+    };
+  };
+
   return (
     <div className="admin-ops-container">
       
-      {/* 0. KOLMEN AALLON JULKAISU (PHASE CONTROL) */}
-      <div className="admin-panel" style={{borderColor: globalPhase === 'SHOWTIME' ? '#00ff00' : '#555', marginBottom: '20px'}}>
-        <h3 style={{marginTop: 0, color: '#fff'}}>🌍 MAAILMAN TILA (PHASE CONTROL)</h3>
-        <p style={{fontSize: '0.8rem', color: '#aaa', marginBottom: '15px'}}>
-           Nykyinen tila: <strong style={{color:'white', fontSize:'1rem'}}>{globalPhase || 'Ladataan...'}</strong>
-        </p>
+      {/* --- YLÄNAVIGAATIO (TABS) --- */}
+      <div style={{
+        display: 'flex', 
+        borderBottom: '1px solid #333', 
+        marginBottom: '20px', 
+        gap: '10px',
+        background: '#111',
+        padding: '0 10px'
+      }}>
         
-        <div style={{display:'flex', gap:'10px', flexWrap: 'wrap'}}>
-          {/* VAIHE 0 */}
-          <button 
-            style={getBtnStyle('EARLY_ACCESS', '#ccc')} 
-            onClick={() => updateGlobalPhase('EARLY_ACCESS')}
-          >
-            ⚪ 1. EARLY ACCESS<br/>
-            <span style={{fontSize:'0.7em'}}>Lippu & Kuvat auki</span>
-          </button>
+        <button 
+          onClick={() => setActiveTab('game')} 
+          style={getTabStyle('game')}
+        >
+          🎮 PELI
+        </button>
+        
+        <button 
+          onClick={() => setActiveTab('admin')} 
+          style={getTabStyle('admin')}
+        >
+          ⚙️ HALLINTA
+        </button>
 
-          {/* VAIHE 1 */}
+        {/* Näytetään JONO-tabi vain jos on jonoa */}
+        {pendingCount > 0 && (
           <button 
-            style={getBtnStyle('HYPE_WEEK', '#ffd700')} 
-            onClick={() => updateGlobalPhase('HYPE_WEEK')}
+            onClick={() => setActiveTab('vetting')} 
+            style={getTabStyle('vetting')}
           >
-            🟡 2. HYPE WEEK<br/>
-            <span style={{fontSize:'0.7em'}}>Chat auki</span>
+            🚨 JONO ({pendingCount})
           </button>
-
-          {/* VAIHE 2 */}
-          <button 
-            style={getBtnStyle('SHOWTIME', '#00ff00')} 
-            onClick={() => updateGlobalPhase('SHOWTIME')}
-          >
-            🟢 3. SHOWTIME<br/>
-            <span style={{fontSize:'0.7em'}}>PELI KÄYNNISSÄ</span>
-          </button>
-
-          {/* VAIHE 3 */}
-          <button 
-            style={getBtnStyle('ENDING', '#ff4444')} 
-            onClick={() => updateGlobalPhase('ENDING')}
-          >
-            🏁 4. ENDING<br/>
-            <span style={{fontSize:'0.7em'}}>Peli ohi</span>
-          </button>
-        </div>
+        )}
       </div>
 
-      <AdminScoring />
-      <VettingQueue />
-      
-      <FlashMissions 
-        activeFlash={activeFlash} 
-        flashCount={flashCount} 
-        startFlash={startFlash}
-        stopFlash={stopFlash}
-      />
+      {/* --- TAB 1: PELIN OPERAATIOT --- */}
+      {activeTab === 'game' && (
+        <div className="tab-content fade-in">
+          <FlashMissions 
+            activeFlash={activeFlash} 
+            flashCount={flashCount} 
+            startFlash={startFlash}
+            stopFlash={stopFlash}
+          />
+          
+          <FieldMissions missions={missions} />
+          
+          <ManualXP guests={guests} characters={characters} />
+        </div>
+      )}
 
-      <FieldMissions missions={missions} />
-      <ManualXP guests={guests} characters={characters} />
-      <AdminVault />
+      {/* --- TAB 2: HALLINTO & ASETUKSET --- */}
+      {activeTab === 'admin' && (
+        <div className="tab-content fade-in">
+          
+          {/* 1. MAAILMAN TILA (PHASE CONTROL) */}
+          <div className="admin-panel" style={{borderColor: globalPhase === 'SHOWTIME' ? '#00ff00' : '#555', marginBottom: '20px'}}>
+            <h3 style={{marginTop: 0, color: '#fff'}}>🌍 MAAILMAN TILA (PHASE CONTROL)</h3>
+            <p style={{fontSize: '0.8rem', color: '#aaa', marginBottom: '15px'}}>
+               Nykyinen tila: <strong style={{color:'white', fontSize:'1rem'}}>{globalPhase || 'Ladataan...'}</strong>
+            </p>
+            
+            <div style={{display:'flex', gap:'10px', flexWrap: 'wrap'}}>
+              <button 
+                style={getPhaseBtnStyle('EARLY_ACCESS', '#ccc')} 
+                onClick={() => updateGlobalPhase('EARLY_ACCESS')}
+              >
+                ⚪ 1. EARLY ACCESS<br/>
+                <span style={{fontSize:'0.7em'}}>Lippu & Kuvat auki</span>
+              </button>
+
+              <button 
+                style={getPhaseBtnStyle('HYPE_WEEK', '#ffd700')} 
+                onClick={() => updateGlobalPhase('HYPE_WEEK')}
+              >
+                🟡 2. HYPE WEEK<br/>
+                <span style={{fontSize:'0.7em'}}>Chat auki</span>
+              </button>
+
+              <button 
+                style={getPhaseBtnStyle('SHOWTIME', '#00ff00')} 
+                onClick={() => updateGlobalPhase('SHOWTIME')}
+              >
+                🟢 3. SHOWTIME<br/>
+                <span style={{fontSize:'0.7em'}}>PELI KÄYNNISSÄ</span>
+              </button>
+
+              <button 
+                style={getPhaseBtnStyle('ENDING', '#ff4444')} 
+                onClick={() => updateGlobalPhase('ENDING')}
+              >
+                🏁 4. ENDING<br/>
+                <span style={{fontSize:'0.7em'}}>Peli ohi</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 2. PISTEYTYS & ARKISTO */}
+          <AdminScoring />
+          <AdminVault />
+        </div>
+      )}
+
+      {/* --- TAB 3: HYVÄKSYNTÄJONO --- */}
+      {activeTab === 'vetting' && (
+        <div className="tab-content fade-in">
+           {/* Näytetään VettingQueue vain tällä tabilla */}
+           <VettingQueue />
+        </div>
+      )}
+
     </div>
   );
 };
