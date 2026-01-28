@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 
 // Apufunktio: Hash stringille (Pysyvä satunnaistaminen)
@@ -6,6 +6,21 @@ const stringHash = (str) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return hash;
+};
+
+// --- UUSI APUFUNKTIO RELAATIOILLE ---
+const getBadgeLabel = (type) => {
+  const labels = {
+    'spouse': 'PUOLISO',
+    'avec': 'SEURALAINEN',
+    'friend': 'YSTÄVÄ',
+    'neighbor': 'NAAPURI',
+    'relative': 'SUKULAINEN',
+    'business': 'LIIKETUTTAVA',
+    'enemy': 'KILPAILIJA',
+    'lover': 'RAKASTAJA'
+  };
+  return labels[type] || null;
 };
 
 export const useAgentData = (guestId) => {
@@ -17,6 +32,7 @@ export const useAgentData = (guestId) => {
   const [chatHistory, setChatHistory] = useState([]); 
   const [missions, setMissions] = useState([]);
   const [completedMissionIds, setCompletedMissionIds] = useState([]); 
+  const [relationships, setRelationships] = useState([]); // LISÄTTY
   
   // GAME STATE
   const [activePoll, setActivePoll] = useState(null);
@@ -26,13 +42,12 @@ export const useAgentData = (guestId) => {
   const [personalMissionStatus, setPersonalMissionStatus] = useState('none');
   const [isVaultActive, setIsVaultActive] = useState(false);
   const [rewardData, setRewardData] = useState(null);
+  const [shuffleSalt, setShuffleSalt] = useState(0); // LISÄTTY
 
   // --- 1. ERILLINEN SALAMATARKISTUS (KERROS 1 & 2 KÄYTTÄVÄT TÄTÄ) ---
-  // Siirretty omaksi funktioksi, jotta tätä voidaan kutsua milloin vain
   const checkFlashStatus = useCallback(async () => {
     if (!guestId) return;
 
-    // Haetaan aktiivinen flash
     const { data: flash } = await supabase
       .from('flash_missions')
       .select('*')
@@ -41,7 +56,6 @@ export const useAgentData = (guestId) => {
 
     if (flash) {
       setActiveFlash(flash);
-      // Tarkistetaan onko käyttäjä jo vastannut tähän
       const { data: response } = await supabase
         .from('flash_responses')
         .select('id')
@@ -58,7 +72,6 @@ export const useAgentData = (guestId) => {
   // --- 2. HERÄTYSLIIKE (KERROS 2: WINDOW FOCUS REVALIDATION) ---
   useEffect(() => {
     const handleRevalidation = () => {
-      // Kun sivu tulee näkyviin tai saa fokuksen (puhelin avataan), tarkista heti!
       if (document.visibilityState === 'visible') {
         checkFlashStatus();
       }
@@ -78,8 +91,8 @@ export const useAgentData = (guestId) => {
     if (!guestId) { setLoading(false); return; }
 
     const init = async () => {
-      // 1. Sanakirja
-      const { data: allChars } = await supabase.from('characters').select('assigned_guest_id, name, avatar_url');
+      // 1. Sanakirja (Päivitetty hakemaan myös ID relaatioita varten)
+      const { data: allChars } = await supabase.from('characters').select('id, assigned_guest_id, name, avatar_url');
       const charMap = {};
       if (allChars) allChars.forEach(c => {
         if (c.assigned_guest_id) {
@@ -87,7 +100,8 @@ export const useAgentData = (guestId) => {
              charMap[c.assigned_guest_id].name += ` & ${c.name}`;
              if(!charMap[c.assigned_guest_id].avatar) charMap[c.assigned_guest_id].avatar = c.avatar_url;
            } else {
-             charMap[c.assigned_guest_id] = { name: c.name, avatar: c.avatar_url };
+             // Tallennetaan myös char_id relaatiovertailua varten
+             charMap[c.assigned_guest_id] = { char_id: c.id, name: c.name, avatar: c.avatar_url };
            }
         }
       });
@@ -98,8 +112,10 @@ export const useAgentData = (guestId) => {
       const { data: myChars } = await supabase.from('characters').select('*').eq('assigned_guest_id', guestId);
 
       if (myChars && myChars.length > 0) {
+        const myCharId = myChars[0].id;
         setIdentity({
           id: guestId,
+          charId: myCharId, // LISÄTTY
           charName: myChars.map(c => c.name).join(' & '),
           realName: myGuest?.name,
           role: myChars[0].role,
@@ -108,9 +124,18 @@ export const useAgentData = (guestId) => {
           agentCode: myChars[0].agent_code,
           secretMission: myChars[0].secret_mission 
         });
+
+        // --- MUUTOS: Haetaan KAIKKI relaatiot verkostoanalyysia varten ---
+        const { data: rels } = await supabase
+          .from('character_relationships')
+          .select('*');
+        if (rels) setRelationships(rels);
+        // ----------------------------------
+
       } else {
         setIdentity({ 
           id: guestId,
+          charId: null,
           charName: null, 
           realName: myGuest?.name || 'Tuntematon', 
           role: 'Vieras', 
@@ -143,15 +168,13 @@ export const useAgentData = (guestId) => {
       const { data: settings } = await supabase.from('game_settings').select('value').eq('key', 'speakeasy_active').maybeSingle();
       if (settings) setIsVaultActive(settings.value);
 
-      // Kutsutaan Flash-tarkistusta myös alussa
       await checkFlashStatus();
-
       setLoading(false);
     };
 
     init();
 
-    // REALTIME SUBSCRIPTIONS (KERROS 1)
+    // REALTIME SUBSCRIPTIONS
     const subs = [
       supabase.channel('ag_chat').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
         const { data: sender } = await supabase.from('guests').select('name').eq('id', payload.new.guest_id).single();
@@ -162,9 +185,7 @@ export const useAgentData = (guestId) => {
         if (payload.new.status === 'active') { setActivePoll(payload.new); setHasVoted(false); } else { setActivePoll(null); }
       }).subscribe(),
       
-      // TÄMÄ ON SE TÄRKEIN: Kuunnellaan Flash-muutoksia reaaliajassa
       supabase.channel('ag_flash').on('postgres_changes', { event: '*', schema: 'public', table: 'flash_missions' }, (payload) => {
-         // Kun tietokanta muuttuu, tarkistetaan tilanne heti uudestaan
          checkFlashStatus();
       }).subscribe(),
       
@@ -202,7 +223,7 @@ export const useAgentData = (guestId) => {
     return () => subs.forEach(s => supabase.removeChannel(s));
   }, [guestId, checkFlashStatus]);
 
-  // ACTIONS (Samat kuin ennen, täydellisenä)
+  // ACTIONS
   const handleVote = async (index) => { 
     if (!activePoll || hasVoted) return; 
     setHasVoted(true); 
@@ -216,7 +237,6 @@ export const useAgentData = (guestId) => {
 
   const submitPersonalReport = async (reportText, imageUrl) => {
     try {
-      // 1. Mission Log (Pelaajan oma status)
       const { data: existingLog } = await supabase
         .from('mission_log')
         .select('id')
@@ -242,7 +262,6 @@ export const useAgentData = (guestId) => {
           });
       }
 
-      // 2. Live Posts (Adminin hyväksyntäjono)
       if (reportText || imageUrl) {
         const sender = identity?.charName || identity?.realName || 'Salainen Agentti';
         
@@ -299,14 +318,140 @@ export const useAgentData = (guestId) => {
     return true; 
   };
 
-  // --- NÄKYVÄT TEHTÄVÄT ---
-  const todoMissions = missions.filter(m => !completedMissionIds.includes(m.id));
+  // --- 4. SOCIAL GRAPH & DYNAMIC DECK LOGIIKKA (UUSI) ---
+  const visibleMissions = useMemo(() => {
+    if (!missions.length) return [];
+    
+    const myCharId = identity?.charId;
+    // Apukartta ID -> Nimi (verkoston näyttämistä varten)
+    // Luodaan characterMapista käänteinen haku tai etsitään suoraan
+    const getNameById = (id) => {
+      const entry = Object.values(characterMap).find(v => v.char_id === id);
+      return entry ? entry.name : 'Tuntematon';
+    };
 
-  const visibleMissions = [...todoMissions].sort((a, b) => {
-    if (!guestId) return 0; 
-    return stringHash(guestId + a.id) - stringHash(guestId + b.id);
-  }).slice(0, 3); 
+    // 1. Identifioidaan omat suorat kontaktit (Taso 1 ID:t)
+    const myDirectIds = new Set();
+    if (myCharId && relationships.length > 0) {
+      relationships.forEach(r => {
+        if (r.char1_id === myCharId) myDirectIds.add(r.char2_id);
+        if (r.char2_id === myCharId) myDirectIds.add(r.char1_id);
+      });
+    }
 
+  const todoMissions = missions.filter(m => 
+      !completedMissionIds.includes(m.id) && 
+      m.target_guest_id !== guestId // <--- TÄMÄ ESTÄÄ OMAN HAHMON NÄKYMISEN
+    );
+
+    // 2. Rikastetaan tehtävät datalla: Taso 1 (Suora), Taso 2 (Verkosto), Taso 3 (Random)
+    const enriched = todoMissions.map(m => {
+      let relationBadge = null;
+      let relationDesc = null;
+      let tier = 3; // Oletus: Random
+
+      if (myCharId && m.target_guest_id && characterMap[m.target_guest_id]) {
+        const targetCharId = characterMap[m.target_guest_id].char_id;
+        
+        // --- TASO 1: SUORA SUHDE ---
+        const directRel = relationships.find(r => 
+          (r.char1_id === myCharId && r.char2_id === targetCharId) || 
+          (r.char2_id === myCharId && r.char1_id === targetCharId)
+        );
+
+        if (directRel) {
+          tier = 1;
+          relationBadge = getBadgeLabel(directRel.relation_type);
+          relationDesc = directRel.description || null;
+        } else {
+          // --- TASO 2: VERKOSTO (Kaverin kaveri) ---
+          // Etsitään, onko joku MINUN suorista kontakteistani yhteydessä KOHTEESEEN
+          const networkRel = relationships.find(r => {
+            const isConnectedToTarget = (r.char1_id === targetCharId || r.char2_id === targetCharId);
+            if (!isConnectedToTarget) return false;
+
+            // Jos yhteys löytyi, tarkistetaan onko toinen osapuoli minun kaverini
+            const otherParty = (r.char1_id === targetCharId) ? r.char2_id : r.char1_id;
+            return myDirectIds.has(otherParty);
+          });
+
+          if (networkRel) {
+            tier = 2;
+            const mutualFriendId = (networkRel.char1_id === targetCharId) ? networkRel.char2_id : networkRel.char1_id;
+            const mutualFriendName = getNameById(mutualFriendId);
+            const relLabel = getBadgeLabel(networkRel.relation_type);
+            
+            relationBadge = "VERKOSTO";
+            relationDesc = `${mutualFriendName} tuntee hänet. (Suhde: ${relLabel})`;
+          }
+        }
+      }
+
+      return { ...m, tier, relationBadge, relationDesc };
+    });
+
+    // 3. Jaetaan pinot
+    const tier1 = enriched.filter(m => m.tier === 1); // Suorat
+    const tier2 = enriched.filter(m => m.tier === 2); // Verkosto
+    const tier3 = enriched.filter(m => m.tier === 3); // Randomit
+
+    // 4. "Dynaaminen pakka" -valintalogiikka (Slot System)
+    const selection = [];
+
+    // SLOT 1: Ensisijaisesti Taso 1. Kierrätetään suolalla.
+    if (tier1.length > 0) {
+      selection.push(tier1[shuffleSalt % tier1.length]);
+    } else if (tier2.length > 0) {
+      // Jos ei suoria, otetaan verkosto
+      selection.push(tier2[shuffleSalt % tier2.length]);
+    } else {
+      // Jos ei verkostoakaan, random
+      selection.push(tier3[shuffleHash(0, tier3.length)]); 
+    }
+
+    // SLOT 2: Ensisijaisesti Taso 2. Kierrätetään eri vaiheessa.
+    if (tier2.length > 0) {
+      // Varmistetaan ettei tule tuplaa, jos Slot 1 otti jo sieltä
+      const index = (shuffleSalt + 1) % tier2.length;
+      const candidate = tier2[index];
+      if (!selection.includes(candidate)) selection.push(candidate);
+      else if (tier3.length > 0) selection.push(tier3[shuffleHash(1, tier3.length)]);
+    } else if (tier1.length > 1) {
+      // Jos ei verkostoa, mutta on toinen suora suhde
+      const index = (shuffleSalt + 1) % tier1.length;
+      const candidate = tier1[index];
+      if (!selection.includes(candidate)) selection.push(candidate);
+      else if (tier3.length > 0) selection.push(tier3[shuffleHash(1, tier3.length)]);
+    } else if (tier3.length > 0) {
+      const candidate = tier3[shuffleHash(1, tier3.length)];
+      if (!selection.includes(candidate)) selection.push(candidate);
+    }
+
+    // SLOT 3: Aina Random (Taso 3), jotta pakka elää ja vaihtuu.
+    // Etsitään random, jota ei ole vielä valittu
+    const availableRandoms = tier3.filter(m => !selection.includes(m));
+    if (availableRandoms.length > 0) {
+      // Käytetään suolaa sekoittamaan randomit joka kerta
+      const index = stringHash(guestId + shuffleSalt) % availableRandoms.length; 
+      // Varmistetaan positiivinen indeksi
+      const safeIndex = Math.abs(index);
+      selection.push(availableRandoms[safeIndex]);
+    } else {
+      // Jos randomit loppu, täytetään mistä vain
+      const leftovers = enriched.filter(m => !selection.includes(m));
+      if (leftovers.length > 0) selection.push(leftovers[0]);
+    }
+
+    // Apufunktio random-indeksille
+    function shuffleHash(seed, max) {
+      if (max === 0) return 0;
+      return Math.abs(stringHash(guestId + seed + shuffleSalt)) % max;
+    }
+
+    return selection.slice(0, 3); // Palautetaan max 3
+  }, [missions, completedMissionIds, guestId, identity, relationships, characterMap, shuffleSalt]);
+
+  const refreshMissions = () => setShuffleSalt(prev => prev + 1);
   const nextMission = visibleMissions.length > 0 ? visibleMissions[0] : null;
 
   return {
@@ -331,6 +476,7 @@ export const useAgentData = (guestId) => {
     handleVote,
     handleSendChat,
     submitPersonalReport,
-    submitCode 
+    submitCode,
+    refreshMissions // LISÄTTY
   };
 };

@@ -68,6 +68,7 @@ const AgentPage = () => {
     handleSendChat, 
     submitPersonalReport, 
     submitCode,
+    refreshMissions, // LISÄTTY: Toiminto tehtävien päivittämiseen
   } = useAgentData(guestId);
 
   // 2. SISÄLLÖN VARTIJA (Content Guard)
@@ -187,6 +188,7 @@ const AgentPage = () => {
             secretMission={identity.secretMission}
             personalMissionStatus={personalMissionStatus}
             onPersonalReport={submitPersonalReport}
+            onRefresh={refreshMissions} // LISÄTTY: Mahdollistaa listan päivittämisen
           />
         )}
 
