@@ -6,7 +6,7 @@ import {
   BookOpen, Camera, Ghost, Star, UserMinus, LayoutDashboard,
   Target, Eye, Mail, MailCheck, MailWarning, ClockAlert, Info,
   MapPin, MousePointer2, Monitor, BarChart3, PieChart, Layers,
-  Signal, Radio, Timer, MousePointerClick
+  Signal, Radio, Timer, MousePointerClick, UserX, Plus, Trash2, ShieldCheck, ShieldAlert
 } from 'lucide-react';
 import './SentinelGuardian.css';
 
@@ -17,6 +17,33 @@ const SentinelGuardian = ({ guests }) => {
   const [loading, setLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [showTechDossier, setShowTechDossier] = useState(false);
+
+  // --- STEALTH CONTROL STATE ---
+  const HARDCODED_TEST_IDS = [
+    'f5b82d23-94a7-44ff-ab1c-1dbddd230f94',
+    'bad5c88e-9d0a-4f92-9b85-61f46cd83d92'
+  ];
+
+  const [ignoredIds, setIgnoredIds] = useState(() => {
+    const saved = localStorage.getItem('sentinel_stealth_ids');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return [...new Set([...HARDCODED_TEST_IDS, ...parsed])];
+    }
+    return HARDCODED_TEST_IDS;
+  });
+
+  const [activeExclusions, setActiveExclusions] = useState(() => {
+    const savedActive = localStorage.getItem('sentinel_active_exclusions');
+    return savedActive ? JSON.parse(savedActive) : HARDCODED_TEST_IDS;
+  });
+
+  const [newIdInput, setNewIdInput] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('sentinel_stealth_ids', JSON.stringify(ignoredIds.filter(id => !HARDCODED_TEST_IDS.includes(id))));
+    localStorage.setItem('sentinel_active_exclusions', JSON.stringify(activeExclusions));
+  }, [ignoredIds, activeExclusions]);
 
   useEffect(() => {
     fetchInitialData();
@@ -39,7 +66,36 @@ const SentinelGuardian = ({ guests }) => {
     setLoading(false);
   };
 
+  const handleAddId = () => {
+    if (!newIdInput) return;
+    const cleanId = newIdInput.trim();
+    if (!ignoredIds.includes(cleanId)) {
+      setIgnoredIds(prev => [...prev, cleanId]);
+      setActiveExclusions(prev => [...prev, cleanId]);
+    }
+    setNewIdInput('');
+  };
+
+  const toggleExclusion = (id) => {
+    setActiveExclusions(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const removeId = (id) => {
+    if (HARDCODED_TEST_IDS.includes(id)) return;
+    setIgnoredIds(prev => prev.filter(item => item !== id));
+    setActiveExclusions(prev => prev.filter(item => item !== id));
+  };
+
   const analysis = useMemo(() => {
+    const charToGuestMap = {};
+    characters.forEach(c => { if(c.assigned_guest_id) charToGuestMap[c.id] = c.assigned_guest_id; });
+
+    const filteredLogs = logs.filter(l => !activeExclusions.includes(l.guest_id));
+    const filteredEmailLogs = emailLogs.filter(e => !activeExclusions.includes(charToGuestMap[e.character_id]));
+    const filteredGuests = guests.filter(g => !activeExclusions.includes(g.id));
+
     const now = new Date();
     const agentMap = {};
     const stats = { 
@@ -53,16 +109,13 @@ const SentinelGuardian = ({ guests }) => {
     let totalInteractions = 0;
     const sessionIds = new Set();
 
-    const charToGuest = {};
-    characters.forEach(c => { if(c.assigned_guest_id) charToGuest[c.id] = c.assigned_guest_id; });
-
-    emailLogs.forEach(email => {
+    filteredEmailLogs.forEach(email => {
       stats.email.sent++;
       if (email.status !== 'sent') stats.email.errors++;
       stats.email.templates[email.template_name] = (stats.email.templates[email.template_name] || 0) + 1;
     });
 
-    logs.forEach(log => {
+    filteredLogs.forEach(log => {
       totalInteractions++;
       sessionIds.add(log.session_id);
 
@@ -78,7 +131,7 @@ const SentinelGuardian = ({ guests }) => {
       stats.referrers[ref] = (stats.referrers[ref] || 0) + 1;
 
       if (!agentMap[log.guest_id]) {
-        const guestInfo = guests.find(g => g.id === log.guest_id);
+        const guestInfo = filteredGuests.find(g => g.id === log.guest_id);
         agentMap[log.guest_id] = {
           id: log.guest_id,
           name: guestInfo ? guestInfo.name : 'Tuntematon Agentti',
@@ -101,7 +154,7 @@ const SentinelGuardian = ({ guests }) => {
     });
 
     const processedAgents = Object.values(agentMap).map(agent => {
-      agent.emails = emailLogs.filter(e => charToGuest[e.character_id] === agent.id);
+      agent.emails = filteredEmailLogs.filter(e => charToGuestMap[e.character_id] === agent.id);
       Object.values(agent.sessions).forEach(sessionLogs => {
         const sorted = [...sessionLogs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         sorted.forEach((log, i) => {
@@ -144,7 +197,6 @@ const SentinelGuardian = ({ guests }) => {
       return { ...agent, archetype, percentages, status };
     });
 
-    // LAAJENNETTU GLOBAALI TEKNIIKKA-INTEL LASKENTA
     const techDossier = {
       browsers: Object.entries(stats.browsers).sort((a,b) => b[1]-a[1]).slice(0, 3),
       os: Object.entries(stats.os).sort((a,b) => b[1]-a[1]).slice(0, 3),
@@ -154,17 +206,17 @@ const SentinelGuardian = ({ guests }) => {
       batteryCritical: processedAgents.filter(a => a.latest.battery_alert).length,
       wifiCount: processedAgents.filter(a => a.latest.connection_info?.type?.includes('wifi')).length,
       cellularCount: processedAgents.filter(a => ['4g', '5g', 'cellular'].some(t => a.latest.connection_info?.type?.toLowerCase().includes(t))).length,
-      visibleCount: logs.filter(l => l.interaction_point.includes('PULSE')).length, // Visibility API: Pulse lähetetään vain visible-tilassa
+      visibleCount: filteredLogs.filter(l => l.interaction_point.includes('PULSE')).length,
       sessionIntensity: (totalInteractions / (sessionIds.size || 1)).toFixed(1)
     };
 
-    const deadSignals = guests.filter(g => {
-      const hasEmail = emailLogs.some(e => charToGuest[e.character_id] === g.id);
-      const hasActivity = logs.some(l => l.guest_id === g.id);
+    const deadSignals = filteredGuests.filter(g => {
+      const hasEmail = filteredEmailLogs.some(e => charToGuestMap[e.character_id] === g.id);
+      const hasActivity = filteredLogs.some(l => l.guest_id === g.id);
       return hasEmail && !hasActivity;
     }).map(g => ({
       ...g,
-      emails: emailLogs.filter(e => charToGuest[e.character_id] === g.id)
+      emails: filteredEmailLogs.filter(e => charToGuestMap[e.character_id] === g.id)
     }));
 
     return { 
@@ -172,9 +224,11 @@ const SentinelGuardian = ({ guests }) => {
       stats, 
       techDossier,
       deadSignals,
+      filteredLogs,
+      filteredGuests,
       alerts: processedAgents.filter(a => a.latest.battery_alert).slice(0, 4) 
     };
-  }, [logs, emailLogs, characters, guests]);
+  }, [logs, emailLogs, characters, guests, activeExclusions]);
 
   if (loading) return <div className="sentinel-loading">Synkronoidaan HUD...</div>;
 
@@ -207,7 +261,7 @@ const SentinelGuardian = ({ guests }) => {
           <div className="sentinel-nudge-stats">
             <div className="nudge-row"><span>Sähköposteja:</span> <strong>{analysis.stats.email.sent}</strong></div>
             <div className="nudge-row"><span>Virheet:</span> <strong className="text-magenta">{analysis.stats.email.errors}</strong></div>
-            <div className="nudge-row"><span>Aktivointi:</span> <strong className="text-lime">{Math.round((analysis.agents.length / guests.length) * 100)}%</strong></div>
+            <div className="nudge-row"><span>Aktivointi:</span> <strong className="text-lime">{Math.round((analysis.agents.length / (analysis.filteredGuests.length || 1)) * 100)}%</strong></div>
           </div>
         </div>
         <div className="jc-card sentinel-card sentinel-dead-border">
@@ -236,7 +290,7 @@ const SentinelGuardian = ({ guests }) => {
             {Object.entries(analysis.stats.systems).map(([sys, val]) => (
               <div key={sys} className="sentinel-usage-row">
                 <span className="sentinel-mini-label">{sys}</span>
-                <div className="sentinel-bar-bg"><div className="sentinel-bar-fill" style={{ width: `${(val / logs.length) * 100}%` }}></div></div>
+                <div className="sentinel-bar-bg"><div className="sentinel-bar-fill" style={{ width: `${(val / (analysis.filteredLogs.length || 1)) * 100}%` }}></div></div>
               </div>
             ))}
           </div>
@@ -253,28 +307,39 @@ const SentinelGuardian = ({ guests }) => {
 
       {/* KERROS 4: PROFIILIT */}
       <div className="sentinel-card mt-2">
-        <div className="sentinel-card-header"><UserCheck size={20} /> <h3 className="sentinel-h3">Agenttien Profiilit</h3></div>
+        <div className="sentinel-card-header">
+          <UserCheck size={20} /> 
+          <h3 className="sentinel-h3">Agenttien Profiilit</h3>
+          {activeExclusions.length > 0 && <span style={{fontSize: '10px', color: 'var(--sun)', marginLeft: '10px'}}>STEALTH ACTIVE</span>}
+        </div>
         <div className="sentinel-agent-grid">
-          {analysis.agents.sort((a,b) => new Date(b.latest.created_at) - new Date(a.latest.created_at)).map(agent => (
-            <div key={agent.id} className="sentinel-behavior-card" onClick={() => setSelectedAgent(agent)}>
-              <div className="behavior-card-header">
-                <agent.archetype.icon size={18} style={{ color: agent.archetype.color }} />
-                <span className="agent-name">{agent.name}</span>
-                <div className="email-status-icons">
-                  {agent.emails.some(e => e.status === 'sent') && <MailCheck size={14} className="text-lime" />}
+          {analysis.agents.length > 0 ? (
+            analysis.agents.sort((a,b) => new Date(b.latest.created_at) - new Date(a.latest.created_at)).map(agent => (
+              <div key={agent.id} className="sentinel-behavior-card" onClick={() => setSelectedAgent(agent)}>
+                <div className="behavior-card-header">
+                  <agent.archetype.icon size={18} style={{ color: agent.archetype.color }} />
+                  <span className="agent-name">{agent.name}</span>
+                  <div className="email-status-icons">
+                    {agent.emails.some(e => e.status === 'sent') && <MailCheck size={14} className="text-lime" />}
+                  </div>
+                </div>
+                <div className="signal-mini-bar">
+                  <div className="sig-part nexus" style={{ width: `${agent.percentages.NEXUS}%` }}></div>
+                  <div className="sig-part photo" style={{ width: `${agent.percentages.PHOTO}%` }}></div>
+                  <div className="sig-part ticket" style={{ width: `${agent.percentages.TICKET}%` }}></div>
+                </div>
+                <div className="behavior-card-footer">
+                  <span className="arch-label">{agent.archetype.label}</span>
+                  <span className="time-label">{Math.floor(agent.totalTime / 60)} min</span>
                 </div>
               </div>
-              <div className="signal-mini-bar">
-                <div className="sig-part nexus" style={{ width: `${agent.percentages.NEXUS}%` }}></div>
-                <div className="sig-part photo" style={{ width: `${agent.percentages.PHOTO}%` }}></div>
-                <div className="sig-part ticket" style={{ width: `${agent.percentages.TICKET}%` }}></div>
-              </div>
-              <div className="behavior-card-footer">
-                <span className="arch-label">{agent.archetype.label}</span>
-                <span className="time-label">{Math.floor(agent.totalTime / 60)} min</span>
-              </div>
+            ))
+          ) : (
+            <div style={{padding: '40px', textAlign: 'center', gridColumn: '1/-1', opacity: 0.5}}>
+              <Ghost size={40} style={{marginBottom: '10px'}} />
+              <p>Ei aktiivisia agentteja suodattimen ulkopuolella.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -287,7 +352,7 @@ const SentinelGuardian = ({ guests }) => {
               <tr><th>Aika</th><th>Agentti</th><th>Toiminto</th></tr>
             </thead>
             <tbody>
-              {logs.slice(0, 30).map(log => (
+              {analysis.filteredLogs.slice(0, 30).map(log => (
                 <tr key={log.id}>
                   <td>{new Date(log.created_at).toLocaleTimeString()}</td>
                   <td>{guests.find(g => g.id === log.guest_id)?.name || '??'}</td>
@@ -352,7 +417,7 @@ const SentinelGuardian = ({ guests }) => {
         </div>
       )}
 
-      {/* MODAL 2: GLOBAALI TEKNIIKKA-INTEL (TÄYSI LAAJENNUS) */}
+      {/* MODAL 2: GLOBAALI TEKNIIKKA-INTEL */}
       {showTechDossier && (
         <div className="sentinel-dossier-overlay" onClick={() => setShowTechDossier(false)}>
           <div className="sentinel-dossier-card jc-card global-tech-card" onClick={e => e.stopPropagation()}>
@@ -360,7 +425,7 @@ const SentinelGuardian = ({ guests }) => {
               <Globe size={40} className="sentinel-icon-turquoise" />
               <div>
                 <h2 className="jc-h2">Global Technical Intel</h2>
-                <p className="archetype-title text-turquoise">Järjestelmän Telemetria ja Verkon Tila</p>
+                <p className="archetype-title text-turquoise">Järjestelmän Telemetria ja Stealth-hallinta</p>
               </div>
             </div>
 
@@ -372,7 +437,7 @@ const SentinelGuardian = ({ guests }) => {
                   <div className="stat-group">
                     <label>Top Selaimet</label>
                     {analysis.techDossier.browsers.map(([name, count]) => (
-                      <div key={name} className="stat-row"><span>{name}</span> <strong>{Math.round((count/logs.length)*100)}%</strong></div>
+                      <div key={name} className="stat-row"><span>{name}</span> <strong>{Math.round((count/(analysis.filteredLogs.length || 1))*100)}%</strong></div>
                     ))}
                   </div>
                   <div className="stat-group mt-1">
@@ -427,6 +492,42 @@ const SentinelGuardian = ({ guests }) => {
                     <span className="tel-value text-turquoise">Vakaa</span>
                     <small>Heartbeat-synkronointi OK</small>
                   </div>
+                </div>
+              </div>
+
+              {/* STEALTH CONTROL SECTION */}
+              <div className="tech-widget full-width" style={{borderTop: '1px solid rgba(255,180,0,0.2)', paddingTop: '15px', marginTop: '10px'}}>
+                <h4 className="dossier-h4"><ShieldAlert size={14} className="text-sun"/> Sentinel Stealth Control</h4>
+                <p style={{fontSize: '11px', opacity: 0.6, marginBottom: '10px'}}>Hallitse testi-ID:tä. Aktiiviset ID:t poistetaan tilastoista.</p>
+                
+                <div style={{display: 'flex', gap: '10px', marginBottom: '15px'}}>
+                  <input 
+                    type="text" 
+                    placeholder="Liitä uusi guest_id..." 
+                    value={newIdInput} 
+                    onChange={(e) => setNewIdInput(e.target.value)}
+                    style={{flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid #444', color: 'white', padding: '5px 10px', borderRadius: '4px'}}
+                  />
+                  <button onClick={handleAddId} style={{background: 'var(--sun)', color: 'black', border: 'none', padding: '5px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>Lisää</button>
+                </div>
+
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+                  {ignoredIds.map(id => (
+                    <div key={id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '4px', border: activeExclusions.includes(id) ? '1px solid rgba(255,180,0,0.3)' : '1px solid transparent'}}>
+                      <div style={{display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
+                        <span style={{fontSize: '10px', fontFamily: 'monospace', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{id}</span>
+                        {HARDCODED_TEST_IDS.includes(id) && <small style={{color: 'var(--sun)', fontSize: '9px'}}>SYSTEM</small>}
+                      </div>
+                      <div style={{display: 'flex', gap: '8px', marginLeft: '10px'}}>
+                        <button onClick={() => toggleExclusion(id)} style={{background: 'none', border: 'none', cursor: 'pointer'}}>
+                          {activeExclusions.includes(id) ? <ShieldCheck size={16} className="text-lime" /> : <ShieldAlert size={16} style={{opacity: 0.3}} />}
+                        </button>
+                        {!HARDCODED_TEST_IDS.includes(id) && (
+                          <button onClick={() => removeId(id)} style={{background: 'none', border: 'none', cursor: 'pointer', color: 'var(--magenta)'}}><Trash2 size={14}/></button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

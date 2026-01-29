@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useNexusLogic } from './useNexusLogic';
 import NexusGrid from './NexusGrid';
 import NexusModal from './NexusModal';
-import { RotateCcw, BookOpen, Lock } from 'lucide-react';
+import { RotateCcw, BookOpen, Lock, User } from 'lucide-react'; 
 import './nexus.css';
 
 // SENTINEL
@@ -50,8 +50,36 @@ const NexusPage = () => {
             {!focalChar.isLocked ? '● JULKINEN' : '● SALATTU'}
           </div>
           <div className="dossier-entry single-focal">
+            
             <div className="dossier-header-mini">
-              <img src={focalChar.avatar_url || "/api/placeholder/100/100"} alt="avatar" className="dossier-img" />
+              
+              {/* KORJATTU AVATAR / PLACEHOLDER */}
+              {focalChar.avatar_url ? (
+                <img 
+                  src={focalChar.avatar_url} 
+                  alt="avatar" 
+                  className="dossier-img" 
+                />
+              ) : (
+                /* Placeholder: Pakotetaan mitat ja kuvasuhde, jotta pysyy pyöreänä ja keskellä */
+                <div className="dossier-img" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  boxShadow: 'none',
+                  // TÄRKEÄT MITAT KESKITYKSEEN:
+                  width: '100px', 
+                  height: '100px',
+                  aspectRatio: '1/1',
+                  flexShrink: 0
+                }}>
+                  <User size={45} color="rgba(255,255,255,0.5)" />
+                </div>
+              )}
+
               <div className="dossier-meta">
                 <h3>{focalChar.character_name || focalChar.name}</h3>
                 <p className="status-note">
@@ -70,6 +98,7 @@ const NexusPage = () => {
                 )}
               </div>
             </div>
+
             <p className="dossier-teaser">
               {focalChar.isLocked 
                 ? "Tämän hahmon neuraalidata on vielä rajoitettua tai odottaa vahvistusta." 
@@ -83,7 +112,6 @@ const NexusPage = () => {
         <NexusGrid 
           neighbors={neighbors} 
           groupedOthers={groupedOthers} 
-          // UUSI PROP: Välitetään kertojan nimi (focalChar) gridille ja korteille
           focalCharName={focalChar ? (focalChar.character_name || focalChar.name).split(' ')[0] : 'Tuntematon'}
           onCardClick={(id) => {
             setCurrentFocusId(id);

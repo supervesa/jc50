@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileText, Info } from 'lucide-react';
+import { X, FileText, Info, User } from 'lucide-react'; // Lisätty User
 
 const NexusModal = ({ character, onClose, contextText }) => {
   if (!character) return null;
@@ -11,7 +11,25 @@ const NexusModal = ({ character, onClose, contextText }) => {
 
         <div className="nexus-modal-header">
           <div className="nexus-modal-avatar-wrapper">
-            <img src={character.avatar_url || "/api/placeholder/150/150"} alt={character.name} className="nexus-modal-avatar" />
+            {character.avatar_url ? (
+              <img 
+                src={character.avatar_url} 
+                alt={character.name} 
+                className="nexus-modal-avatar" 
+              />
+            ) : (
+              <div style={{
+                width: '100%', 
+                height: '100%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                background: 'rgba(0,0,0,0.5)',
+                borderRadius: '50%'
+              }}>
+                <User size={60} color="rgba(255,255,255,0.5)" />
+              </div>
+            )}
           </div>
           <h2 className="jc-h2">{character.character_name || character.name}</h2>
           <span className="subject-label">SUBJECT DOSSIER</span>
