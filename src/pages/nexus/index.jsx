@@ -83,6 +83,8 @@ const NexusPage = () => {
         <NexusGrid 
           neighbors={neighbors} 
           groupedOthers={groupedOthers} 
+          // UUSI PROP: Välitetään kertojan nimi (focalChar) gridille ja korteille
+          focalCharName={focalChar ? (focalChar.character_name || focalChar.name).split(' ')[0] : 'Tuntematon'}
           onCardClick={(id) => {
             setCurrentFocusId(id);
             trackInteraction('NEXUS_NEIGHBOR_CLICK', 'Operative Briefing');

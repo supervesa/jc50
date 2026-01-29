@@ -726,3 +726,33 @@
   opacity: 0.6;
 }
   */
+
+  /* Lisää nämä nexus.css tiedostoon */
+
+/* Animaatio kuplan "pop" efektille */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+/* Himmennetty tila passiivisille korteille */
+.nexus-card-stack.dimmed {
+  filter: grayscale(0.8);
+  /* Opacity on hoidettu inline-tyylillä reactissa */
+  pointer-events: none; /* Estää vahinkoklikkaukset himmennetyille */
+}
+
+/* Mobiili-optimointi kuplalle */
+@media (max-width: 480px) {
+  /* Varmistetaan että kupla mahtuu ruutuun jos kortti on reunassa */
+  .nexus-main-grid {
+    /* Lisää tilaa alas, jotta alimman rivin kuplat mahtuvat */
+    padding-bottom: 80px; 
+  }
+}

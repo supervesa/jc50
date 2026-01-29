@@ -57,7 +57,7 @@ export const useGameConfig = (guestId = null) => {
 
   // C. LOGIIKKA - Tässä oli virhe
   const isTester = accessData.role === 'tester' || accessData.role === 'admin';
-  const isBanned = accessData.is_banned;
+const isBanned = accessData?.is_banned === true || accessData?.is_banned === 'true';
   
   const PHASE_VALUES = { 
     'TICKET_ONLY': 0, 
