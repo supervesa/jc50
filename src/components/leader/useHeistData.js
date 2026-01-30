@@ -201,6 +201,8 @@ export const useHeistData = (myGuestId = null) => {
     totalLoot,
     globalHeat,
     tickerEvents,
+        active30Min,   // Tämä puuttui
+    activeEvening, // Tämä puuttui
     intelStats: {
       activeAgentCount, // <--- UUSI KENTTÄ
       secretFoundCount,

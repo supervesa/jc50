@@ -6,6 +6,7 @@ import AdminPolls from './AdminPolls';
 import AdminOps from './AdminOps';
 import AdminGuests from './AdminGuests';
 import AdminLiveWallControl from './AdminLiveWallControl';
+import TickerSwitch from './TickerSwitch';
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState('LIVEWALL');
@@ -49,12 +50,17 @@ const AdminPage = () => {
       {/* Kaikki vaihtuva sisältö laitetaan tähän diviin, joka osaa scrollata */}
       <div className="admin-content-scrollable">
         
-        {activeTab === 'LIVEWALL' && (
-          <AdminLiveWallControl 
-            liveState={liveState || { mode: 'FEED' }} 
-            setLiveMode={setLiveMode} 
-            setBroadcast={setBroadcast} 
-          />
+      {activeTab === 'LIVEWALL' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* UUSI: Tickerin hallinta heti ylhäällä */}
+            <TickerSwitch />
+            
+            <AdminLiveWallControl 
+              liveState={liveState || { mode: 'FEED' }} 
+              setLiveMode={setLiveMode} 
+              setBroadcast={setBroadcast} 
+            />
+          </div>
         )}
 
         {activeTab === 'POLLS' && (

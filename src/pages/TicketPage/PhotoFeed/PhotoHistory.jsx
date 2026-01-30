@@ -6,24 +6,29 @@ export function PhotoHistory({ photos, loading, onDelete, onShare, onDownload })
 
   if (!photos || (!loading && photos.length === 0)) return null;
 
-  // Lisätään vain tämä suodatus: haetaan vain rivit, joiden tyyppi on 'photo'
-  const onlyPhotos = photos.filter(photo => photo.type === 'photo');
+  // --- KORJAUS ---
+  // Suodatetaan tiukasti:
+  // 1. Tyypin pitää olla 'photo'
+  // 2. image_url EI SAA olla tyhjä tai null
+  const onlyPhotos = photos.filter(photo => 
+    photo.type === 'photo' && photo.image_url
+  );
 
-  // Jos kuvia ei ole suodatuksen jälkeen, ei näytetä mitään
+  // Jos tämän siivouksen jälkeen ei jää mitään, piilotetaan koko osio
   if (onlyPhotos.length === 0) return null;
 
   return (
     <div className="my-photos-section" style={{ 
       marginTop: '10px', 
-      maxWidth: '600px', // Estää ruudukkoa leviämästä liikaa desktopissa
-      margin: '0 auto'   // Keskittää osion
+      maxWidth: '600px', 
+      margin: '0 auto'   
     }}>
       
       <div className="photo-grid" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr',
         gap: '4px',
-        justifyContent: 'center' // Keskittää sarakkeet
+        justifyContent: 'center'
       }}>
         {onlyPhotos.map(photo => (
           <div key={photo.id} style={{
@@ -34,15 +39,13 @@ export function PhotoHistory({ photos, loading, onDelete, onShare, onDownload })
             overflow: 'hidden',
             cursor: 'pointer'
           }}>
-             {/* Kuvan klikkaus avaa modaalin */}
              <img 
                src={photo.image_url} 
-               alt="Intel" 
+               alt="Memory" 
                onClick={() => setViewPhoto(photo)}
                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
              />
              
-             {/* Pikatoiminnot kuvan päällä */}
              <div style={{
                position: 'absolute',
                bottom: 0,
@@ -68,7 +71,6 @@ export function PhotoHistory({ photos, loading, onDelete, onShare, onDownload })
         ))}
       </div>
 
-      {/* --- KEVYT MODAALI (LIGHTBOX) --- */}
       {viewPhoto && (
         <div 
           onClick={() => setViewPhoto(null)}

@@ -1,147 +1,225 @@
-/* KORTIN PERUSRAKENNE */
+/* PhotoCard.css - Neon Glass Edition (Final Polished & Adaptive) */
+
+/* --- 1. KORTIN RAKENNE & LASIEFEKTI --- */
 .jc-photo-card {
   position: absolute;
-  width: 650px; /* Hieman leveämpi 90-luvun "wide" look */
-  height: 550px;
+  
+  /* MUUTOS: Kortin leveys määräytyy sisällön (kuvan) mukaan */
+  width: auto; 
+  max-width: 90vw; /* Estetään ettei mene ulos ruudusta leveyssuunnassa */
+  min-width: 320px; /* Estetään ettei mene liian kapeaksi tekstille (mobile) */
+  
+  /* SÄILYTETTY TOIMIVA POSITIOINTI */
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  perspective: 1000px;
+  
   z-index: 10;
-  animation: cardEnter 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  perspective: 1000px;
+
+  /* Rakenne */
+  display: flex;
+  flex-direction: column;
+  overflow: visible; /* Sallii avatarin ja hehkujen mennä yli reunojen */
+  
+  /* --- FROSTED GLASS & NEON GLOW --- */
+  background: 
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.0) 100%),
+    rgba(5, 7, 10, 0.65); 
+  
+  backdrop-filter: blur(16px) saturate(180%) brightness(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.1);
+  
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  /* Syvä varjo */
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.8), 
+    inset 0 1px 0 rgba(255, 255, 255, 0.15), 
+    inset 0 0 20px rgba(255, 255, 255, 0.02);
+    
+  animation: cardEnter 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 
-/* VALOKUVAN KEHYS */
-.jc-photo-frame {
-  width: 100%;
-  height: 100%;
+/* Metallikehys overlay */
+.jc-metalStroke {
+  position: absolute; inset: 0; pointer-events: none; z-index: 6;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+}
+
+/* --- 2. KUVA-ALUE --- */
+.jc-card-image-wrapper {
+  /* MUUTOS: Wrapperi seuraa kuvan kokoa tiukasti */
+  width: auto;
+  height: auto;
+  
+  /* MUUTOS: Läpinäkyvä tausta, koska palkkeja ei enää tule */
+  background: transparent !important;
+  
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  
+  /* Flex pois, jotta wrapperi ei venytä tyhjää tilaa */
+  display: block; 
+  
   position: relative;
   overflow: hidden;
-  /* Valkoinen "paperireuna" */
-  border: 12px solid #fff; 
-  border-bottom-width: 30px; /* Polaroid-tyylinen paksumpi alareuna */
-  background: #000;
-  box-shadow: 0 40px 80px rgba(0,0,0,0.9);
-  transform: rotate(-1deg); /* Aavistuksen vino = orgaaninen */
+  box-shadow: none; /* Varjo siirtyy itse korttiin/kuvaan tarvittaessa */
 }
 
 .jc-photo-img {
+  display: block;
+  
+  /* MUUTOS: Kuva määrää koon luonnollisesti */
+  width: auto;
+  height: auto;
+  
+  /* Rajoitetaan korkeutta ettei mene katosta läpi, mutta annetaan tilaa */
+  max-height: 60vh; 
+  max-width: 100%;
+  
+  object-fit: contain;
+  margin: 0 auto; /* Keskitetään jos hyvin kapea */
+}
+
+/* --- 3. TIETOALUE (FOOTER) --- */
+.jc-card-footer {
+  background: transparent;
+  padding: 0 30px 25px 30px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  
+  position: relative;
+  z-index: 2;
+}
+
+/* --- 4. AVATAR (ISO & HEHKUVA) --- */
+.jc-footer-avatar {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  
+  /* OVERLAP: Nostetaan avatar puoliksi kuvan päälle */
+  margin-top: -50px; 
+  
+  position: relative;
+  z-index: 10;
+}
+
+.jc-avatar-clean {
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   object-fit: cover;
-  filter: contrast(1.1) saturate(1.1); /* Hieman ylikorostettu 90-luku */
+  border: 2px solid var(--turquoise, #00E7FF);
+  box-shadow: 0 0 15px var(--turquoise, #00E7FF);
+  background: #000;
 }
 
-.jc-scanlines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
-  opacity: 0.15;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.5) 3px,
-    rgba(0,0,0,0.5) 4px
-  );
-}
-
-/* RETRO PÄIVÄMÄÄRÄLEIMA */
-.jc-retro-timestamp {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  font-family: 'Courier New', Courier, monospace; /* Tai OCR fontti jos on */
-  font-weight: bold;
-  font-size: 1.5rem;
-  color: #ff4500; /* Kirkas oranssi */
-  text-shadow: 0 0 5px rgba(255, 69, 0, 0.8), 2px 2px 0px rgba(0,0,0,0.5);
-  z-index: 8;
-  letter-spacing: 2px;
-  opacity: 0.9;
-}
-
-/* DYMO-TEIPPI VIESTI */
-.jc-tape-message {
-  position: absolute;
-  bottom: 40px;
-  left: -10px; /* Menee hieman reunan yli */
+.jc-avatar-initial-clean {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   background: #111;
   color: #fff;
-  padding: 8px 25px;
-  transform: rotate(1deg);
-  box-shadow: 3px 3px 5px rgba(0,0,0,0.5);
-  z-index: 9;
-  max-width: 80%;
-}
-
-.tape-text {
-  font-family: sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  font-family: "Josefin Sans", sans-serif;
   font-weight: 700;
-  font-size: 1.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 2.5rem;
+  border: 2px solid var(--magenta, #FF00E5);
+  box-shadow: 0 0 15px var(--magenta, #FF00E5);
 }
 
-/* NEON BADGE (Nimi) */
-.jc-chrome-badge {
-  position: absolute;
-  bottom: -15px; /* Roikkuu kuvan alareunassa */
-  right: -20px;
-  background: rgba(10, 10, 15, 0.95);
-  border: 2px solid #00ff41; /* Neon vihreä */
-  border-left-width: 6px;
-  transform: skewX(-15deg);
-  padding: 0.8rem 2rem 0.8rem 1.5rem;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.6);
-  z-index: 12;
-  text-align: right;
-  min-width: 200px;
-  animation: badgeSlideIn 0.5s ease-out 0.2s forwards;
-  opacity: 0;
+/* Tupla-avatar */
+.jc-double-avatar-clean {
+  position: relative; width: 100%; height: 100%;
+}
+.jc-av-back {
+  position: absolute; top: 0; right: -5px; width: 70%; height: 70%;
+  border-radius: 50%; object-fit: cover; opacity: 0.8;
+  border: 1px solid var(--amethyst, #9932CC);
+}
+.jc-av-front {
+  position: absolute; bottom: 0; left: -5px; width: 70%; height: 70%;
+  border-radius: 50%; object-fit: cover; background: #000; z-index: 2;
+  border: 2px solid var(--turquoise, #00E7FF);
+  box-shadow: 0 0 10px rgba(0,231,255,0.5);
 }
 
-.jc-badge-name {
+/* --- 5. TEKSTIT (UPDATED) --- */
+.jc-footer-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  
+  /* SÄÄTÖ: 25px padding työntää tekstiä alemmas kuvasta */
+  padding-top: 25px; 
+}
+
+/* Nimi: Outfit Gradient Style */
+.jc-footer-name {
   margin: 0;
-  font-family: sans-serif;
-  font-size: 2rem;
-  font-weight: 900;
-  color: #fff;
-  text-transform: uppercase;
-  line-height: 1;
-  transform: skewX(15deg);
-  text-shadow: 2px 2px 0 #000;
+  border: none !important;
+  text-decoration: none !important;
+  
+  font-family: "Outfit", sans-serif;
+  font-weight: 800;
+  
+  /* Clamp koko */
+  font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+  
+  /* Tiukempi väli */
+  letter-spacing: 0.05em;
+  
+  /* Rivitys */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+
+  /* Gradientti */
+  background: linear-gradient(90deg, var(--plasma-gold, #D4AF37) 0%, var(--magenta, #FF00E5) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  
+  text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  margin-bottom: 0.5rem;
+  
+  position: relative;
+  z-index: 5;
 }
 
-/* AVATAR PALLO */
-.jc-avatar-orb {
-  position: absolute;
-  bottom: -25px;
-  left: -25px;
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  border: 3px solid #fff;
-  background: #000;
+/* Viesti */
+.jc-footer-message {
+  margin: 0;
+  font-family: "Outfit", sans-serif;
+  font-size: 1.05rem;
+  color: rgba(234, 251, 255, 0.85); /* Laser white */
+  line-height: 1.5;
+  
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-  z-index: 15;
+  text-overflow: ellipsis;
 }
 
-.jc-double-avatar { position: relative; width: 100%; height: 100%; }
-.jc-avatar-back { position: absolute; top: 5%; left: 5%; width: 65%; height: 65%; border-radius: 50%; object-fit: cover; filter: brightness(0.6); }
-.jc-avatar-front { position: absolute; bottom: 5%; right: 5%; width: 65%; height: 65%; border-radius: 50%; object-fit: cover; border: 2px solid #fff; z-index: 2; }
-.jc-avatar-single { width: 100%; height: 100%; object-fit: cover; }
-.jc-avatar-initial { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; color: #fff; }
-
-/* ANIMAATIOT */
-@keyframes badgeSlideIn {
-  from { opacity: 0; transform: skewX(-15deg) translateX(30px); }
-  to { opacity: 1; transform: skewX(-15deg) translateX(0); }
-}
-
+/* --- ANIMAATIOT --- */
 @keyframes cardEnter {
-  from { opacity: 0; transform: translate(-50%, 50%) scale(0.8) rotateZ(-5deg); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1) rotateZ(0); }
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, -45%) scale(0.9) rotateX(10deg); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) scale(1) rotateX(0); 
+  }
 }

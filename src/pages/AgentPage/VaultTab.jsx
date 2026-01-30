@@ -7,10 +7,14 @@ const VaultTab = ({ guestId, isGameActive }) => {
   const [inputCode, setInputCode] = useState('');
   const [errorAnim, setErrorAnim] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // UUSI: Tila agentin nimelle
+  const [agentName, setAgentName] = useState('Agentti'); 
 
   // ALUSTUS
   useEffect(() => {
     const init = async () => {
+      // 1. Tarkista onko jo avattu
       const { data: access } = await supabase
         .from('vault_access')
         .select('id')
@@ -19,8 +23,25 @@ const VaultTab = ({ guestId, isGameActive }) => {
       
       if (access) setUnlocked(true);
 
+      // 2. Hae vihjeet
       const { data: cluesData } = await supabase.from('vault_clues').select('*');
       if (cluesData) setClues(cluesData);
+
+      // 3. UUSI: Hae agentin nimi characters-taulusta
+      const { data: charData } = await supabase
+        .from('characters')
+        .select('name')
+        .eq('assigned_guest_id', guestId)
+        .maybeSingle();
+      
+      if (charData && charData.name) {
+        setAgentName(charData.name);
+      } else {
+        // Jos hahmoa ei löydy, kokeillaan hakea vieraan nimi tai pidetään oletus
+        const { data: guestData } = await supabase.from('guests').select('name').eq('id', guestId).maybeSingle();
+        if (guestData) setAgentName(guestData.name);
+      }
+
       setLoading(false);
     };
 
@@ -40,8 +61,33 @@ const VaultTab = ({ guestId, isGameActive }) => {
   // AVAA
   const handleUnlock = async () => {
     if (!myClue) return;
+    
     if (inputCode.trim().toUpperCase() === myClue.code.toUpperCase()) {
+      // 1. Tallenna avaus (Access)
       await supabase.from('vault_access').insert({ guest_id: guestId });
+      
+      // 2. Tallenna palkinto (XP)
+      await supabase.from('mission_log').insert({
+        guest_id: guestId,
+        xp_earned: 100,
+        custom_reason: '🔐 Salakapakka murrettu',
+        approval_status: 'approved',
+        mission_id: null
+      });
+
+      // 3. UUSI: Tallenna ilmoitus Tickeriin (live_posts)
+      // Ticker näyttää tämän kaikille juhlijoille
+      const announcementMsg = `${agentName} mursi salakapan suojauksen! (+100 XP)`;
+      
+      await supabase.from('live_posts').insert({
+        guest_id: guestId,
+        type: 'announcement',  // Tärkeä: Ticker lukee vain tätä tyyppiä
+        is_visible: true,
+        message: announcementMsg,
+        image_url: null
+      });
+
+      // 4. Päivitä UI
       setUnlocked(true);
       if (window.navigator?.vibrate) window.navigator.vibrate([100, 50, 100]);
     } else {
@@ -51,7 +97,7 @@ const VaultTab = ({ guestId, isGameActive }) => {
     }
   };
 
-  if (loading) return <div className="ap-loading">YHDISTETÄÄN MAINAINKIIN...</div>;
+  if (loading) return <div className="ap-loading">YHDISTETÄÄN MAINLINKIIN...</div>;
 
   // --- TILA A: LUKITTU (Ei vielä käynnistetty) ---
   if (!isGameActive && !unlocked) {
@@ -81,13 +127,10 @@ const VaultTab = ({ guestId, isGameActive }) => {
           
           <div className="secret-location-box">
             <strong>SIJAINTI:</strong><br/>
-            Kirjastohuoneen kirjahyllyn takana.
+            Allashuoneen peräpääty. Siellä on salaperäinen luukku...
           </div>
 
-          <div className="secret-code-display">
-            <span className="small">OVIKOODI:</span><br/>
-            7 - 4 - 2 - 1
-          </div>
+        
           
           <p className="whisper">"Tämä viesti tuhoutuu... ei koskaan. Mutta pidä se omana tietonasi."</p>
         </div>

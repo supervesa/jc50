@@ -41,6 +41,7 @@ const AdminScoring = () => {
       <h2 className="scoring-title">🏆 PISTEYTYKSEN HALLINTA</h2>
       <p className="scoring-subtitle">Muutokset päivittyvät välittömästi uusiin suorituksiin.</p>
 
+      {/* --- PELITEHTÄVÄT --- */}
       <div className="scoring-grid">
         <div className="scoring-group">
           <label>Henkilökohtainen tavoite (XP)</label>
@@ -57,7 +58,6 @@ const AdminScoring = () => {
           <input type="number" value={config.flash_mob} onChange={e => updateValue('flash_mob', e.target.value)} />
         </div>
 
-        {/* UUSI KENTTÄ: PHOTO */}
         <div className="scoring-group">
           <label>Flash Photo / FOTO (XP)</label>
           <input type="number" value={config.flash_photo || 200} onChange={e => updateValue('flash_photo', e.target.value)} />
@@ -69,6 +69,42 @@ const AdminScoring = () => {
         </div>
       </div>
 
+      {/* --- UUSI OSIO: SOSIAALISET --- */}
+      <hr className="scoring-divider" style={{margin: '20px 0', border: '0', borderTop: '1px solid #444'}} />
+      
+      <h3 style={{color: '#aaa', fontSize: '14px', marginBottom: '10px'}}>📱 SOSIAALISET & BONUS</h3>
+      <div className="scoring-grid">
+        <div className="scoring-group">
+          <label>Profiilikuva (XP)</label>
+          <input 
+            type="number" 
+            value={config.avatar_bonus || 150} 
+            onChange={e => updateValue('avatar_bonus', e.target.value)} 
+          />
+        </div>
+
+        <div className="scoring-group">
+          <label>Some-aktiivisuus (XP)</label>
+          <span className="input-hint">Paparazzi / Chat palkinto</span>
+          <input 
+            type="number" 
+            value={config.social_active || 10} 
+            onChange={e => updateValue('social_active', e.target.value)} 
+          />
+        </div>
+
+        <div className="scoring-group">
+          <label>Some-suosio / Hot (XP)</label>
+          <span className="input-hint">Trendsetter palkinto</span>
+          <input 
+            type="number" 
+            value={config.social_hot || 25} 
+            onChange={e => updateValue('social_hot', e.target.value)} 
+          />
+        </div>
+      </div>
+
+      {/* --- VIRSTANPYLVÄÄT --- */}
       <div className="milestone-section">
         <h3>🎖️ Virstanpylväät (Löydetyt agentit)</h3>
         {config.milestones.map((ms, index) => (
