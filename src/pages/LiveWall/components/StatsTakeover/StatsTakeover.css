@@ -28,20 +28,20 @@
 }
 
 /* =========================================
-   1. TOP BANNER (NEON GATSBY STYLE)
+   1. TOP BANNER (FORCED VERTICAL CENTER)
    ========================================= */
 
 .st-top-banner {
     width: 100%;
     height: 100px;
-    /* Lasimainen yläpalkki */
     background: rgba(18, 18, 24, 0.6); 
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    /* PAKOTETTU KESKITYS */
+    display: flex !important;
+    align-items: center !important; /* Tämä on se tärkein */
+    justify-content: space-between !important;
     padding: 0 4vw;
     position: relative;
     z-index: 10;
@@ -49,36 +49,55 @@
 
 /* Vasen: LIVE */
 .st-live-indicator {
-    display: flex; align-items: center;
+    display: flex !important; 
+    align-items: center !important;
+    height: 100% !important; /* Pakottaa saman korkeuden kuin parent */
+    
     font-family: 'Montserrat', sans-serif;
     font-weight: 700; font-size: 1.2rem; letter-spacing: 0.15em;
-    color: var(--magenta); /* Teeman väri */
+    color: var(--magenta);
     text-transform: uppercase;
     text-shadow: 0 0 10px rgba(255, 0, 229, 0.4);
+    
+    margin: 0 !important; padding: 0 !important;
 }
+
 .st-live-dot {
     width: 12px; height: 12px;
     background: var(--magenta);
     border-radius: 50%;
-    margin-right: 12px;
+    margin-right: 12px !important;
     box-shadow: 0 0 10px var(--magenta);
     animation: stPulseMagenta 1s infinite;
+    display: block !important;
 }
 
-/* Keski: OTSIKKO (Neon Tube Effect) */
+/* Keski: OTSIKKO */
 .st-main-title {
-    display: flex; flex-direction: column; align-items: center; line-height: 0.9;
+    display: flex !important; 
+    flex-direction: column !important; 
+    align-items: center !important; 
+    justify-content: center !important;
+    
+    /* Nollataan kaikki ulkoiset välit, jotka voisivat työntää sivuun */
+    margin: 0 !important; 
+    padding: 0 !important;
+    height: 100% !important;
 }
 
 .st-main-title h1 {
     font-family: 'Josefin Sans', sans-serif;
     font-size: 3.5rem; 
     font-weight: 700;
-    margin: 0;
     text-transform: uppercase;
     letter-spacing: -0.02em;
     
-    /* Neon Tube Effect kopioitu teemasta */
+    /* PAKOTETTU NOLLAUS - TÄMÄ KORJAA SENTTERÖINNIN */
+    margin: 0 !important; 
+    padding: 0 !important;
+    border: none !important;
+    line-height: 1 !important; /* Estää fonttia varaamasta tyhjää tilaa */
+    
     color: rgba(255, 255, 255, 0.05); 
     -webkit-text-stroke: 0;
     text-shadow: 
@@ -86,7 +105,7 @@
          1px -1px 0 rgba(255,255,255,0.5),
         -1px  1px 0 rgba(255,255,255,0.5),
          1px  1px 0 rgba(255,255,255,0.5),
-        0 0 20px rgba(0, 231, 255, 0.4),  /* Cyan glow */
+        0 0 20px rgba(0, 231, 255, 0.4),
         0 0 40px rgba(0, 231, 255, 0.2);
 }
 
@@ -95,15 +114,24 @@
     font-size: 0.9rem; font-weight: 600; letter-spacing: 0.4em;
     color: var(--turquoise);
     text-transform: uppercase;
-    margin-top: 5px;
+    
+    margin-top: 5px !important; 
+    margin-bottom: 0 !important;
+    line-height: 1 !important;
 }
 
 /* Oikea: KELLO */
 .st-clock {
+    display: flex !important;
+    align-items: center !important; /* Pystysuuntainen keskitys */
+    height: 100% !important;
+    
     font-family: 'Outfit', sans-serif;
     font-size: 1.8rem; font-weight: 300; 
     color: var(--cream);
     opacity: 0.8;
+    
+    margin: 0 !important; padding: 0 !important;
 }
 
 /* =========================================
@@ -146,83 +174,197 @@
 .st-panel-header svg { color: var(--turquoise); filter: drop-shadow(0 0 5px var(--turquoise)); }
 
 /* =========================================
-   SCREEN 0: STRATEGIC OVERVIEW
+   SCREEN 0: STRATEGIC OVERVIEW (FINAL FIX)
    ========================================= */
 
 .st-grid-screen-0 {
-    display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 3rem; align-items: center; height: 100%;
+    display: grid; 
+    grid-template-columns: 1fr 1.5fr 1fr; 
+    gap: 4rem; 
+    align-items: center; 
+    height: 100%;
+    padding: 20px;
 }
 
-/* Vasen sarake */
-.st-col-left { display: flex; flex-direction: column; gap: 4rem; text-align: left; }
-.st-stat-box { border-left: 4px solid var(--magenta); padding-left: 20px; }
+/* --- VASEN SARAKE --- */
+.st-col-left { display: flex; flex-direction: column; gap: 5rem; text-align: left; }
+.st-stat-box { border-left: 5px solid var(--magenta); padding-left: 25px; }
+/* (Pidä aiemmat fonttityylit st-label-xl yms. ennallaan jos ne toimivat) */
+.st-heat-display { font-family: 'Josefin Sans', sans-serif; font-size: 4rem; font-weight: 800; line-height: 1; text-shadow: 0 0 20px var(--magenta); }
+.st-big-number { font-family: 'Josefin Sans', sans-serif; font-size: 7rem; font-weight: 800; color: var(--cream); line-height: 0.9; text-shadow: 0 0 25px rgba(255, 255, 255, 0.3); }
+.st-sub-text { font-size: 1.1rem; color: var(--turquoise); font-weight: 600; letter-spacing: 0.05em; margin-top: 10px; }
 
-.st-label-xl { 
-    font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--muted); letter-spacing: 0.15em; 
-    margin-bottom: 5px; font-weight: 600; text-transform: uppercase;
-}
-.st-heat-display { font-family: 'Josefin Sans', sans-serif; font-size: 3rem; font-weight: 700; line-height: 1; }
-.st-big-number { font-family: 'Josefin Sans', sans-serif; font-size: 5.5rem; font-weight: 700; color: var(--cream); line-height: 0.9; }
-.st-sub-text { font-size: 1rem; color: var(--turquoise); font-weight: 600; letter-spacing: 0.05em; margin-top: 5px; }
 
-/* Keski sarake (Loot Circle) */
+/* --- KESKI SARAKE (COLORFUL RETURN) --- */
 .st-col-center { display: flex; justify-content: center; }
+
 .st-loot-circle {
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    /* Palautettu Magenta/Purppura väri taustaan ja varjoihin */
+    border: 3px solid rgba(255, 0, 229, 0.3); 
     border-radius: 50%;
-    width: 450px; height: 450px;
+    width: 550px; height: 550px; 
+    
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, rgba(0,0,0,0.4) 70%); /* Plasma Gold tint */
-    box-shadow: 0 0 60px rgba(212, 175, 55, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    
+    /* VÄRIKÄS TAUSTA: Keskellä kultainen, reunoilla purppura */
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, rgba(50, 0, 50, 0.6) 80%);
+    
+    /* VÄRIKÄS HEHKU */
+    box-shadow: 0 0 80px rgba(255, 0, 229, 0.25), inset 0 0 40px rgba(255, 0, 229, 0.1);
+    
     position: relative;
 }
-/* Koristeellinen ohut rengas */
+/* Koristerengas */
 .st-loot-circle::after {
-    content:''; position: absolute; inset: -10px; border-radius: 50%;
-    border: 1px dashed var(--plasma-gold); opacity: 0.3;
+    content:''; position: absolute; inset: -15px; border-radius: 50%;
+    border: 2px dashed var(--magenta); /* Magenta katkoviiva */
+    opacity: 0.5;
     animation: spinSlow 60s linear infinite;
 }
 
-.st-label-center { 
-    font-size: 1.1rem; letter-spacing: 0.3em; color: var(--plasma-gold); margin-bottom: 10px; font-weight: 600;
+.st-loot-content {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 15px; /* Estää tekstien päällekkäisyyden */
 }
+
+.st-label-center { 
+    font-size: 1.3rem; letter-spacing: 0.4em; 
+    color: var(--plasma-gold); /* Teksti edelleen kulta */
+    font-weight: 700; text-align: center; width: 90%;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
 .st-loot-number { 
     font-family: 'Josefin Sans', sans-serif;
-    font-size: 5.5rem; font-weight: 700; color: var(--cream); 
-    text-shadow: 0 0 30px rgba(212, 175, 55, 0.3); letter-spacing: -2px;
+    font-size: 7.5rem; 
+    font-weight: 800; 
+    color: var(--cream); 
+    /* Kontrastia: Valkoinen teksti, kultainen hehku */
+    text-shadow: 0 0 40px rgba(212, 175, 55, 0.6); 
+    letter-spacing: -3px;
+    line-height: 1;
 }
 
-/* Oikea sarake (Kingpin) */
-.st-col-right { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
-.st-kingpin-card {
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(0,0,0,0.3) 100%);
-    border: 1px solid var(--plasma-gold);
-    padding: 30px; border-radius: 16px;
-    width: 100%; display: flex; flex-direction: column; align-items: center;
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
+.st-loot-verified {
+    color: var(--magenta); /* "VARMISTETTU" magentalla */
+    letter-spacing: 4px; font-weight: 700; font-size: 1.1rem; 
+    text-transform: uppercase; margin-top: 5px;
+    text-shadow: 0 0 10px var(--magenta);
 }
+
+
+/* --- OIKEA SARAKE (Kingpin: CLEAN LAYOUT) --- */
+.st-col-right { 
+    display: flex; flex-direction: column; align-items: flex-end; text-align: right; 
+}
+
+.st-kingpin-card {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(0,0,0,0.8) 100%);
+    border: 2px solid var(--plasma-gold);
+    padding: 40px; 
+    border-radius: 20px;
+    width: 100%; 
+    
+    display: flex; flex-direction: column; align-items: center; 
+    text-align: center; 
+    position: relative; 
+    
+    box-shadow: 0 0 50px rgba(212, 175, 55, 0.15); 
+}
+
+/* 1. KYLTTI (Nyt ylhäällä, normaali asemointi) */
+.st-target-label {
+    background: var(--plasma-gold);
+    color: #000;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 1.1rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    
+    padding: 8px 25px;
+    border-radius: 4px;
+    
+    /* Ei negatiivisia marginaaleja! */
+    margin-bottom: 25px; /* Väli kuvaan */
+    
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+/* 2. KUVA (Keskellä) */
 .st-kingpin-avatar { 
-    width: 140px; height: 140px; border-radius: 50%; 
-    border: 3px solid var(--plasma-gold); margin-bottom: 20px; overflow: hidden; 
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+    width: 200px; height: 200px; 
+    border-radius: 50%; 
+    border: 4px solid var(--plasma-gold); 
+    
+    margin-bottom: 20px; /* Väli nimeen */
+    
+    overflow: hidden; 
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.4); 
+    flex-shrink: 0;
+    background: #000;
 }
 .st-kingpin-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.st-kingpin-name { font-family: 'Josefin Sans', sans-serif; font-size: 2rem; font-weight: 700; color: var(--cream); margin-bottom: 5px; text-transform: uppercase; }
-.st-kingpin-xp { font-size: 1.5rem; color: var(--plasma-gold); font-weight: 700; font-family: 'Outfit', monospace; }
+
+/* 3. NIMI JA XP (Alhaalla) */
+.st-kingpin-name { 
+    font-family: 'Josefin Sans', sans-serif; 
+    font-size: 3rem; 
+    font-weight: 800; 
+    color: var(--cream); 
+    margin-bottom: 10px; 
+    text-transform: uppercase; 
+    width: 100%; text-align: center; 
+    text-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
+    line-height: 1.1;
+}
+
+.st-kingpin-xp { 
+    font-size: 2rem; 
+    color: var(--plasma-gold); 
+    font-weight: 700; 
+    font-family: 'Outfit', monospace; 
+    width: 100%; text-align: center;
+    text-shadow: 0 0 15px var(--plasma-gold);
+}
 
 /* =========================================
-   SCREEN 1: MOST WANTED
+   SCREEN 1: MOST WANTED (1080p Full Height)
    ========================================= */
 
-.st-grid-screen-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; height: 100%; align-items: start; }
+.st-grid-screen-1 { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 4rem; 
+    height: 100%; 
+    align-items: stretch; /* Muutos: stretch varmistaa että sarakkeet ovat täyskorkeat */
+}
 
-.st-leaders-list { display: flex; flex-direction: column; gap: 15px; }
+/* Varmistetaan että paneeli toimii flex-säiliönä korkeussuunnassa */
+.st-leaders-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.st-leaders-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+    
+    /* --- DYNAAMINEN TÄYTTÖ --- */
+    flex: 1;          /* Täyttää kaiken tilan otsikon alla */
+    overflow: hidden; /* Piilottaa ne (esim. 9. agentti), jotka eivät mahdu ruutuun */
+    padding-bottom: 10px;
+    /* ------------------------- */
+}
+
 .st-leader-row {
     display: flex; align-items: center;
     background: rgba(255, 255, 255, 0.03);
     padding: 15px; border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0; /* Tärkeä: Estää riviä litistymästä kasaan */
 }
+
 .st-leader-row.rank-1 { border-color: var(--plasma-gold); background: rgba(212, 175, 55, 0.05); }
 .st-leader-row.rank-2 { border-color: #c0c0c0; }
 .st-leader-row.rank-3 { border-color: #cd7f32; }
@@ -230,110 +372,342 @@
 .st-rank { font-family: 'Josefin Sans', sans-serif; font-size: 1.8rem; font-weight: 700; width: 60px; color: var(--muted); }
 .rank-1 .st-rank { color: var(--plasma-gold); text-shadow: 0 0 10px var(--plasma-gold); }
 
-/* --- LEADER AVATAR FIX --- */
+/* --- LEADER AVATAR FIX (Pidetty ennallaan) --- */
 .st-leader-avatar-small { 
     width: 60px; height: 60px; 
     border-radius: 50%; 
     overflow: hidden; 
     margin-right: 20px; 
     border: 2px solid rgba(255,255,255,0.2); 
-    position: relative; /* FIX */
+    position: relative;
     background: #222;
+    flex-shrink: 0;
 }
 .st-leader-avatar-small img { 
     width: 100%; height: 100%; 
     object-fit: cover; 
-    position: absolute; /* FIX */
+    position: absolute;
     top: 0; left: 0;
-    z-index: 2; /* FIX */
+    z-index: 2;
 }
 .st-fallback-char-small {
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
     font-weight: bold; font-size: 1.2rem;
     color: rgba(255,255,255,0.5);
-    position: absolute; /* FIX */
+    position: absolute;
     top: 0; left: 0;
-    z-index: 1; /* FIX */
+    z-index: 1;
 }
 
 .st-leader-name { font-size: 1.2rem; font-weight: 600; text-transform: uppercase; color: var(--cream); }
 .st-leader-xp { font-size: 1.1rem; color: var(--turquoise); font-family: 'Outfit', monospace; font-weight: 600; }
 
-/* Rivals */
-.st-rivals-arena {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    flex: 1; background: radial-gradient(circle, rgba(255, 0, 229, 0.05) 0%, transparent 70%); /* Magenta glow */
-}
-.st-rival-card { text-align: center; z-index: 2; }
+/* =========================================
+   RIVALS ARENA (DRAMATIC UPGRADE)
+   ========================================= */
 
-/* --- RIVAL AVATAR FIX --- */
+/* Tausta: Syvempi ja kohdistetumpi "Spotlight" efekti */
+.st-rivals-arena {
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    flex: 1; 
+    /* Tummempi keskusta, joka korostaa valoisia avatareja */
+    background: radial-gradient(circle, rgba(255, 0, 229, 0.15) 0%, rgba(0,0,0,0.6) 80%);
+    position: relative;
+}
+
+/* Kilpailijakortti */
+.st-rival-card { 
+    text-align: center; 
+    z-index: 2; 
+    transition: transform 0.3s ease;
+}
+
+/* --- RIVAL AVATAR FIX (MASSIVE) --- */
 .st-rival-avatar {
-    width: 130px; height: 130px; 
+    /* KOKO: Nostettu 130px -> 180px 1080p-näytölle */
+    width: 180px; 
+    height: 180px; 
+    
     border-radius: 50%; 
-    border: 3px solid var(--cream);
-    margin: 0 auto 10px; 
+    /* Reunasta paksumpi ja kirkkaampi */
+    border: 4px solid var(--cream);
+    margin: 0 auto 15px; 
     overflow: hidden; 
-    box-shadow: 0 0 30px rgba(255,255,255,0.1);
-    position: relative; /* FIX */
+    
+    /* DRAMAATTINEN HEHKU: Kuin reaktori */
+    box-shadow: 0 0 50px rgba(255, 0, 229, 0.4), inset 0 0 20px rgba(0,0,0,0.5);
+    
+    position: relative; 
     background: #222;
 }
+
+/* Pieni "hengitys" animaatio avatareille */
+@keyframes pulse-rival {
+    0% { transform: scale(1); box-shadow: 0 0 50px rgba(255, 0, 229, 0.4); }
+    50% { transform: scale(1.02); box-shadow: 0 0 70px rgba(255, 0, 229, 0.6); }
+    100% { transform: scale(1); box-shadow: 0 0 50px rgba(255, 0, 229, 0.4); }
+}
+.st-rival-avatar { animation: pulse-rival 4s infinite ease-in-out; }
+
 .st-rival-avatar img { 
     width: 100%; height: 100%; 
     object-fit: cover; 
-    position: absolute; /* FIX */
+    position: absolute; 
     top: 0; left: 0;
-    z-index: 2; /* FIX */
+    z-index: 2;
 }
 
-.st-rival-name { font-family: 'Josefin Sans', sans-serif; font-size: 1.8rem; font-weight: 700; text-transform: uppercase; color: var(--cream); }
-.st-rival-xp { font-size: 1.3rem; color: var(--muted); font-family: monospace; }
+/* Nimet: Isommat ja leveämmät */
+.st-rival-name { 
+    font-family: 'Josefin Sans', sans-serif; 
+    font-size: 2.2rem; /* 1.8 -> 2.2 */
+    font-weight: 800; 
+    text-transform: uppercase; 
+    color: var(--cream); 
+    letter-spacing: 2px; /* Lisää elokuvamaisuutta */
+    text-shadow: 0 4px 10px rgba(0,0,0,0.8);
+    margin-bottom: 5px;
+}
 
+.st-rival-xp { 
+    font-size: 1.5rem; 
+    color: var(--plasma-gold); /* Vaihdettu muted -> gold korostamaan panoksia */
+    font-family: 'Outfit', monospace; 
+    font-weight: 600;
+}
+
+/* --- VS BADGE (AGGRESSIVE) --- */
 .st-vs-badge {
     font-family: 'Josefin Sans', sans-serif;
-    font-size: 4rem; font-weight: 700; color: var(--magenta);
-    margin: 15px 0; line-height: 0.8; font-style: italic;
-    text-shadow: 0 0 20px var(--magenta);
+    font-size: 6rem; /* 4rem -> 6rem */
+    font-weight: 900; 
+    color: var(--magenta);
+    
+    margin: 10px 0; 
+    line-height: 0.8; 
+    font-style: italic;
+    
+    /* Aggressiivinen vino kulma ja hehku */
+    transform: skew(-10deg);
+ 
+    z-index: 10;
 }
-.st-gap-info { font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--cream); background: var(--magenta); padding: 4px 15px; border-radius: 4px; font-style: normal; margin-top: 5px; box-shadow: 0 0 15px var(--magenta); }
-.st-placeholder { font-style: italic; color: var(--muted); text-align: center; margin-top: 50px; font-weight: 300; }
 
+/* Erotus (GAP) - Kuin varoituskyltti */
+.st-gap-info { 
+    font-family: 'Outfit', sans-serif; 
+    font-size: 1.2rem; 
+    font-weight: 700;
+    text-transform: uppercase;
+    
+    color: #000; /* Musta teksti kirkkaalla taustalla on luettavampi */
+    background: var(--magenta); 
+    
+    padding: 6px 20px; 
+    border-radius: 2px; /* Terävämpi kulma */
+    font-style: normal; 
+    margin-top: 10px; 
+    
+    box-shadow: 0 0 25px var(--magenta);
+    border: 1px solid rgba(255,255,255,0.4);
+    transform: skew(-10deg); /* Sama tyyli kuin VS */
+}
+
+.st-placeholder { 
+    font-style: italic; 
+    color: rgba(255,255,255,0.3); 
+    text-align: center; 
+    margin-top: 50px; 
+    font-weight: 300; 
+    font-size: 1.5rem;
+}
 /* =========================================
-   SCREEN 2: INTEL
+   SCREEN 2: INTEL (CYBER-UPGRADE)
    ========================================= */
 
-.st-grid-screen-2 { display: flex; flex-direction: column; gap: 2rem; height: 100%; }
+.st-grid-screen-2 { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 2rem; 
+    height: 100%; 
+    padding: 10px; /* Pieni padding reunojen turvaksi */
+}
 
+/* --- THE VAULT (SYSTEM STATUS) --- */
 .st-vault-section {
-    background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 30px; border-radius: var(--card-radius); display: flex; flex-direction: column; align-items: center;
+    background: rgba(0, 0, 0, 0.4); /* Tummempi tausta jotta hehku erottuu */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 40px; 
+    border-radius: 16px; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center;
+    
+    /* Subtle pulsing border */
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(var(--lime-rgb), 0.1);
+    position: relative;
+    overflow: hidden;
 }
-.st-vault-status { font-family: 'Josefin Sans', sans-serif; font-size: 3rem; font-weight: 700; color: var(--cream); margin-bottom: 20px; letter-spacing: 2px; }
-.st-vault-bar-bg { width: 100%; height: 24px; background: rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+
+/* Teksti: Iso, eroteltu */
+.st-vault-status { 
+    font-family: 'Josefin Sans', sans-serif; 
+    font-size: 3.5rem; 
+    font-weight: 800; 
+    color: var(--cream); 
+    margin-bottom: 25px; 
+    letter-spacing: 4px; 
+    text-transform: uppercase;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+/* Palkin tausta: "Tyhjä putki" */
+.st-vault-bar-bg { 
+    width: 100%; 
+    height: 30px; /* Hieman paksumpi */
+    background: rgba(0,0,0,0.8); 
+    border-radius: 15px; 
+    overflow: hidden; 
+    border: 1px solid rgba(255,255,255,0.2); 
+    box-shadow: inset 0 0 10px #000;
+}
+
+/* Animaatio raidoille */
+@keyframes plasma-flow {
+    0% { background-position: 0 0; }
+    100% { background-position: 50px 50px; }
+}
+
+/* Palkin täyttö: Liikkuva vaara/lataus -raidoitus */
 .st-vault-bar-fill {
-    height: 100%; background: linear-gradient(90deg, var(--lime), var(--turquoise));
-    box-shadow: 0 0 20px var(--lime); transition: width 1s ease-in-out;
+    height: 100%; 
+    
+    /* Liikkuva raidallinen gradientti */
+    background: repeating-linear-gradient(
+        45deg,
+        var(--lime),
+        var(--lime) 15px,
+        #ccff00 15px, /* Kirkkaampi vihreä raita */
+        #ccff00 30px
+    );
+    background-size: 200% 200%;
+    animation: plasma-flow 2s linear infinite; /* Palkki "elää" */
+
+    box-shadow: 0 0 30px var(--lime); 
+    transition: width 1s cubic-bezier(0.22, 1, 0.36, 1); /* Joustava liike */
 }
-.st-vault-percent { font-size: 1.8rem; font-weight: 700; margin-top: 10px; color: var(--lime); text-shadow: 0 0 10px var(--lime); }
 
-.st-bottom-split { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; flex: 1; }
+.st-vault-percent { 
+    font-size: 2.2rem; 
+    font-weight: 700; 
+    margin-top: 15px; 
+    color: var(--lime); 
+    text-shadow: 0 0 20px var(--lime); 
+    font-family: 'Outfit', monospace;
+}
 
-.st-intel-box { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-.st-intel-big-num { font-family: 'Josefin Sans', sans-serif; font-size: 6rem; font-weight: 700; color: var(--amethyst); line-height: 1; text-shadow: 0 0 20px var(--amethyst); }
-.st-intel-label-small { font-size: 1rem; font-weight: 600; letter-spacing: 0.2em; color: var(--muted); margin-top: 10px; text-transform: uppercase; }
+/* --- ALANELJÄNNEKSET --- */
+.st-bottom-split { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 3rem; 
+    flex: 1; 
+}
 
-.st-rising-list { display: flex; flex-direction: column; gap: 15px; width: 100%; }
+/* --- INTELLIGENCE DATA BOX --- */
+.st-intel-box { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    height: 100%; 
+    background: radial-gradient(circle, rgba(155, 77, 202, 0.1) 0%, transparent 70%); /* Amethyst glow */
+    border-radius: 16px;
+    border: 1px solid rgba(155, 77, 202, 0.2);
+}
+
+.st-intel-big-num { 
+    font-family: 'Josefin Sans', sans-serif; 
+    font-size: 8rem; /* Massiivinen koko 1080p:lle */
+    font-weight: 800; 
+    color: var(--amethyst); 
+    line-height: 0.9; 
+    
+    /* Neon glow effect */
+    text-shadow: 
+        0 0 10px rgba(155, 77, 202, 0.8),
+        0 0 40px rgba(155, 77, 202, 0.4);
+}
+
+.st-intel-label-small { 
+    font-size: 1.2rem; 
+    font-weight: 700; 
+    letter-spacing: 0.3em; 
+    color: rgba(255,255,255,0.7); 
+    margin-top: 15px; 
+    text-transform: uppercase; 
+    border-top: 1px solid var(--amethyst);
+    padding-top: 10px;
+}
+
+/* --- RISING STARS (Ticker Style) --- */
+.st-rising-list { 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; /* Keskitetään pystysuunnassa */
+    gap: 10px; 
+    width: 100%; 
+    height: 100%;
+}
+
 .st-rising-row {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.1); padding: 10px 0;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    
+    /* "Terminal" look */
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid transparent; /* Oletusreuna */
+    border-bottom: 1px solid rgba(255,255,255,0.05); 
+    padding: 15px 20px;
+    transition: all 0.3s ease;
 }
-.st-rising-name { font-size: 1.3rem; font-weight: 600; color: var(--cream); }
-.st-rising-gain { font-size: 1.3rem; font-weight: 700; color: var(--sun); text-shadow: 0 0 10px rgba(255, 165, 0, 0.4); }
 
-/* --- HELPERS --- */
-@keyframes stPulseMagenta { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-@keyframes spinSlow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-/* ... (Kaikki aiemmat tyylit säilyvät) ... */
+/* Korostus hoverissa tai jatkuvasti */
+.st-rising-row:hover, .st-rising-row:first-child {
+    background: rgba(255, 165, 0, 0.05); /* Sun color hint */
+    border-left: 3px solid var(--sun);
+    padding-left: 25px; /* Pieni liike oikealle */
+}
+
+.st-rising-name { 
+    font-size: 1.4rem; 
+    font-weight: 600; 
+    color: var(--cream); 
+    letter-spacing: 1px;
+}
+
+.st-rising-gain { 
+    font-size: 1.4rem; 
+    font-weight: 700; 
+    color: var(--sun); 
+    font-family: 'Outfit', monospace;
+    text-shadow: 0 0 15px rgba(255, 165, 0, 0.6); 
+    
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+/* Lisätään pieni nuoli CSS:llä jos halutaan, tai pidetään simppelinä */
+.st-rising-gain::before {
+    content: "▲";
+    font-size: 0.8em;
+    opacity: 0.8;
+}
 
 /* =========================================
    NEW SCREEN 0: THE HEIST REACTOR

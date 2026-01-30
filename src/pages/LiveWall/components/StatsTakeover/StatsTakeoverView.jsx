@@ -86,7 +86,7 @@ const StatsTakeoverView = ({
       {/* 2. PÄÄSISÄLTÖ */}
       <div className="st-main-content">
         
-        {/* === SIVU 0: THE HEIST REACTOR === */}
+       {/* === SIVU 0: STRATEGIC OVERVIEW === */}
         {screenIndex === 0 && (
           <div className="st-grid-screen-0 fadeIn">
             
@@ -115,46 +115,42 @@ const StatsTakeoverView = ({
                </div>
             </div>
 
-            {/* KESKI: HEIST REACTOR */}
+          {/* KESKI: HEIST REACTOR (Animoitu) */}
             <div className="st-col-center">
-                <div className="st-reactor-container">
+                <div className="st-loot-circle">
+                    {/* === RENKAAT OVAT TÄSSÄ === */}
                     <div className="st-reactor-ring ring-outer"></div>
                     <div className="st-reactor-ring ring-mid"></div>
                     <div className="st-reactor-ring ring-inner"></div>
+                    
+                    {/* Sisältö pysyy päällä */}
                     <div className="st-loot-content">
-                        <div className="st-label-center">KOKONAISSAALIS</div>
-                        <div className="st-loot-number">${safeLoot.toLocaleString('fi-FI')}</div>
-                        <div style={{color:'var(--plasma-gold)', marginTop:'10px', letterSpacing:'2px', fontWeight:'bold'}}>
-                            VARMISTETTU
-                        </div>
+                        <div className="st-label-center">KOKONAISPOTTI AGENTEILLA</div>
+                        <div className="st-loot-number">{safeLoot.toLocaleString('fi-FI')} XP</div>
+                        <div className="st-loot-verified">VARMISTETTU</div>
                     </div>
                 </div>
             </div>
-
-            {/* OIKEA: KINGPIN */}
+            {/* OIKEA: KINGPIN (Uusi järjestys) */}
             <div className="st-col-right">
-                <div className="st-label-xl" style={{color:'var(--plasma-gold)'}}>KOHDE LUKITTU</div>
+                <div className="st-label-xl" style={{color:'var(--plasma-gold)', textAlign:'center', width:'100%'}}>KOHDE LUKITTU</div>
                 {safeAgents[0] && (
                     <div className="st-kingpin-card">
-                        <div className="st-target-wrapper">
-                            <div className="st-crosshair ch-tl"></div>
-                            <div className="st-crosshair ch-tr"></div>
-                            <div className="st-crosshair ch-bl"></div>
-                            <div className="st-crosshair ch-br"></div>
-                            
-                            <div className="st-target-avatar">
-                                <img 
-                                  src={getAvatarSrc(safeAgents[0])} 
-                                  alt={safeAgents[0].name}
-                                  onError={handleImgError}
-                                />
-                                <div className="st-fallback-char">{safeAgents[0].name ? safeAgents[0].name.charAt(0) : '?'}</div>
-                            </div>
-                            <div className="st-scan-line"></div>
+                        
+                        {/* 1. Kyltti on nyt ylhäällä omassa rauhassa */}
+                        <div className="st-target-label">NYKYINEN JOHTAJA</div>
+                        
+                        {/* 2. Kuva tulee vasta sen jälkeen */}
+                        <div className="st-kingpin-avatar">
+                            <img 
+                                src={getAvatarSrc(safeAgents[0])} 
+                                alt={safeAgents[0].name}
+                                onError={handleImgError}
+                            />
                         </div>
 
-                        <div className="st-target-label">NYKYINEN JOHTAJA</div>
-                        <div className="st-kingpin-name" style={{marginTop:'15px'}}>{safeAgents[0].name}</div>
+                        {/* 3. Tiedot */}
+                        <div className="st-kingpin-name">{safeAgents[0].name}</div>
                         <div className="st-kingpin-xp">{safeAgents[0].xp} XP</div>
                     </div>
                 )}
@@ -166,11 +162,12 @@ const StatsTakeoverView = ({
         {screenIndex === 1 && (
           <div className="st-grid-screen-1 fadeIn">
             
-            {/* VASEN: TOP 5 */}
+            {/* VASEN: LEADERBOARD */}
             <div className="st-panel st-leaders-panel">
-                <div className="st-panel-header"><Trophy /> TOP 5 AGENTIT</div>
+                <div className="st-panel-header"><Trophy /> KÄRKIAGENTIT</div>
                 <div className="st-leaders-list">
-                    {safeAgents.slice(0, 5).map((agent, i) => (
+                    {/* TOP 8 täyttää 1080p-ruudun pystytilan paremmin kuin 5 */}
+                    {safeAgents.slice(0, 8).map((agent, i) => (
                     <div key={agent?.id || i} className={`st-leader-row rank-${i+1}`}>
                         <div className="st-rank">#{i+1}</div>
                         <div className="st-leader-avatar-small">
